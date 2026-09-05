@@ -1,0 +1,2411 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Super Admin Dashboard | VAVA Sports Academy</title>
+  <meta name="description"
+    content="Central management dashboard for VAVA Sports Academy - Multi-branch operations, attendance, payments, and coach tracking.">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2310b981'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+
+<body>
+  <div class="dashboard-layout">
+
+    <!-- Sidebar Navigation -->
+    <aside class="app-sidebar" id="appSidebar">
+      <div>
+        <div class="sidebar-header">
+          <a href="dashboard.html" class="brand-logo">
+            <div class="brand-icon">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round" />
+                <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round" />
+                <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round" />
+              </svg>
+            </div>
+            <div class="brand-text">VAVA <span>SPORTS</span></div>
+          </a>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Main Navigation">
+          <div class="nav-section-title">Core Operations</div>
+
+          <a href="#overview" class="nav-link active" id="nav-overview">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+            </span>
+            <span>Dashboard Overview</span>
+          </a>
+
+          <a href="#attendance" class="nav-link" id="nav-attendance">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 11l3 3L22 4"></path>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+              </svg>
+            </span>
+            <span>Daily Attendance</span>
+            <span class="nav-badge badge-primary">Live</span>
+          </a>
+
+          <a href="#fees" class="nav-link" id="nav-fees">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                <line x1="2" y1="10" x2="22" y2="10"></line>
+              </svg>
+            </span>
+            <span>Fee & Collections</span>
+            <span class="nav-badge badge-danger">14 Overdue</span>
+          </a>
+
+          <div class="nav-section-title">Academy Management</div>
+
+          <a href="#students" class="nav-link" id="nav-students">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </span>
+            <span>Students</span>
+          </a>
+
+          <a href="#batches" class="nav-link" id="nav-batches">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </span>
+            <span>Batches</span>
+          </a>
+
+          <a href="#coaches" class="nav-link" id="nav-coaches">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </span>
+            <span>Coaches</span>
+          </a>
+
+          <a href="#branches" class="nav-link" id="nav-branches">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+              </svg>
+            </span>
+            <span>Branch Locations</span>
+          </a>
+
+          <a href="#inventory" class="nav-link" id="nav-inventory">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="21 8 21 21 3 21 3 8"></polyline>
+                <rect x="1" y="3" width="22" height="5"></rect>
+                <line x1="10" y1="12" x2="14" y2="12"></line>
+              </svg>
+            </span>
+            <span>Inventory & Gear</span>
+            <span class="nav-badge badge-warning">3 Low</span>
+          </a>
+
+          <a href="#reports" class="nav-link" id="nav-reports">
+            <span class="nav-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+              </svg>
+            </span>
+            <span>Reports & Analytics</span>
+          </a>
+        </nav>
+      </div>
+
+      <!-- Profile Chip in Sidebar -->
+      <div class="sidebar-footer">
+        <div class="user-profile-chip">
+          <div class="avatar-wrapper">SA</div>
+          <div class="user-info">
+            <div class="user-name">Nikita Singh</div>
+            <div class="user-role">Super Admin</div>
+          </div>
+          <a href="index.html" class="logout-icon-btn" title="Sign Out">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Viewport -->
+    <div class="main-wrapper">
+      <!-- Top Utility Header -->
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button type="button" class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Toggle Sidebar Navigation">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+
+          <!-- Branch Filter Dropdown -->
+          <div class="branch-selector-wrapper">
+            <span class="branch-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+            </span>
+            <select class="branch-select" id="branchSelector" aria-label="Filter by Branch">
+              <option value="all" selected>All Branches (Vasai, Nallasopara, Virar)</option>
+              <option value="vasai">Vasai East Branch (Hilton Arcade)</option>
+              <option value="nallasopara">Nallasopara East Branch</option>
+              <option value="virar">Virar West Turf Branch</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Global Search -->
+          <div class="search-wrapper">
+            <span class="search-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </span>
+            <input type="text" id="globalSearchInput" class="search-input"
+              placeholder="Search student, batch, coach...">
+          </div>
+
+          <!-- Notification Bell with Overdue Alert Badge -->
+          <button type="button" class="icon-btn" id="notifBellBtn" aria-label="Notifications" title="View Alerts">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <span class="notification-badge"></span>
+          </button>
+
+          <!-- Quick Action -->
+          <button type="button" class="btn-quick-add" id="btnQuickAdd">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>New Admission</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Dashboard Main View Container -->
+      <main class="dashboard-content" id="mainDashboardView">
+        <!-- Content Header & Breadcrumb -->
+        <div class="content-header">
+          <div>
+            <div class="breadcrumb">
+              <span>Academy Management</span>
+              <span class="crumb-separator">/</span>
+              <span class="crumb-current" id="currentSectionName">Overview</span>
+            </div>
+            <h1 class="page-title" id="pageTitle">Super Admin Dashboard</h1>
+          </div>
+          <div class="status-indicator-pill">
+            <span class="live-dot"></span>
+            <span id="activeBranchCount">3 active branches</span>
+          </div>
+        </div>
+
+        <!-- Welcome Banner -->
+        <section class="welcome-banner">
+          <div>
+            <div class="banner-pill">
+              <span class="live-dot"></span> Live Operations Center
+            </div>
+            <h2 class="banner-title">Welcome back, Nikita Singh</h2>
+            <p class="banner-subtitle">
+              Centralized multi-branch control for attendance tracking, real-time fee realization, and coach
+              coordination.
+            </p>
+          </div>
+          <div class="banner-actions">
+            <button type="button" class="btn-secondary" id="btnExportSummary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Export Summary
+            </button>
+            <button type="button" class="btn-primary" id="btnMarkBatchAttendance">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 11l3 3L22 4"></path>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+              </svg>
+              Mark Live Batch
+            </button>
+          </div>
+        </section>
+
+        <!-- KPI Metrics Grid -->
+        <section class="kpi-grid" aria-label="Key Performance Indicators">
+          <!-- Total Active Students -->
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Total Active Students</span>
+              <div class="kpi-icon-pill pill-primary">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-value-row">
+              <span class="kpi-value" id="kpiTotalStudents">355</span>
+              <span class="kpi-trend trend-up">↑ 12.4%</span>
+            </div>
+            <div class="kpi-footer">
+              <span class="kpi-subtext">Target: 400 across branches</span>
+              <span class="font-semibold text-primary">88.7% Capacity</span>
+            </div>
+          </div>
+
+          <!-- Today's Live Attendance -->
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Today's Live Attendance</span>
+              <div class="kpi-icon-pill pill-accent">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-value-row">
+              <span class="kpi-value">88.4%</span>
+              <span class="kpi-sub-target">314 Marked Present</span>
+            </div>
+            <div class="kpi-progress-bar">
+              <div class="kpi-progress-fill" style="width: 88.4%;"></div>
+            </div>
+            <div class="kpi-footer">
+              <span class="kpi-subtext">41 Absent / Excused</span>
+              <span class="font-semibold text-primary">9 Batches Sync'd</span>
+            </div>
+          </div>
+
+          <!-- Monthly Fee Collections -->
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Monthly Collections</span>
+              <div class="kpi-icon-pill pill-success">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="1" x2="12" y2="23"></line>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-value-row">
+              <span class="kpi-value" id="kpiCollections">₹2,95,000</span>
+              <span class="kpi-trend trend-up">↑ 18.2%</span>
+            </div>
+            <div class="kpi-footer">
+              <span class="kpi-subtext">Target: ₹3,40,000</span>
+              <span class="font-semibold text-primary">86.8% Realized</span>
+            </div>
+          </div>
+
+          <!-- Overdue Fees Alert Card -->
+          <div class="kpi-card alert-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Critical Fee Overdue</span>
+              <div class="kpi-icon-pill pill-danger">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-value-row">
+              <span class="kpi-value text-danger" id="kpiOverdueAmount">₹42,500</span>
+              <span class="kpi-badge-danger">14 Accounts</span>
+            </div>
+            <div class="kpi-footer">
+              <span class="kpi-subtext">Immediate Follow-Up</span>
+              <a href="#feesWidget" class="link-action">Send Reminders →</a>
+            </div>
+          </div>
+        </section>
+
+        <!-- Main Dashboard Split Grid -->
+        <div class="dashboard-grid-layout">
+          <!-- Main Content Column (Attendance & Fees) -->
+          <div class="grid-main-col">
+            <!-- Widget 1: Daily Live Batch Attendance Marking -->
+            <section class="dashboard-widget" id="attendanceWidget">
+              <div class="widget-header">
+                <div>
+                  <h3 class="widget-title">Daily Batch Attendance Marking</h3>
+                  <p class="widget-subtitle">Real-time presence tracking with instant coach & student sync</p>
+                </div>
+                <select class="batch-select" id="attendanceBatchSelector" aria-label="Select Training Batch">
+                  <option value="vasai-u14" selected>Vasai East - U-14 Football (07:00 AM - 08:30 AM)</option>
+                  <option value="virar-cricket">Virar West - Advanced Cricket (04:30 PM - 06:00 PM)</option>
+                  <option value="nallasopara-badminton">Nallasopara - Junior Badminton (05:00 PM - 06:30 PM)</option>
+                  <option value="vasai-evening-football">Vasai East - Senior Football (06:30 PM - 08:00 PM)</option>
+                </select>
+              </div>
+
+              <div class="table-container">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Student Details</th>
+                      <th>Batch Code</th>
+                      <th>Branch</th>
+                      <th>Status Marking</th>
+                      <th>Monthly Ratio</th>
+                    </tr>
+                  </thead>
+                  <tbody id="attendanceTableBody">
+                    <tr>
+                      <td>
+                        <div class="student-cell">
+                          <div class="student-avatar">AS</div>
+                          <div>
+                            <div class="student-name">Aarav Sharma</div>
+                            <div class="student-sub">Parent: Vikram Sharma (9820112233)</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td><span class="code-badge">U14-FB-01</span></td>
+                      <td><span class="branch-tag">Vasai East</span></td>
+                      <td>
+                        <div class="status-toggle-group">
+                          <button type="button" class="btn-status status-present active"
+                            data-status="present">Present</button>
+                          <button type="button" class="btn-status status-late" data-status="late">Late</button>
+                          <button type="button" class="btn-status status-absent" data-status="absent">Absent</button>
+                        </div>
+                      </td>
+                      <td>
+                        <div class="attendance-mini-stat">
+                          <div class="mini-bar">
+                            <div class="mini-fill" style="width: 95%;"></div>
+                          </div>
+                          <span>95%</span>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="student-cell">
+                          <div class="student-avatar bg-avatar-amber">RM</div>
+                          <div>
+                            <div class="student-name">Rohan Mehta</div>
+                            <div class="student-sub">Parent: Sanjay Mehta (9819223344)</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td><span class="code-badge">U14-FB-02</span></td>
+                      <td><span class="branch-tag">Vasai East</span></td>
+                      <td>
+                        <div class="status-toggle-group">
+                          <button type="button" class="btn-status status-present active"
+                            data-status="present">Present</button>
+                          <button type="button" class="btn-status status-late" data-status="late">Late</button>
+                          <button type="button" class="btn-status status-absent" data-status="absent">Absent</button>
+                        </div>
+                      </td>
+                      <td>
+                        <div class="attendance-mini-stat">
+                          <div class="mini-bar">
+                            <div class="mini-fill" style="width: 88%;"></div>
+                          </div>
+                          <span>88%</span>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="student-cell">
+                          <div class="student-avatar bg-avatar-red">AP</div>
+                          <div>
+                            <div class="student-name">Ananya Patil</div>
+                            <div class="student-sub">Parent: Rajesh Patil (9833445566)</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td><span class="code-badge">U14-FB-03</span></td>
+                      <td><span class="branch-tag">Vasai East</span></td>
+                      <td>
+                        <div class="status-toggle-group">
+                          <button type="button" class="btn-status status-present" data-status="present">Present</button>
+                          <button type="button" class="btn-status status-late active" data-status="late">Late</button>
+                          <button type="button" class="btn-status status-absent" data-status="absent">Absent</button>
+                        </div>
+                      </td>
+                      <td>
+                        <div class="attendance-mini-stat">
+                          <div class="mini-bar">
+                            <div class="mini-fill" style="width: 72%;"></div>
+                          </div>
+                          <span>72%</span>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="student-cell">
+                          <div class="student-avatar">SK</div>
+                          <div>
+                            <div class="student-name">Sahil Kadam</div>
+                            <div class="student-sub">Parent: Deepak Kadam (9867554433)</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td><span class="code-badge">U14-FB-04</span></td>
+                      <td><span class="branch-tag">Vasai East</span></td>
+                      <td>
+                        <div class="status-toggle-group">
+                          <button type="button" class="btn-status status-present active"
+                            data-status="present">Present</button>
+                          <button type="button" class="btn-status status-late" data-status="late">Late</button>
+                          <button type="button" class="btn-status status-absent" data-status="absent">Absent</button>
+                        </div>
+                      </td>
+                      <td>
+                        <div class="attendance-mini-stat">
+                          <div class="mini-bar">
+                            <div class="mini-fill" style="width: 92%;"></div>
+                          </div>
+                          <span>92%</span>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="student-cell">
+                          <div class="student-avatar bg-avatar-red">TD</div>
+                          <div>
+                            <div class="student-name">Tanvi Desai</div>
+                            <div class="student-sub">Parent: Manoj Desai (9892113355)</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td><span class="code-badge">U14-FB-05</span></td>
+                      <td><span class="branch-tag">Vasai East</span></td>
+                      <td>
+                        <div class="status-toggle-group">
+                          <button type="button" class="btn-status status-present" data-status="present">Present</button>
+                          <button type="button" class="btn-status status-late" data-status="late">Late</button>
+                          <button type="button" class="btn-status status-absent active"
+                            data-status="absent">Absent</button>
+                        </div>
+                      </td>
+                      <td>
+                        <div class="attendance-mini-stat">
+                          <div class="mini-bar">
+                            <div class="mini-fill" style="width: 60%; background: var(--color-danger);"></div>
+                          </div>
+                          <span>60%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="widget-footer">
+                <span class="footer-note">Coach Assigned: <strong>Rajesh Pawar (Senior Football Coach)</strong></span>
+                <button type="button" class="btn-save-attendance" id="btnSaveAttendance">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  Confirm Batch Roster
+                </button>
+              </div>
+            </section>
+
+            <!-- Widget 2: Fee Overdue & Instant WhatsApp Reminders -->
+            <section class="dashboard-widget" id="feesWidget">
+              <div class="widget-header">
+                <div>
+                  <div class="widget-badge-alert">
+                    <span>⚠️ 14 Critical Overdue Accounts</span>
+                  </div>
+                  <h3 class="widget-title">Fee Overdue & WhatsApp Reminders</h3>
+                  <p class="widget-subtitle">Direct 1-click WhatsApp follow-ups and fee receipt records</p>
+                </div>
+                <button type="button" class="btn-ghost-sm" id="btnSendAllReminders">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 2L11 13"></path>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                  </svg>
+                  Broadcast Reminders
+                </button>
+              </div>
+
+              <div class="table-container">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Student & Parent</th>
+                      <th>Branch</th>
+                      <th>Overdue Amount</th>
+                      <th>Overdue Days</th>
+                      <th>Status</th>
+                      <th>Instant Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="row-critical">
+                      <td>
+                        <div class="student-cell">
+                          <div class="student-avatar bg-avatar-red">KS</div>
+                          <div>
+                            <div class="student-name">Kabir Sawant</div>
+                            <div class="student-sub">Parent: Ajay (+91 9820123456)</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td><span class="branch-tag">Vasai East</span></td>
+                      <td><strong class="text-danger">₹3,500</strong></td>
+                      <td><span class="badge-status badge-critical">18 Days</span></td>
+                      <td><span class="badge-status badge-critical">Urgent</span></td>
+                      <td>
+                        <div class="action-btn-row">
+                          <button type="button" class="btn-whatsapp-action"
+                            onclick="triggerFollowup('Kabir Sawant', '9820123456', '₹3,500', 18)"
+                            title="Send WhatsApp Payment Link">
+                            WhatsApp
+                          </button>
+                          <button type="button" class="btn-icon-sm"
+                            onclick="recordPaymentModal('Kabir Sawant', '₹3,500')" title="Record Cash/UPI Payment">
+                            ₹
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr class="row-critical">
+                      <td>
+                        <div class="student-cell">
+                          <div class="student-avatar bg-avatar-amber">PN</div>
+                          <div>
+                            <div class="student-name">Priya Nair</div>
+                            <div class="student-sub">Parent: Suresh (+91 9819988776)</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td><span class="branch-tag">Virar West</span></td>
+                      <td><strong class="text-danger">₹4,000</strong></td>
+                      <td><span class="badge-status badge-critical">14 Days</span></td>
+                      <td><span class="badge-status badge-warning">Second Notice</span></td>
+                      <td>
+                        <div class="action-btn-row">
+                          <button type="button" class="btn-whatsapp-action"
+                            onclick="triggerFollowup('Priya Nair', '9819988776', '₹4,000', 14)"
+                            title="Send WhatsApp Payment Link">
+                            WhatsApp
+                          </button>
+                          <button type="button" class="btn-icon-sm" onclick="recordPaymentModal('Priya Nair', '₹4,000')"
+                            title="Record Cash/UPI Payment">
+                            ₹
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="student-cell">
+                          <div class="student-avatar">DS</div>
+                          <div>
+                            <div class="student-name">Devansh Shah</div>
+                            <div class="student-sub">Parent: Nitin (+91 9876543210)</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td><span class="branch-tag">Nallasopara</span></td>
+                      <td><strong class="text-danger">₹2,800</strong></td>
+                      <td><span class="badge-status badge-warning">8 Days</span></td>
+                      <td><span class="badge-status badge-warning">Pending</span></td>
+                      <td>
+                        <div class="action-btn-row">
+                          <button type="button" class="btn-whatsapp-action"
+                            onclick="triggerFollowup('Devansh Shah', '9876543210', '₹2,800', 8)"
+                            title="Send WhatsApp Payment Link">
+                            WhatsApp
+                          </button>
+                          <button type="button" class="btn-icon-sm"
+                            onclick="recordPaymentModal('Devansh Shah', '₹2,800')" title="Record Cash/UPI Payment">
+                            ₹
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <div class="student-cell">
+                          <div class="student-avatar">RG</div>
+                          <div>
+                            <div class="student-name">Rohit Gokhale</div>
+                            <div class="student-sub">Parent: Anand (+91 9822334455)</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td><span class="branch-tag">Vasai East</span></td>
+                      <td><strong class="text-danger">₹3,500</strong></td>
+                      <td><span class="badge-status badge-neutral">5 Days</span></td>
+                      <td><span class="badge-status badge-neutral">Due</span></td>
+                      <td>
+                        <div class="action-btn-row">
+                          <button type="button" class="btn-whatsapp-action"
+                            onclick="triggerFollowup('Rohit Gokhale', '9822334455', '₹3,500', 5)"
+                            title="Send WhatsApp Payment Link">
+                            WhatsApp
+                          </button>
+                          <button type="button" class="btn-icon-sm"
+                            onclick="recordPaymentModal('Rohit Gokhale', '₹3,500')" title="Record Cash/UPI Payment">
+                            ₹
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+
+          <!-- Side Column (Branch Operations, Gear & Coaches) -->
+          <div class="grid-side-col">
+            <!-- Side Widget 1: Multi-Branch Operations -->
+            <section class="side-widget-card">
+              <div class="side-widget-header">
+                <h4 class="side-widget-title">Branch Breakdown</h4>
+                <a href="#branches" class="side-widget-link">View All</a>
+              </div>
+              <div class="branch-summary-list">
+                <div>
+                  <div class="branch-meta">
+                    <span>Vasai East Branch</span>
+                    <span class="branch-students">120 / 140 Students</span>
+                  </div>
+                  <div class="branch-progress-bar">
+                    <div class="branch-progress-fill" style="width: 85.7%;"></div>
+                  </div>
+                  <div class="branch-subinfo">
+                    <span>Collections: ₹1,15,000</span>
+                    <span class="text-danger">₹12,500 Overdue</span>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="branch-meta">
+                    <span>Virar West Turf</span>
+                    <span class="branch-students">140 / 150 Students</span>
+                  </div>
+                  <div class="branch-progress-bar">
+                    <div class="branch-progress-fill" style="width: 93.3%;"></div>
+                  </div>
+                  <div class="branch-subinfo">
+                    <span>Collections: ₹1,05,000</span>
+                    <span class="text-danger">₹12,000 Overdue</span>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="branch-meta">
+                    <span>Nallasopara East</span>
+                    <span class="branch-students">95 / 110 Students</span>
+                  </div>
+                  <div class="branch-progress-bar">
+                    <div class="branch-progress-fill" style="width: 86.3%;"></div>
+                  </div>
+                  <div class="branch-subinfo">
+                    <span>Collections: ₹75,000</span>
+                    <span class="text-danger">₹18,000 Overdue</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Side Widget 2: Low Inventory Alerts -->
+            <section class="side-widget-card">
+              <div class="side-widget-header">
+                <h4 class="side-widget-title">Equipment Alerts</h4>
+                <a href="#inventory" class="side-widget-link">Inventory</a>
+              </div>
+              <div class="inventory-alert-list">
+                <div class="inventory-item">
+                  <div class="inv-info">
+                    <span class="inv-title">Match Footballs (Size 5)</span>
+                    <span class="inv-branch">Vasai East Branch</span>
+                  </div>
+                  <span class="badge-status badge-critical inv-count">3 Left</span>
+                </div>
+
+                <div class="inventory-item">
+                  <div class="inv-info">
+                    <span class="inv-title">Cricket Leather Balls</span>
+                    <span class="inv-branch">Virar West Turf</span>
+                  </div>
+                  <span class="badge-status badge-warning inv-count">5 Left</span>
+                </div>
+
+                <div class="inventory-item">
+                  <div class="inv-info">
+                    <span class="inv-title">Agility Training Cones</span>
+                    <span class="inv-branch">Nallasopara Branch</span>
+                  </div>
+                  <span class="badge-status badge-warning inv-count">12 Left</span>
+                </div>
+              </div>
+            </section>
+
+            <!-- Side Widget 3: Head Coaches Shift Roster -->
+            <section class="side-widget-card">
+              <div class="side-widget-header">
+                <h4 class="side-widget-title">Active Head Coaches</h4>
+                <a href="#coaches" class="side-widget-link">Roster</a>
+              </div>
+              <div class="coach-roster-list">
+                <div class="coach-row">
+                  <div class="coach-avatar">RP</div>
+                  <div class="coach-details">
+                    <div class="coach-name">Rajesh Pawar</div>
+                    <div class="coach-branch">Football Head Coach • Vasai East</div>
+                  </div>
+                  <span class="badge-status badge-success">On Turf</span>
+                </div>
+
+                <div class="coach-row">
+                  <div class="coach-avatar" style="background: linear-gradient(135deg, #06b6d4, #3b82f6);">AV</div>
+                  <div class="coach-details">
+                    <div class="coach-name">Amit Verma</div>
+                    <div class="coach-branch">Cricket Head Coach • Virar West</div>
+                  </div>
+                  <span class="badge-status badge-success">On Turf</span>
+                </div>
+
+                <div class="coach-row">
+                  <div class="coach-avatar" style="background: linear-gradient(135deg, #f59e0b, #ec4899);">PS</div>
+                  <div class="coach-details">
+                    <div class="coach-name">Priya Sharma</div>
+                    <div class="coach-branch">Badminton Coach • Nallasopara</div>
+                  </div>
+                  <span class="badge-status badge-neutral">05:00 PM</span>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <!-- ===== STUDENTS SECTION ===== -->
+        <section id="studentsSection" style="display:none;">
+          <!-- Section Action Bar -->
+          <div class="sb-action-bar">
+            <div class="sb-action-bar-left">
+              <div class="status-indicator-pill">
+                <span class="live-dot"></span>
+                <span id="studentsLiveCount">0 Active Students</span>
+              </div>
+              <div class="sb-search-box" style="margin-left: 1rem;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <input type="text" id="sbSearchInput" placeholder="Search Students" class="sb-search-input">
+              </div>
+            </div>
+            <div class="sb-action-bar-right">
+              <button type="button" class="btn-sb-primary" id="btnAddStudent">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="8.5" cy="7" r="4" />
+                  <line x1="20" y1="8" x2="20" y2="14" />
+                  <line x1="23" y1="11" x2="17" y2="11" />
+                </svg>
+                Add Student
+              </button>
+            </div>
+          </div>
+
+          <!-- Students Table Widget -->
+          <div class="dashboard-widget" id="studentsTableWidget" style="padding:0;overflow:hidden;margin-top:1.25rem;display:none;">
+            <div class="table-container">
+              <table class="data-table" id="studentsTable">
+                <thead>
+                  <tr>
+                    <th>Student Name</th>
+                    <th>Batch</th>
+                    <th>Branch</th>
+                    <th>City</th>
+                    <th>Blood Group</th>
+                    <th>WhatsApp Number</th>
+                    <th>Coach Name</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="studentsTableBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Empty State (shown by JS when no students) -->
+          <div id="studentsEmptyState" class="batches-empty-state" style="display:none;">
+            <div class="batches-empty-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+              </svg>
+            </div>
+            <h3>No Students Registered Yet</h3>
+            <p>Click <strong>Add Student</strong> to register your first student.</p>
+          </div>
+        </section>
+        <!-- ===== END STUDENTS SECTION ===== -->
+
+        <!-- ===== BATCHES SECTION ===== -->
+        <section id="batchesSection" style="display:none;">
+          <!-- Action Bar -->
+          <div class="sb-action-bar">
+            <div class="sb-action-bar-left">
+              <div class="status-indicator-pill">
+                <span class="live-dot"></span>
+                <span id="batchesLiveCount">0 Active Batches</span>
+              </div>
+            </div>
+            <div class="sb-action-bar-right">
+              <button type="button" class="btn-sb-primary" id="btnAddNewBatch">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Add New Batch
+              </button>
+            </div>
+          </div>
+
+          <!-- Batches Table -->
+          <div class="dashboard-widget" id="batchesTableWidget" style="padding:0;overflow:hidden;margin-top:1.25rem;display:none;">
+            <div class="table-container">
+              <table class="data-table" id="batchesTable">
+                <thead>
+                  <tr>
+                    <th>Batch Name</th>
+                    <th>Batch Location</th>
+                    <th>Time</th>
+                    <th>Number of Students</th>
+                    <th>Sport</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="batchesTableBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Empty State (shown by JS when no batches) -->
+          <div id="batchesEmptyState" class="batches-empty-state" style="display:none;">
+            <div class="batches-empty-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </div>
+            <h3>No Batches Yet</h3>
+            <p>Click <strong>Add New Batch</strong> to create your first training batch.</p>
+          </div>
+        </section>
+        <!-- ===== END BATCHES SECTION ===== -->
+
+        <!-- ===== COACHES SECTION ===== -->
+        <section id="coachesSection" style="display:none;">
+          <!-- Action Bar -->
+          <div class="sb-action-bar">
+            <div class="sb-action-bar-left">
+              <div class="status-indicator-pill">
+                <span class="live-dot"></span>
+                <span id="coachesLiveCount">0 Active Coaches</span>
+              </div>
+              <div class="sb-search-box" style="margin-left: 1rem;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="coachSearchInput" class="sb-search-input" placeholder="Search coaches by name or license...">
+              </div>
+            </div>
+            <div class="sb-action-bar-right">
+              <button type="button" class="btn-sb-primary" id="btnAddCoach">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Register Coach
+              </button>
+            </div>
+          </div>
+
+          <!-- Coaches Table -->
+          <div class="dashboard-widget" id="coachesTableWidget" style="padding:0;overflow:hidden;margin-top:1.25rem;display:none;">
+            <div class="table-container">
+              <table class="data-table" id="coachesTable">
+                <thead>
+                  <tr>
+                    <th>Coach Name</th>
+                    <th>Batches</th>
+                    <th>License</th>
+                    <th>City</th>
+                    <th>Join Date</th>
+                    <th>Phone Number</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="coachRosterBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Empty State (shown by JS when no coaches) -->
+          <div id="coachesEmptyState" class="batches-empty-state" style="display:none;">
+            <div class="batches-empty-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </div>
+            <h3>No Coaches Yet</h3>
+            <p>Click <strong>Register Coach</strong> to register your first coach.</p>
+          </div>
+        </section>
+        <!-- ===== END COACHES SECTION ===== -->
+
+      </main>
+    </div>
+
+    <!-- Notification Drawer Flyout -->
+    <div class="notif-drawer" id="notifDrawer" style="display: none;">
+      <div class="drawer-header">
+        <h4>Academy Notifications</h4>
+        <button type="button" class="modal-close-btn" id="closeDrawerBtn">&times;</button>
+      </div>
+      <div class="drawer-content">
+        <div class="drawer-notif-item unread">
+          <div class="notif-icon-box text-danger">⚠️</div>
+          <div>
+            <strong>14 Critical Overdue Payments</strong>
+            <p>Requires immediate management follow-up across branches.</p>
+            <span class="notif-time">10 mins ago</span>
+          </div>
+        </div>
+        <div class="drawer-notif-item">
+          <div class="notif-icon-box text-primary">✅</div>
+          <div>
+            <strong>Vasai Morning Batch Attendance Marked</strong>
+            <p>Coach Rajesh marked 28 students present.</p>
+            <span class="notif-time">1 hour ago</span>
+          </div>
+        </div>
+        <div class="drawer-notif-item">
+          <div class="notif-icon-box text-secondary">📦</div>
+          <div>
+            <strong>Low Inventory: Match Balls</strong>
+            <p>Only 3 footballs remaining in Vasai branch.</p>
+            <span class="notif-time">3 hours ago</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ===== ADD STUDENT FULL-PAGE FORM ===== -->
+    <div class="reg-overlay" id="addStudentModal" style="display:none;">
+      <div class="reg-page">
+
+        <!-- Form Header -->
+        <div class="reg-header">
+          <div class="reg-header-left">
+            <div class="reg-logo-chip">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+              VAVA Sports Academy
+            </div>
+            <h1 class="reg-title">Student Registration</h1>
+            <p class="reg-desc">Fill in all details to enroll a new student. Fields marked <span class="sb-required">*</span> are required.</p>
+          </div>
+          <button type="button" class="reg-close-btn" id="closeAddStudentModal" title="Close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <!-- Scrollable Form Body -->
+        <div class="reg-body">
+          <form id="addStudentForm" novalidate>
+
+            <!-- Section 1: Student Information -->
+            <div class="reg-section">
+              <div class="reg-section-label">
+                <div class="reg-section-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.2 20.4A7 7 0 0 1 12 15a7 7 0 0 1 6.8 5.4"/></svg>
+                </div>
+                Student Information
+              </div>
+              <div class="reg-grid">
+                <div class="reg-field">
+                  <label class="reg-label" for="regFullName">Full Name <span class="sb-required">*</span></label>
+                  <input type="text" id="regFullName" class="reg-input" placeholder="e.g. Aarav Sharma" autocomplete="name">
+                  <span class="reg-error" id="err-regFullName">Full name is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="regParentName">Parent / Legal Guardian Name <span class="sb-required">*</span></label>
+                  <input type="text" id="regParentName" class="reg-input" placeholder="e.g. Vikram Sharma">
+                  <span class="reg-error" id="err-regParentName">Guardian name is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="regDob">Date of Birth <span class="sb-required">*</span></label>
+                  <input type="date" id="regDob" class="reg-input">
+                  <span class="reg-error" id="err-regDob">Date of birth is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label">Gender <span class="sb-required">*</span></label>
+                  <div class="reg-gender-group">
+                    <label class="reg-gender-option">
+                      <input type="radio" name="regGender" id="genderMale" value="male">
+                      <span class="reg-gender-pill">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="5"/><line x1="12" y1="13" x2="12" y2="21"/><line x1="9" y1="18" x2="15" y2="18"/></svg>
+                        Male
+                      </span>
+                    </label>
+                    <label class="reg-gender-option">
+                      <input type="radio" name="regGender" id="genderFemale" value="female">
+                      <span class="reg-gender-pill">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="5"/><line x1="12" y1="13" x2="12" y2="21"/><line x1="9" y1="21" x2="15" y2="21"/></svg>
+                        Female
+                      </span>
+                    </label>
+                  </div>
+                  <span class="reg-error" id="err-regGender">Please select a gender.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="regBloodGroup">Blood Group</label>
+                  <select id="regBloodGroup" class="reg-input">
+                    <option value="">Select Blood Group</option>
+                    <option>A+</option><option>A−</option>
+                    <option>B+</option><option>B−</option>
+                    <option>O+</option><option>O−</option>
+                    <option>AB+</option><option>AB−</option>
+                    <option>Unknown</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section 2: Academy Information -->
+            <div class="reg-section">
+              <div class="reg-section-label">
+                <div class="reg-section-icon" style="background:rgba(6,182,212,0.12);color:var(--color-accent);">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </div>
+                Academy Information
+              </div>
+              <div class="reg-grid">
+                <div class="reg-field">
+                  <label class="reg-label" for="regBranch">Branch Name <span class="sb-required">*</span></label>
+                  <select id="regBranch" class="reg-input">
+                    <option value="">Select Branch</option>
+                    <option value="virar">Virar West Turf Branch</option>
+                    <option value="nallasopara">Nallasopara East Branch</option>
+                    <option value="vasai">Vasai East Branch (Hilton Arcade)</option>
+                  </select>
+                  <span class="reg-error" id="err-regBranch">Please select a branch.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="regBatch">Batch</label>
+                  <select id="regBatch" class="reg-input student-batch-select-input">
+                    <option value="">Select Batch</option>
+                    <option value="No Batch">No Batch</option>
+                  </select>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="regCoach">Coach Name <span class="sb-required">*</span></label>
+                  <select id="regCoach" class="reg-input student-coach-select-input">
+                    <option value="">Select Coach</option>
+                  </select>
+                  <span class="reg-error" id="err-regCoach">Please assign a coach.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section 3: Address -->
+            <div class="reg-section">
+              <div class="reg-section-label">
+                <div class="reg-section-icon" style="background:rgba(245,158,11,0.12);color:var(--color-secondary);">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                </div>
+                Address
+              </div>
+              <div class="reg-grid">
+                <div class="reg-field reg-field-full">
+                  <label class="reg-label" for="regAddressLine">Address Line <span class="sb-required">*</span></label>
+                  <input type="text" id="regAddressLine" class="reg-input" placeholder="House No., Building Name, Street">
+                  <span class="reg-error" id="err-regAddressLine">Address is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="regCity">City / Municipality <span class="sb-required">*</span></label>
+                  <input type="text" id="regCity" class="reg-input" placeholder="e.g. Vasai, Virar, Nallasopara">
+                  <span class="reg-error" id="err-regCity">City is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="regPostal">Postal Code <span class="sb-required">*</span></label>
+                  <input type="text" id="regPostal" class="reg-input" placeholder="e.g. 401202" maxlength="6" inputmode="numeric">
+                  <span class="reg-error" id="err-regPostal">Enter a valid 6-digit postal code.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section 4: Contact Information -->
+            <div class="reg-section">
+              <div class="reg-section-label">
+                <div class="reg-section-icon" style="background:rgba(16,185,129,0.12);color:var(--color-primary);">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.37 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.76a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                </div>
+                Contact Information
+              </div>
+              <div class="reg-grid">
+                <div class="reg-field">
+                  <label class="reg-label" for="regFatherContact">Father's Contact Number <span class="sb-required">*</span></label>
+                  <div class="reg-phone-wrap">
+                    <span class="reg-phone-prefix">+91</span>
+                    <input type="tel" id="regFatherContact" class="reg-input reg-input-phone" placeholder="" maxlength="10" inputmode="numeric">
+                  </div>
+                  <span class="reg-error" id="err-regFatherContact">Enter a valid 10-digit number.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="regMotherContact">Mother's Contact Number <span class="sb-optional">(Optional)</span></label>
+                  <div class="reg-phone-wrap">
+                    <span class="reg-phone-prefix">+91</span>
+                    <input type="tel" id="regMotherContact" class="reg-input reg-input-phone" placeholder="" maxlength="10" inputmode="numeric">
+                  </div>
+                  <span class="reg-error" id="err-regMotherContact">Enter a valid 10-digit number.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="regEmergency">Emergency Contact Number <span class="sb-required">*</span></label>
+                  <div class="reg-phone-wrap">
+                    <span class="reg-phone-prefix">+91</span>
+                    <input type="tel" id="regEmergency" class="reg-input reg-input-phone" placeholder="" maxlength="10" inputmode="numeric">
+                  </div>
+                  <span class="reg-error" id="err-regEmergency">Enter a valid 10-digit emergency number.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="regWhatsapp">WhatsApp Number to be Added to the Coaching Group <span class="sb-required">*</span></label>
+                  <div class="reg-phone-wrap">
+                    <span class="reg-phone-prefix">+91</span>
+                    <input type="tel" id="regWhatsapp" class="reg-input reg-input-phone" placeholder="" maxlength="10" inputmode="numeric">
+                  </div>
+                  <span class="reg-error" id="err-regWhatsapp">Enter a valid 10-digit WhatsApp number.</span>
+                </div>
+              </div>
+            </div>
+
+          </form>
+        </div>
+
+        <!-- Sticky Footer -->
+        <div class="reg-footer">
+          <span class="reg-footer-note"><span class="sb-required">*</span> All required fields must be filled before submitting.</span>
+          <div class="reg-footer-actions">
+            <button type="button" class="btn-sb-ghost" id="cancelAddStudent">Cancel</button>
+            <button type="button" class="reg-submit-btn" id="submitAddStudent">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Register Student
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <!-- ===== END ADD STUDENT FORM ===== -->
+
+    <!-- ===== EDIT STUDENT FULL-PAGE FORM ===== -->
+    <div class="reg-overlay" id="editStudentModal" style="display:none;">
+      <div class="reg-page">
+
+        <!-- Form Header -->
+        <div class="reg-header">
+          <div class="reg-header-left">
+            <div class="reg-logo-chip">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+              VAVA Sports Academy
+            </div>
+            <h1 class="reg-title">Edit Student Information</h1>
+            <p class="reg-desc">Update details for the selected student. Fields marked <span class="sb-required">*</span> are required.</p>
+          </div>
+          <button type="button" class="reg-close-btn" id="closeEditStudentModal" title="Close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <!-- Scrollable Form Body -->
+        <div class="reg-body">
+          <form id="editStudentForm" novalidate>
+            <input type="hidden" id="editStudentId">
+
+            <!-- Section 1: Student Information -->
+            <div class="reg-section">
+              <div class="reg-section-label">
+                <div class="reg-section-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.2 20.4A7 7 0 0 1 12 15a7 7 0 0 1 6.8 5.4"/></svg>
+                </div>
+                Student Information
+              </div>
+              <div class="reg-grid">
+                <div class="reg-field">
+                  <label class="reg-label" for="editRegFullName">Full Name <span class="sb-required">*</span></label>
+                  <input type="text" id="editRegFullName" class="reg-input" placeholder="e.g. Aarav Sharma" autocomplete="name">
+                  <span class="reg-error" id="err-editRegFullName">Full name is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="editRegParentName">Parent / Legal Guardian Name <span class="sb-required">*</span></label>
+                  <input type="text" id="editRegParentName" class="reg-input" placeholder="e.g. Vikram Sharma">
+                  <span class="reg-error" id="err-editRegParentName">Guardian name is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="editRegDob">Date of Birth <span class="sb-required">*</span></label>
+                  <input type="date" id="editRegDob" class="reg-input">
+                  <span class="reg-error" id="err-editRegDob">Date of birth is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label">Gender <span class="sb-required">*</span></label>
+                  <div class="reg-gender-group">
+                    <label class="reg-gender-option">
+                      <input type="radio" name="editRegGender" id="editGenderMale" value="male">
+                      <span class="reg-gender-pill">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="5"/><line x1="12" y1="13" x2="12" y2="21"/><line x1="9" y1="18" x2="15" y2="18"/></svg>
+                        Male
+                      </span>
+                    </label>
+                    <label class="reg-gender-option">
+                      <input type="radio" name="editRegGender" id="editGenderFemale" value="female">
+                      <span class="reg-gender-pill">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="5"/><line x1="12" y1="13" x2="12" y2="21"/><line x1="9" y1="21" x2="15" y2="21"/></svg>
+                        Female
+                      </span>
+                    </label>
+                  </div>
+                  <span class="reg-error" id="err-editRegGender">Please select a gender.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="editRegBloodGroup">Blood Group</label>
+                  <select id="editRegBloodGroup" class="reg-input">
+                    <option value="">Select Blood Group</option>
+                    <option>A+</option><option>A−</option>
+                    <option>B+</option><option>B−</option>
+                    <option>O+</option><option>O−</option>
+                    <option>AB+</option><option>AB−</option>
+                    <option>Unknown</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section 2: Academy Information -->
+            <div class="reg-section">
+              <div class="reg-section-label">
+                <div class="reg-section-icon" style="background:rgba(6,182,212,0.12);color:var(--color-accent);">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </div>
+                Academy Information
+              </div>
+              <div class="reg-grid">
+                <div class="reg-field">
+                  <label class="reg-label" for="editRegBranch">Branch Name <span class="sb-required">*</span></label>
+                  <select id="editRegBranch" class="reg-input">
+                    <option value="">Select Branch</option>
+                    <option value="virar">Virar West Turf Branch</option>
+                    <option value="nallasopara">Nallasopara East Branch</option>
+                    <option value="vasai">Vasai East Branch (Hilton Arcade)</option>
+                  </select>
+                  <span class="reg-error" id="err-editRegBranch">Please select a branch.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="editRegBatch">Batch</label>
+                  <select id="editRegBatch" class="reg-input student-batch-select-input">
+                    <option value="">Select Batch</option>
+                    <option value="No Batch">No Batch</option>
+                  </select>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="editRegCoach">Coach Name <span class="sb-required">*</span></label>
+                  <select id="editRegCoach" class="reg-input student-coach-select-input">
+                    <option value="">Select Coach</option>
+                  </select>
+                  <span class="reg-error" id="err-editRegCoach">Please assign a coach.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section 3: Address -->
+            <div class="reg-section">
+              <div class="reg-section-label">
+                <div class="reg-section-icon" style="background:rgba(245,158,11,0.12);color:var(--color-secondary);">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                </div>
+                Address
+              </div>
+              <div class="reg-grid">
+                <div class="reg-field reg-field-full">
+                  <label class="reg-label" for="editRegAddressLine">Address Line <span class="sb-required">*</span></label>
+                  <input type="text" id="editRegAddressLine" class="reg-input" placeholder="House No., Building Name, Street">
+                  <span class="reg-error" id="err-editRegAddressLine">Address is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="editRegCity">City / Municipality <span class="sb-required">*</span></label>
+                  <input type="text" id="editRegCity" class="reg-input" placeholder="e.g. Vasai, Virar, Nallasopara">
+                  <span class="reg-error" id="err-editRegCity">City is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="editRegPostal">Postal Code <span class="sb-required">*</span></label>
+                  <input type="text" id="editRegPostal" class="reg-input" placeholder="e.g. 401202" maxlength="6" inputmode="numeric">
+                  <span class="reg-error" id="err-editRegPostal">Enter a valid 6-digit postal code.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section 4: Contact Information -->
+            <div class="reg-section">
+              <div class="reg-section-label">
+                <div class="reg-section-icon" style="background:rgba(16,185,129,0.12);color:var(--color-primary);">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.37 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.76a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                </div>
+                Contact Information
+              </div>
+              <div class="reg-grid">
+                <div class="reg-field">
+                  <label class="reg-label" for="editRegFatherContact">Father's Contact Number <span class="sb-required">*</span></label>
+                  <div class="reg-phone-wrap">
+                    <span class="reg-phone-prefix">+91</span>
+                    <input type="tel" id="editRegFatherContact" class="reg-input reg-input-phone" placeholder="" maxlength="10" inputmode="numeric">
+                  </div>
+                  <span class="reg-error" id="err-editRegFatherContact">Enter a valid 10-digit number.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="editRegMotherContact">Mother's Contact Number <span class="sb-optional">(Optional)</span></label>
+                  <div class="reg-phone-wrap">
+                    <span class="reg-phone-prefix">+91</span>
+                    <input type="tel" id="editRegMotherContact" class="reg-input reg-input-phone" placeholder="" maxlength="10" inputmode="numeric">
+                  </div>
+                  <span class="reg-error" id="err-editRegMotherContact">Enter a valid 10-digit number.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="editRegEmergency">Emergency Contact Number <span class="sb-required">*</span></label>
+                  <div class="reg-phone-wrap">
+                    <span class="reg-phone-prefix">+91</span>
+                    <input type="tel" id="editRegEmergency" class="reg-input reg-input-phone" placeholder="" maxlength="10" inputmode="numeric">
+                  </div>
+                  <span class="reg-error" id="err-editRegEmergency">Enter a valid 10-digit emergency number.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="editRegWhatsapp">WhatsApp Number to be Added to the Coaching Group <span class="sb-required">*</span></label>
+                  <div class="reg-phone-wrap">
+                    <span class="reg-phone-prefix">+91</span>
+                    <input type="tel" id="editRegWhatsapp" class="reg-input reg-input-phone" placeholder="" maxlength="10" inputmode="numeric">
+                  </div>
+                  <span class="reg-error" id="err-editRegWhatsapp">Enter a valid 10-digit WhatsApp number.</span>
+                </div>
+              </div>
+            </div>
+
+          </form>
+        </div>
+
+        <!-- Sticky Footer -->
+        <div class="reg-footer">
+          <span class="reg-footer-note"><span class="sb-required">*</span> All required fields must be filled before submitting.</span>
+          <div class="reg-footer-actions">
+            <button type="button" class="btn-sb-ghost" id="cancelEditStudent">Cancel</button>
+            <button type="button" class="reg-submit-btn" id="submitEditStudent">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Save Changes
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <!-- ===== END EDIT STUDENT FORM ===== -->
+
+    <!-- ===== ADD COACH FULL-PAGE FORM ===== -->
+    <div class="reg-overlay" id="addCoachModal" style="display:none;">
+      <div class="reg-page">
+
+        <!-- Form Header -->
+        <div class="reg-header">
+          <div class="reg-header-left">
+            <div class="reg-logo-chip">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+              VAVA Sports Academy
+            </div>
+            <h1 class="reg-title">Coach Registration</h1>
+            <p class="reg-desc">Fill in all details to register a new coach. Fields marked <span class="sb-required">*</span> are required.</p>
+          </div>
+          <button type="button" class="reg-close-btn" id="closeAddCoachModal" title="Close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <!-- Scrollable Form Body -->
+        <div class="reg-body">
+          <form id="addCoachForm" novalidate>
+
+            <!-- Section 1: Coach Information -->
+            <div class="reg-section">
+              <div class="reg-section-label">
+                <div class="reg-section-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.2 20.4A7 7 0 0 1 12 15a7 7 0 0 1 6.8 5.4"/></svg>
+                </div>
+                Coach Information
+              </div>
+              <div class="reg-grid">
+                <div class="reg-field">
+                  <label class="reg-label" for="coachFullName">Full Name <span class="sb-required">*</span></label>
+                  <input type="text" id="coachFullName" class="reg-input" placeholder="e.g. Rajesh Pawar" autocomplete="name">
+                  <span class="reg-error" id="err-coachFullName">Full name is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="coachEmail">Email ID <span class="sb-required">*</span></label>
+                  <input type="email" id="coachEmail" class="reg-input" placeholder="e.g. rajesh@example.com">
+                  <span class="reg-error" id="err-coachEmail">Valid email ID is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="coachContact">Contact Number <span class="sb-required">*</span></label>
+                  <div class="reg-phone-wrap">
+                    <span class="reg-phone-prefix">+91</span>
+                    <input type="tel" id="coachContact" class="reg-input reg-input-phone" placeholder="" maxlength="10" inputmode="numeric">
+                  </div>
+                  <span class="reg-error" id="err-coachContact">Valid 10-digit number required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="coachDob">Date of Birth (DOB) <span class="sb-required">*</span></label>
+                  <input type="date" id="coachDob" class="reg-input">
+                  <span class="reg-error" id="err-coachDob">Date of birth is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="coachDoj">Date of Joining (DOJ) <span class="sb-required">*</span></label>
+                  <input type="date" id="coachDoj" class="reg-input">
+                  <span class="reg-error" id="err-coachDoj">Date of joining is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="coachLicense">Licensed Coach <span class="sb-required">*</span></label>
+                  <input type="text" id="coachLicense" class="reg-input" placeholder="e.g. AIFF A License, BCCI Level 1">
+                  <span class="reg-error" id="err-coachLicense">License level is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="coachBatchSelect">Batch</label>
+                  <select id="coachBatchSelect" class="reg-input coach-batch-select-input">
+                    <option value="0">No Batch</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section 2: Address -->
+            <div class="reg-section">
+              <div class="reg-section-label">
+                <div class="reg-section-icon" style="background:rgba(245,158,11,0.12);color:var(--color-secondary);">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                </div>
+                Address
+              </div>
+              <div class="reg-grid">
+                <div class="reg-field reg-field-full">
+                  <label class="reg-label" for="coachAddressLine">Address Line <span class="sb-required">*</span></label>
+                  <input type="text" id="coachAddressLine" class="reg-input" placeholder="House No., Building Name, Street">
+                  <span class="reg-error" id="err-coachAddressLine">Address is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="coachCity">City / Municipality <span class="sb-required">*</span></label>
+                  <input type="text" id="coachCity" class="reg-input" placeholder="e.g. Vasai, Virar, Nallasopara">
+                  <span class="reg-error" id="err-coachCity">City is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="coachPostal">Postal Code <span class="sb-required">*</span></label>
+                  <input type="text" id="coachPostal" class="reg-input" placeholder="e.g. 401202" maxlength="6" inputmode="numeric">
+                  <span class="reg-error" id="err-coachPostal">Enter a valid 6-digit postal code.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section 3: Emergency Contact Details -->
+            <div class="reg-section">
+              <div class="reg-section-label">
+                <div class="reg-section-icon" style="background:rgba(16,185,129,0.12);color:var(--color-primary);">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.37 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.76a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                </div>
+                Emergency Contact Details
+              </div>
+              <div class="reg-grid">
+                <div class="reg-field">
+                  <label class="reg-label" for="coachEmergencyName">Emergency Contact Name <span class="sb-required">*</span></label>
+                  <input type="text" id="coachEmergencyName" class="reg-input" placeholder="e.g. Rahul Pawar">
+                  <span class="reg-error" id="err-coachEmergencyName">Emergency contact name is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="coachEmergencyNumber">Emergency Contact Number <span class="sb-required">*</span></label>
+                  <div class="reg-phone-wrap">
+                    <span class="reg-phone-prefix">+91</span>
+                    <input type="tel" id="coachEmergencyNumber" class="reg-input reg-input-phone" placeholder="" maxlength="10" inputmode="numeric">
+                  </div>
+                  <span class="reg-error" id="err-coachEmergencyNumber">Valid 10-digit emergency number required.</span>
+                </div>
+              </div>
+            </div>
+
+          </form>
+        </div>
+
+        <!-- Sticky Footer -->
+        <div class="reg-footer">
+          <span class="reg-footer-note"><span class="sb-required">*</span> All required fields must be filled before submitting.</span>
+          <div class="reg-footer-actions">
+            <button type="button" class="btn-sb-ghost" id="cancelAddCoach">Cancel</button>
+            <button type="button" class="reg-submit-btn" id="submitAddCoach">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Register Coach
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <!-- ===== END ADD COACH FORM ===== -->
+
+    <!-- ===== EDIT COACH FULL-PAGE FORM ===== -->
+    <div class="reg-overlay" id="editCoachModal" style="display:none;">
+      <div class="reg-page">
+
+        <!-- Form Header -->
+        <div class="reg-header">
+          <div class="reg-header-left">
+            <div class="reg-logo-chip">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+              VAVA Sports Academy
+            </div>
+            <h1 class="reg-title">Edit Coach Information</h1>
+            <p class="reg-desc">Update details for the selected coach. Fields marked <span class="sb-required">*</span> are required.</p>
+          </div>
+          <button type="button" class="reg-close-btn" id="closeEditCoachModal" title="Close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <!-- Scrollable Form Body -->
+        <div class="reg-body">
+          <form id="editCoachForm" novalidate>
+            <input type="hidden" id="editCoachId">
+
+            <!-- Section 1: Coach Information -->
+            <div class="reg-section">
+              <div class="reg-section-label">
+                <div class="reg-section-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.2 20.4A7 7 0 0 1 12 15a7 7 0 0 1 6.8 5.4"/></svg>
+                </div>
+                Coach Information
+              </div>
+              <div class="reg-grid">
+                <div class="reg-field">
+                  <label class="reg-label" for="editCoachFullName">Full Name <span class="sb-required">*</span></label>
+                  <input type="text" id="editCoachFullName" class="reg-input" placeholder="e.g. Rajesh Pawar" autocomplete="name">
+                  <span class="reg-error" id="err-editCoachFullName">Full name is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="editCoachEmail">Email ID <span class="sb-required">*</span></label>
+                  <input type="email" id="editCoachEmail" class="reg-input" placeholder="e.g. rajesh@example.com">
+                  <span class="reg-error" id="err-editCoachEmail">Valid email ID is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="editCoachContact">Contact Number <span class="sb-required">*</span></label>
+                  <div class="reg-phone-wrap">
+                    <span class="reg-phone-prefix">+91</span>
+                    <input type="tel" id="editCoachContact" class="reg-input reg-input-phone" placeholder="" maxlength="10" inputmode="numeric">
+                  </div>
+                  <span class="reg-error" id="err-editCoachContact">Valid 10-digit number required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="editCoachDob">Date of Birth (DOB) <span class="sb-required">*</span></label>
+                  <input type="date" id="editCoachDob" class="reg-input">
+                  <span class="reg-error" id="err-editCoachDob">Date of birth is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="editCoachDoj">Date of Joining (DOJ) <span class="sb-required">*</span></label>
+                  <input type="date" id="editCoachDoj" class="reg-input">
+                  <span class="reg-error" id="err-editCoachDoj">Date of joining is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="editCoachLicense">Licensed Coach <span class="sb-required">*</span></label>
+                  <input type="text" id="editCoachLicense" class="reg-input" placeholder="e.g. AIFF A License, BCCI Level 1">
+                  <span class="reg-error" id="err-editCoachLicense">License level is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="editCoachBatchSelect">Batch</label>
+                  <select id="editCoachBatchSelect" class="reg-input coach-batch-select-input">
+                    <option value="0">No Batch</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section 2: Address -->
+            <div class="reg-section">
+              <div class="reg-section-label">
+                <div class="reg-section-icon" style="background:rgba(245,158,11,0.12);color:var(--color-secondary);">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                </div>
+                Address
+              </div>
+              <div class="reg-grid">
+                <div class="reg-field reg-field-full">
+                  <label class="reg-label" for="editCoachAddressLine">Address Line <span class="sb-required">*</span></label>
+                  <input type="text" id="editCoachAddressLine" class="reg-input" placeholder="House No., Building Name, Street">
+                  <span class="reg-error" id="err-editCoachAddressLine">Address is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="editCoachCity">City / Municipality <span class="sb-required">*</span></label>
+                  <input type="text" id="editCoachCity" class="reg-input" placeholder="e.g. Vasai, Virar, Nallasopara">
+                  <span class="reg-error" id="err-editCoachCity">City is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="editCoachPostal">Postal Code <span class="sb-required">*</span></label>
+                  <input type="text" id="editCoachPostal" class="reg-input" placeholder="e.g. 401202" maxlength="6" inputmode="numeric">
+                  <span class="reg-error" id="err-editCoachPostal">Enter a valid 6-digit postal code.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section 3: Emergency Contact Details -->
+            <div class="reg-section">
+              <div class="reg-section-label">
+                <div class="reg-section-icon" style="background:rgba(16,185,129,0.12);color:var(--color-primary);">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.37 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.76a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                </div>
+                Emergency Contact Details
+              </div>
+              <div class="reg-grid">
+                <div class="reg-field">
+                  <label class="reg-label" for="editCoachEmergencyName">Emergency Contact Name <span class="sb-required">*</span></label>
+                  <input type="text" id="editCoachEmergencyName" class="reg-input" placeholder="e.g. Rahul Pawar">
+                  <span class="reg-error" id="err-editCoachEmergencyName">Emergency contact name is required.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="editCoachEmergencyNumber">Emergency Contact Number <span class="sb-required">*</span></label>
+                  <div class="reg-phone-wrap">
+                    <span class="reg-phone-prefix">+91</span>
+                    <input type="tel" id="editCoachEmergencyNumber" class="reg-input reg-input-phone" placeholder="" maxlength="10" inputmode="numeric">
+                  </div>
+                  <span class="reg-error" id="err-editCoachEmergencyNumber">Valid 10-digit emergency number required.</span>
+                </div>
+              </div>
+            </div>
+
+          </form>
+        </div>
+
+        <!-- Sticky Footer -->
+        <div class="reg-footer">
+          <span class="reg-footer-note"><span class="sb-required">*</span> All required fields must be filled before submitting.</span>
+          <div class="reg-footer-actions">
+            <button type="button" class="btn-sb-ghost" id="cancelEditCoach">Cancel</button>
+            <button type="button" class="reg-submit-btn" id="submitEditCoach">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Save Changes
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <!-- ===== END EDIT COACH FORM ===== -->
+
+    <!-- ===== DELETE COACH CONFIRM MODAL ===== -->
+    <div class="sb-modal-overlay" id="deleteCoachModal" style="display:none;">
+      <div class="sb-modal" style="max-width:420px;">
+        <div class="sb-modal-header" style="padding-bottom:1rem;">
+          <div>
+            <div class="sb-modal-badge" style="background:rgba(239,68,68,0.12);color:var(--color-danger);border-color:rgba(239,68,68,0.3);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                <path d="M10 11v6"/><path d="M14 11v6"/>
+              </svg>
+              Delete Coach
+            </div>
+            <h2 class="sb-modal-title" style="font-size:1.15rem;">Do you want to delete this coach?</h2>
+            <p class="sb-modal-subtitle">This action cannot be undone.</p>
+          </div>
+          <button type="button" class="modal-close-btn" id="closeDeleteCoachModal">&times;</button>
+        </div>
+        <div class="sb-modal-footer" style="padding:0 1.75rem 1.75rem;">
+          <button type="button" class="btn-sb-ghost" id="cancelDeleteCoach">No</button>
+          <button type="button" class="btn-sb-danger" id="confirmDeleteCoach">Yes, Delete</button>
+        </div>
+      </div>
+    </div>
+    <!-- ===== END DELETE COACH MODAL ===== -->
+
+    <!-- ===== ADD NEW BATCH MODAL ===== -->
+    <div class="sb-modal-overlay" id="addBatchModal" style="display:none;">
+      <div class="sb-modal">
+        <div class="sb-modal-header">
+          <div>
+            <div class="sb-modal-badge"
+              style="background: rgba(6,182,212,0.15); color: var(--color-accent); border-color: rgba(6,182,212,0.3);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              New Batch
+            </div>
+            <h2 class="sb-modal-title">Add New Batch</h2>
+            <p class="sb-modal-subtitle">Set up a new training batch for your academy</p>
+          </div>
+          <button type="button" class="modal-close-btn" id="closeAddBatchModal">&times;</button>
+        </div>
+        <form class="sb-modal-form" id="addBatchForm" onsubmit="return false;">
+          <div class="sb-form-grid">
+            <div class="sb-form-group sb-form-group-full">
+              <label class="sb-label">Batch Name <span class="sb-required">*</span></label>
+              <input type="text" class="sb-input" id="newBatchName" placeholder="e.g. U-14 Football Morning">
+            </div>
+            <div class="sb-form-group">
+              <label class="sb-label">Batch Location <span class="sb-required">*</span></label>
+              <input type="text" class="sb-input" id="newBatchLocation" placeholder="e.g. Vasai East (Hilton Arcade)">
+            </div>
+            <div class="sb-form-group">
+              <label class="sb-label">Batch Time <span class="sb-required">*</span></label>
+              <input type="time" class="sb-input batch-time-input" id="newBatchTime">
+            </div>
+            <div class="sb-form-group">
+              <label class="sb-label">Sport <span class="sb-required">*</span></label>
+              <select class="sb-input" id="newBatchSport">
+                <option value="">Select Sport</option>
+                <option value="Football">⚽ Football</option>
+                <option value="Cricket">🏏 Cricket</option>
+                <option value="Badminton">🏸 Badminton</option>
+                <option value="Athletics">🏃 Athletics</option>
+              </select>
+            </div>
+            <div class="sb-form-group">
+              <label class="sb-label">Total Students <span class="sb-required">*</span></label>
+              <input type="number" class="sb-input" id="newBatchStudents" placeholder="e.g. 35" min="1">
+            </div>
+          </div>
+          <div class="sb-modal-footer">
+            <button type="button" class="btn-sb-ghost" id="cancelAddBatch">Cancel</button>
+            <button type="button" class="btn-sb-accent" id="submitAddBatch">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              Create Batch
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <!-- ===== END ADD BATCH MODAL ===== -->
+
+    <!-- ===== DELETE STUDENT CONFIRM MODAL ===== -->
+    <div class="sb-modal-overlay" id="deleteStudentModal" style="display:none;">
+      <div class="sb-modal" style="max-width:420px;">
+        <div class="sb-modal-header" style="padding-bottom:1rem;">
+          <div>
+            <div class="sb-modal-badge" style="background:rgba(239,68,68,0.12);color:var(--color-danger);border-color:rgba(239,68,68,0.3);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                <path d="M10 11v6"/><path d="M14 11v6"/>
+              </svg>
+              Delete Student
+            </div>
+            <h2 class="sb-modal-title" style="font-size:1.15rem;">Do you want to delete this student?</h2>
+            <p class="sb-modal-subtitle">This action cannot be undone.</p>
+          </div>
+          <button type="button" class="modal-close-btn" id="closeDeleteStudentModal">&times;</button>
+        </div>
+        <div class="sb-modal-footer" style="padding:0 1.75rem 1.75rem;">
+          <button type="button" class="btn-sb-ghost" id="cancelDeleteStudent">No</button>
+          <button type="button" class="btn-sb-danger" id="confirmDeleteStudent">Yes, Delete</button>
+        </div>
+      </div>
+    </div>
+    <!-- ===== END DELETE STUDENT MODAL ===== -->
+
+    <!-- ===== DELETE BATCH CONFIRM MODAL ===== -->
+    <div class="sb-modal-overlay" id="deleteBatchModal" style="display:none;">
+      <div class="sb-modal" style="max-width:420px;">
+        <div class="sb-modal-header" style="padding-bottom:1rem;">
+          <div>
+            <div class="sb-modal-badge" style="background:rgba(239,68,68,0.12);color:var(--color-danger);border-color:rgba(239,68,68,0.3);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                <path d="M10 11v6"/><path d="M14 11v6"/>
+              </svg>
+              Delete Batch
+            </div>
+            <h2 class="sb-modal-title" style="font-size:1.15rem;">Do you want to delete this batch?</h2>
+            <p class="sb-modal-subtitle">This action cannot be undone.</p>
+          </div>
+          <button type="button" class="modal-close-btn" id="closeDeleteBatchModal">&times;</button>
+        </div>
+        <div class="sb-modal-footer" style="padding:0 1.75rem 1.75rem;">
+          <button type="button" class="btn-sb-ghost" id="cancelDeleteBatch">No</button>
+          <button type="button" class="btn-sb-danger" id="confirmDeleteBatch">Yes, Delete</button>
+        </div>
+      </div>
+    </div>
+    <!-- ===== END DELETE BATCH MODAL ===== -->
+
+    <!-- ===== EDIT BATCH MODAL ===== -->
+    <div class="sb-modal-overlay" id="editBatchModal" style="display:none;">
+      <div class="sb-modal">
+        <div class="sb-modal-header">
+          <div>
+            <div class="sb-modal-badge"
+              style="background: rgba(245,158,11,0.15); color: var(--color-secondary); border-color: rgba(245,158,11,0.3);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+              Edit Batch
+            </div>
+            <h2 class="sb-modal-title">Edit Batch</h2>
+            <p class="sb-modal-subtitle">Update the batch information below</p>
+          </div>
+          <button type="button" class="modal-close-btn" id="closeEditBatchModal">&times;</button>
+        </div>
+        <form class="sb-modal-form" id="editBatchForm" onsubmit="return false;">
+          <input type="hidden" id="editBatchId">
+          <div class="sb-form-grid">
+            <div class="sb-form-group sb-form-group-full">
+              <label class="sb-label">Batch Name <span class="sb-required">*</span></label>
+              <input type="text" class="sb-input" id="editBatchName" placeholder="e.g. U-14 Football Morning">
+            </div>
+            <div class="sb-form-group">
+              <label class="sb-label">Batch Location <span class="sb-required">*</span></label>
+              <input type="text" class="sb-input" id="editBatchLocation" placeholder="e.g. Vasai East (Hilton Arcade)">
+            </div>
+            <div class="sb-form-group">
+              <label class="sb-label">Batch Time <span class="sb-required">*</span></label>
+              <input type="time" class="sb-input batch-time-input" id="editBatchTime">
+            </div>
+            <div class="sb-form-group">
+              <label class="sb-label">Sport <span class="sb-required">*</span></label>
+              <select class="sb-input" id="editBatchSport">
+                <option value="">Select Sport</option>
+                <option value="Football">&#x26BD; Football</option>
+                <option value="Cricket">&#x1F3CF; Cricket</option>
+                <option value="Badminton">&#x1F3F8; Badminton</option>
+                <option value="Athletics">&#x1F3C3; Athletics</option>
+              </select>
+            </div>
+            <div class="sb-form-group">
+              <label class="sb-label">Total Students <span class="sb-required">*</span></label>
+              <input type="number" class="sb-input" id="editBatchStudents" placeholder="e.g. 35" min="1">
+            </div>
+          </div>
+          <div class="sb-modal-footer">
+            <button type="button" class="btn-sb-ghost" id="cancelEditBatch">Cancel</button>
+            <button type="button" class="btn-sb-primary" id="submitEditBatch">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <!-- ===== END EDIT BATCH MODAL ===== -->
+
+    <!-- ===== COACH PROFILE POPUP MODAL ===== -->
+    <div class="sb-modal-overlay" id="coachProfileModal" style="display:none;">
+      <div class="sb-modal" style="max-width: 680px;">
+        <div class="sb-modal-header">
+          <div>
+            <div class="sb-modal-badge" style="background: rgba(16,185,129,0.15); color: var(--color-primary); border-color: rgba(16,185,129,0.3);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="7" r="4"/><path d="M5.2 20.4A7 7 0 0 1 12 15a7 7 0 0 1 6.8 5.4"/></svg>
+              Coach Profile
+            </div>
+            <h2 class="sb-modal-title" id="coachProfileTitle">Coach Information</h2>
+          </div>
+          <button type="button" class="modal-close-btn" id="closeCoachProfileModal">&times;</button>
+        </div>
+        <div style="padding: 1.5rem 1.75rem;">
+
+          <!-- Top Profile Header Card -->
+          <div class="coach-profile-card">
+            <!-- Profile Picture Wrap -->
+            <div class="coach-profile-avatar-wrap">
+              <div class="coach-profile-avatar" id="coachProfileAvatar">
+                <span id="coachProfileInitials">C</span>
+                <img id="coachProfileImg" class="coach-photo-img" src="" alt="Coach Photo" style="display:none;">
+              </div>
+              <div class="coach-photo-hover-overlay" id="btnEditCoachPhoto" title="Edit Profile Picture">
+                <div class="coach-pen-badge">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </div>
+              </div>
+              <!-- Floating photo menu -->
+              <div class="coach-photo-dropdown" id="coachPhotoDropdown">
+                <button type="button" id="btnAddCoachPhoto">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  Add New Profile Picture
+                </button>
+                <button type="button" id="btnDeleteCoachPhoto" class="danger" style="display:none;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                  Delete Profile Picture
+                </button>
+              </div>
+              <input type="file" id="coachPhotoFileInput" accept="image/*" style="display:none;">
+            </div>
+
+            <!-- Profile Info Header -->
+            <div class="coach-profile-header-info">
+              <div class="coach-profile-name" id="viewCoachName">Coach Name</div>
+              <div class="coach-profile-meta">
+                <span class="badge-status badge-success" id="viewCoachLicense">License</span>
+                <span class="badge-status badge-success" id="viewCoachStatus">Active</span>
+                <span class="coach-meta-item" id="viewCoachEmail">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                  email@example.com
+                </span>
+                <span class="coach-meta-item" id="viewCoachPhone">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.37 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.76a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  +91 9876543210
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Details Grid -->
+          <div class="coach-details-grid">
+
+            <!-- Card 1: Personal & Professional Info -->
+            <div class="coach-detail-card">
+              <div class="coach-detail-card-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Personal & Professional Info
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">Date of Birth:</span>
+                <span class="coach-detail-val" id="viewCoachDob">—</span>
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">Date of Joining:</span>
+                <span class="coach-detail-val" id="viewCoachDoj">—</span>
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">Licensed Coach:</span>
+                <span class="coach-detail-val" id="viewCoachLicenseDetail">—</span>
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">Assigned Sport:</span>
+                <span class="coach-detail-val" id="viewCoachSport">—</span>
+              </div>
+            </div>
+
+            <!-- Card 2: Address Details -->
+            <div class="coach-detail-card">
+              <div class="coach-detail-card-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Address Information
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">Address Line:</span>
+                <span class="coach-detail-val" id="viewCoachAddress">—</span>
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">City:</span>
+                <span class="coach-detail-val" id="viewCoachCity">—</span>
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">Postal Code:</span>
+                <span class="coach-detail-val" id="viewCoachPostal">—</span>
+              </div>
+            </div>
+
+            <!-- Card 3: Emergency Contact -->
+            <div class="coach-detail-card">
+              <div class="coach-detail-card-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.37 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.76a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                Emergency Contact
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">Contact Name:</span>
+                <span class="coach-detail-val" id="viewCoachEmergName">—</span>
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">Contact Number:</span>
+                <span class="coach-detail-val" id="viewCoachEmergPhone">—</span>
+              </div>
+            </div>
+
+            <!-- Card 4: Assigned Batches -->
+            <div class="coach-detail-card">
+              <div class="coach-detail-card-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Assigned Batch Details
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">Batch Name:</span>
+                <span class="coach-detail-val" id="viewCoachBatchName">—</span>
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">Max Capacity:</span>
+                <span class="coach-detail-val" id="viewCoachMaxStudents">—</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ===== END COACH PROFILE POPUP MODAL ===== -->
+
+    <!-- ===== STUDENT PROFILE POPUP MODAL ===== -->
+    <div class="sb-modal-overlay" id="studentProfileModal" style="display:none;">
+      <div class="sb-modal" style="max-width: 680px;">
+        <div class="sb-modal-header">
+          <div>
+            <div class="sb-modal-badge" style="background: rgba(16,185,129,0.15); color: var(--color-primary); border-color: rgba(16,185,129,0.3);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="7" r="4"/><path d="M5.2 20.4A7 7 0 0 1 12 15a7 7 0 0 1 6.8 5.4"/></svg>
+              Student Profile
+            </div>
+            <h2 class="sb-modal-title" id="studentProfileTitle">Student Information</h2>
+          </div>
+          <button type="button" class="modal-close-btn" id="closeStudentProfileModal">&times;</button>
+        </div>
+        <div style="padding: 1.5rem 1.75rem;">
+
+          <!-- Top Profile Header Card -->
+          <div class="coach-profile-card">
+            <!-- Profile Picture Wrap -->
+            <div class="coach-profile-avatar-wrap">
+              <div class="coach-profile-avatar" id="studentProfileAvatar">
+                <span id="studentProfileInitials">S</span>
+                <img id="studentProfileImg" class="coach-photo-img" src="" alt="Student Photo" style="display:none;">
+              </div>
+              <div class="coach-photo-hover-overlay" id="btnEditStudentPhoto" title="Edit Profile Picture">
+                <div class="coach-pen-badge">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </div>
+              </div>
+              <!-- Floating photo menu -->
+              <div class="coach-photo-dropdown" id="studentPhotoDropdown">
+                <button type="button" id="btnAddStudentPhoto">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  Add New Profile Picture
+                </button>
+                <button type="button" id="btnDeleteStudentPhoto" class="danger" style="display:none;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                  Delete Profile Picture
+                </button>
+              </div>
+              <input type="file" id="studentPhotoFileInput" accept="image/*" style="display:none;">
+            </div>
+
+            <!-- Profile Info Header -->
+            <div class="coach-profile-header-info">
+              <div class="coach-profile-name" id="viewStudentName">Student Name</div>
+              <div class="coach-profile-meta">
+                <span class="badge-status badge-success" id="viewStudentStatus">Active</span>
+                <span class="coach-meta-item" id="viewStudentParent">
+                  Parent: Legal Guardian
+                </span>
+                <span class="coach-meta-item" id="viewStudentWhatsapp">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.37 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.76a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  +91 9876543210
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Details Grid -->
+          <div class="coach-details-grid">
+
+            <!-- Card 1: Personal Info -->
+            <div class="coach-detail-card">
+              <div class="coach-detail-card-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Personal Details
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">Date of Birth:</span>
+                <span class="coach-detail-val" id="viewStudentDob">—</span>
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">Gender:</span>
+                <span class="coach-detail-val" id="viewStudentGender">—</span>
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">Blood Group:</span>
+                <span class="coach-detail-val" id="viewStudentBloodGroup">—</span>
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">Date of Joining:</span>
+                <span class="coach-detail-val" id="viewStudentDoj">—</span>
+              </div>
+            </div>
+
+            <!-- Card 2: Academy Info -->
+            <div class="coach-detail-card">
+              <div class="coach-detail-card-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                Academy Details
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">Branch Name:</span>
+                <span class="coach-detail-val" id="viewStudentBranch">—</span>
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">Assigned Coach:</span>
+                <span class="coach-detail-val" id="viewStudentCoach">—</span>
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">Assigned Batch:</span>
+                <span class="coach-detail-val" id="viewStudentBatch">—</span>
+              </div>
+            </div>
+
+            <!-- Card 3: Address Details -->
+            <div class="coach-detail-card">
+              <div class="coach-detail-card-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Address Information
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">Address Line:</span>
+                <span class="coach-detail-val" id="viewStudentAddress">—</span>
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">City:</span>
+                <span class="coach-detail-val" id="viewStudentCity">—</span>
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">Postal Code:</span>
+                <span class="coach-detail-val" id="viewStudentPostal">—</span>
+              </div>
+            </div>
+
+            <!-- Card 4: Contact Information -->
+            <div class="coach-detail-card">
+              <div class="coach-detail-card-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.37 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.76a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                Contact Details
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">Father's Contact:</span>
+                <span class="coach-detail-val" id="viewStudentFatherPhone">—</span>
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">Mother's Contact:</span>
+                <span class="coach-detail-val" id="viewStudentMotherPhone">—</span>
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">Emergency Contact:</span>
+                <span class="coach-detail-val" id="viewStudentEmergencyPhone">—</span>
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">WhatsApp Number:</span>
+                <span class="coach-detail-val" id="viewStudentWhatsappVal">—</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ===== END STUDENT PROFILE POPUP MODAL ===== -->
+
+    <!-- ===== CROP & EDIT PHOTO MODAL ===== -->
+    <div class="sb-modal-overlay" id="cropPhotoModal" style="display:none; z-index: 1050;">
+      <div class="sb-modal" style="max-width: 440px;">
+        <div class="sb-modal-header">
+          <div>
+            <div class="sb-modal-badge" style="background: rgba(6,182,212,0.15); color: var(--color-accent); border-color: rgba(6,182,212,0.3);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              Profile Picture Editor
+            </div>
+            <h2 class="sb-modal-title">Crop & Adjust Image</h2>
+          </div>
+          <button type="button" class="modal-close-btn" id="closeCropPhotoModal">&times;</button>
+        </div>
+
+        <div class="crop-container">
+          <div class="crop-viewport">
+            <canvas id="cropCanvas" width="280" height="280"></canvas>
+          </div>
+
+          <!-- Controls Toolbar -->
+          <div class="crop-toolbar">
+            <button type="button" class="crop-tool-btn" id="btnCropRotateLeft" title="Rotate 90° Left">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.5 2v6h6"/><path d="M2.66 15.57a10 10 0 1 0 .57-8.38L2.5 8"/></svg>
+              Rotate Left
+            </button>
+            <button type="button" class="crop-tool-btn" id="btnCropRotateRight" title="Rotate 90° Right">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38L21.5 8"/></svg>
+              Rotate Right
+            </button>
+            <button type="button" class="crop-tool-btn" id="btnCropFlipH" title="Flip Horizontal">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><line x1="3" y1="5" x2="21" y2="5"/><polyline points="7 23 3 19 7 15"/><line x1="21" y1="19" x2="3" y2="19"/></svg>
+              Flip H
+            </button>
+            <button type="button" class="crop-tool-btn" id="btnCropFlipV" title="Flip Vertical">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 17 5 21 9 17"/><line x1="5" y1="3" x2="5" y2="21"/><polyline points="23 7 19 3 15 7"/><line x1="19" y1="21" x2="19" y2="3"/></svg>
+              Flip V
+            </button>
+          </div>
+        </div>
+
+        <div class="sb-modal-footer">
+          <button type="button" class="btn-sb-ghost" id="cancelCropPhoto">Cancel</button>
+          <button type="button" class="btn-sb-primary" id="submitCropPhoto">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Save & Upload
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- ===== END CROP PHOTO MODAL ===== -->
+
+    <!-- ===== EDIT BATCH COACH MODAL ===== -->
+    <div class="sb-modal-overlay" id="editBatchCoachModal" style="display:none; z-index: 1050;">
+      <div class="sb-modal" style="max-width: 500px;">
+        <div class="sb-modal-header">
+          <div>
+            <div class="sb-modal-badge" style="background: rgba(6,182,212,0.15); color: var(--color-accent); border-color: rgba(6,182,212,0.3);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Edit Coach Batches
+            </div>
+            <h2 class="sb-modal-title" id="editBatchCoachTitle">Edit Coach Batches</h2>
+            <p class="sb-modal-subtitle" style="margin-top:0.25rem;">Add or remove batch assignments for this coach</p>
+          </div>
+          <button type="button" class="modal-close-btn" id="closeEditBatchCoachModal">&times;</button>
+        </div>
+
+        <div style="padding: 1.25rem 1.5rem;">
+          <input type="hidden" id="editBatchCoachId">
+
+          <!-- Action Choice Segmented Control -->
+          <div class="edit-batch-tab-group">
+            <button type="button" class="edit-batch-tab active" id="tabAddBatch">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Batch
+            </button>
+            <button type="button" class="edit-batch-tab" id="tabRemoveBatch">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Remove Batch
+            </button>
+          </div>
+
+          <!-- Section A: Add Batches (Checkboxes) -->
+          <div id="addBatchSection" style="margin-top: 1.25rem;">
+            <p class="edit-batch-section-desc">Select one or multiple batches to assign:</p>
+            <div class="batch-checkbox-list" id="addBatchCheckboxList">
+              <!-- Dynamically populated -->
+            </div>
+            <div class="sb-modal-footer" style="padding-top:1.25rem; margin-top:1rem; border-top:1px solid var(--border-glass);">
+              <button type="button" class="btn-sb-ghost" id="cancelAddBatches">Cancel</button>
+              <button type="button" class="btn-sb-primary" id="submitAddBatches">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                Assign Selected Batches
+              </button>
+            </div>
+          </div>
+
+          <!-- Section B: Remove Batches (Checkboxes) -->
+          <div id="removeBatchSection" style="display:none; margin-top: 1.25rem;">
+            <p class="edit-batch-section-desc">Select one or multiple assigned batches to remove:</p>
+            <div class="batch-checkbox-list" id="removeBatchCheckboxList">
+              <!-- Dynamically populated -->
+            </div>
+            <div class="sb-modal-footer" style="padding-top:1.25rem; margin-top:1rem; border-top:1px solid var(--border-glass);">
+              <button type="button" class="btn-sb-ghost" id="cancelRemoveBatches">Cancel</button>
+              <button type="button" class="btn-sb-primary" id="submitRemoveBatches" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                Remove Selected Batches
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <!-- ===== END EDIT BATCH COACH MODAL ===== -->
+
+  </div>
+
+  <!-- Client UX Logic Scripts -->
+  <script src="js/dashboard.js"></script>
+</body>
+
+</html>
