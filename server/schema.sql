@@ -2,7 +2,7 @@ CREATE DATABASE IF NOT EXISTS vava_sports;
 USE vava_sports;
 
 -- Batches Table
-CREATE TABLE IF NOT EXISTS batches (
+CREATE TABLE IF NOT EXISTS vsa_batches (
     batch_id INT AUTO_INCREMENT PRIMARY KEY,
     batch_name VARCHAR(100) NOT NULL,
     batch_time VARCHAR(50),
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS batches (
 );
 
 -- Coaches Table
-CREATE TABLE IF NOT EXISTS coaches (
+CREATE TABLE IF NOT EXISTS vsa_coaches (
     coach_id INT AUTO_INCREMENT PRIMARY KEY,
     coach_name VARCHAR(100) NOT NULL,
     coach_email VARCHAR(100) UNIQUE NOT NULL,
@@ -37,11 +37,11 @@ CREATE TABLE IF NOT EXISTS coaches (
     coach_city VARCHAR(100),
     coach_postal_code VARCHAR(20),
     coach_photo VARCHAR(255),
-    FOREIGN KEY (batch_id) REFERENCES batches(batch_id) ON DELETE SET NULL
+    FOREIGN KEY (batch_id) REFERENCES vsa_batches(batch_id) ON DELETE SET NULL
 );
 
 -- Students Table
-CREATE TABLE IF NOT EXISTS students (
+CREATE TABLE IF NOT EXISTS vsa_students (
     student_id INT AUTO_INCREMENT PRIMARY KEY,
     student_name VARCHAR(100) NOT NULL,
     student_email VARCHAR(100) UNIQUE NOT NULL,
@@ -72,15 +72,30 @@ CREATE TABLE IF NOT EXISTS students (
     fee_pending DECIMAL(12,2) DEFAULT 0.00,
     pending_months INT DEFAULT 0,
     payment_status VARCHAR(20) DEFAULT 'Pending',
-    FOREIGN KEY (batch_id) REFERENCES batches(batch_id) ON DELETE SET NULL,
-    FOREIGN KEY (coach_id) REFERENCES coaches(coach_id) ON DELETE SET NULL
+    FOREIGN KEY (batch_id) REFERENCES vsa_batches(batch_id) ON DELETE SET NULL,
+    FOREIGN KEY (coach_id) REFERENCES vsa_coaches(coach_id) ON DELETE SET NULL
 );
 
 -- Verified Users Table
-CREATE TABLE IF NOT EXISTS superadmin (
+CREATE TABLE IF NOT EXISTS vsa_superadmin (
     admin_id INT AUTO_INCREMENT PRIMARY KEY,
     admin_name VARCHAR(100) NOT NULL,
     admin_email VARCHAR(100) UNIQUE NOT NULL,
     admin_number VARCHAR(15),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Attendance Table
+CREATE TABLE IF NOT EXISTS vsa_attendance (
+    attendance_id INT AUTO_INCREMENT PRIMARY KEY,
+    batch_id INT NOT NULL,
+    coach_id INT NOT NULL,
+    student_id INT NOT NULL,
+    attendance_date DATE NOT NULL,
+    status ENUM('Present','Absent') NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_daily_attendance (batch_id, student_id, attendance_date),
+    FOREIGN KEY (batch_id) REFERENCES vsa_batches(batch_id) ON UPDATE CASCADE,
+    FOREIGN KEY (coach_id) REFERENCES vsa_coaches(coach_id) ON UPDATE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES vsa_students(student_id) ON UPDATE CASCADE
 );

@@ -25,6 +25,8 @@
 
 <body>
   <div class="dashboard-layout">
+    <!-- Mobile Sidebar Backdrop Overlay -->
+    <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
 
     <!-- Sidebar Navigation -->
     <aside class="app-sidebar" id="appSidebar">
@@ -67,7 +69,7 @@
                 <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
               </svg>
             </span>
-            <span>Daily Attendance</span>
+            <span>Attendance</span>
             <span class="nav-badge badge-primary">Live</span>
           </a>
 
@@ -847,6 +849,72 @@
             </section>
           </div>
         </div>
+
+        <!-- ===== ATTENDANCE SECTION ===== -->
+        <section id="attendanceSection" style="display:none;">
+          <!-- Coach Info Header -->
+          <div id="coachAttendanceHeader" class="coach-attendance-header" style="margin-bottom: 1.25rem; display: flex; gap: 2rem; background: var(--bg-card); padding: 0.9rem 1.25rem; border-radius: 8px; border: 1px solid var(--border-glass); align-items: center; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 500;">Coach:</span>
+              <strong id="coachHeaderName" style="color: var(--text-primary); font-size: 1rem; font-weight: 600;">-</strong>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 500;">Batch:</span>
+              <strong id="coachHeaderBatch" style="color: var(--color-primary); font-size: 1rem; font-weight: 600;">-</strong>
+            </div>
+          </div>
+
+          <!-- Action Bar -->
+          <div class="sb-action-bar">
+            <div class="sb-action-bar-left">
+              <div class="status-indicator-pill">
+                <span class="live-dot"></span>
+                <span id="attendanceLiveCount">0 Attendance Sheets</span>
+              </div>
+            </div>
+            <div class="sb-action-bar-right">
+              <button type="button" class="btn-sb-primary" id="btnNewAttendanceSheet">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                New Attendance Sheet
+              </button>
+            </div>
+          </div>
+
+          <!-- Attendance Table Widget -->
+          <div class="dashboard-widget" id="attendanceSectionTableWidget" style="padding:0;overflow:hidden;margin-top:1.25rem;display:none;">
+            <div class="table-container">
+              <table class="data-table" id="attendanceSectionTable">
+                <thead>
+                  <tr>
+                    <th style="width: 25%;">Date</th>
+                    <th style="width: 25%;">Attendance</th>
+                    <th style="width: 25%;">Present Percentage</th>
+                    <th style="width: 25%; text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="attendanceSectionTableBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div id="attendanceSectionEmptyState" class="batches-empty-state" style="display:none;">
+            <div class="batches-empty-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 11l3 3L22 4"></path>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+              </svg>
+            </div>
+            <h3>No Attendance Sheets Yet</h3>
+            <p>Click <strong>New Attendance Sheet</strong> to mark attendance for your assigned batch.</p>
+          </div>
+        </section>
+        <!-- ===== END ATTENDANCE SECTION ===== -->
 
         <!-- ===== STUDENTS SECTION ===== -->
         <section id="studentsSection" style="display:none;">
@@ -2402,6 +2470,122 @@
     </div>
     <!-- ===== END EDIT BATCH COACH MODAL ===== -->
 
+    <!-- ===== NEW ATTENDANCE SHEET MODAL ===== -->
+    <div class="sb-modal-overlay" id="newAttendanceModal" style="display:none; z-index: 1050;">
+      <div class="sb-modal" style="max-width: 480px;">
+        <div class="sb-modal-header">
+          <div>
+            <div class="sb-modal-badge" style="background: rgba(16, 185, 129, 0.15); color: var(--color-primary); border-color: rgba(16, 185, 129, 0.3);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+              Attendance Roster
+            </div>
+            <h2 class="sb-modal-title">New Attendance Sheet</h2>
+            <p class="sb-modal-subtitle" style="margin-top:0.25rem;">Select attendance date for your assigned batch</p>
+          </div>
+          <button type="button" class="modal-close-btn" id="closeNewAttendanceModal">&times;</button>
+        </div>
+
+        <form id="newAttendanceForm" style="padding: 1.25rem 1.5rem;">
+          <!-- Hidden Batch Select for Coach auto-batch assignment -->
+          <div class="form-group" style="display: none;">
+            <label for="newAttendanceBatchSelect" style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem;">Batch Name</label>
+            <select id="newAttendanceBatchSelect" class="sb-search-input">
+              <option value="">Select Batch</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label for="newAttendanceSheetDate" style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem;">Attendance Date <span style="color:var(--color-danger);">*</span></label>
+            <input type="date" id="newAttendanceSheetDate" class="sb-search-input" style="width: 100%; padding: 0.65rem 0.85rem; border-radius: 6px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-glass);" required>
+          </div>
+
+          <div class="sb-modal-footer" style="padding-top:1rem; border-top:1px solid var(--border-glass); display: flex; justify-content: flex-end; gap: 0.75rem;">
+            <button type="button" class="btn-sb-ghost" id="btnCancelNewAttendance">Cancel</button>
+            <button type="submit" class="btn-sb-primary" id="btnSubmitNewAttendance">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Create Sheet
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <!-- ===== END NEW ATTENDANCE SHEET MODAL ===== -->
+
+    <!-- ===== OPEN ATTENDANCE MODAL ===== -->
+    <div class="sb-modal-overlay" id="openAttendanceModal" style="display:none; z-index: 1050;">
+      <div class="sb-modal" style="max-width: 600px; width: 95%;">
+        <div class="sb-modal-header">
+          <div>
+            <div class="sb-modal-badge" style="background: rgba(16, 185, 129, 0.15); color: var(--color-primary); border-color: rgba(16, 185, 129, 0.3);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              Student Roster
+            </div>
+            <h2 class="sb-modal-title" id="openAttendanceTitle">Attendance Roster</h2>
+            <p class="sb-modal-subtitle" id="openAttendanceSubtitle" style="margin-top:0.25rem;">Mark student presence for this batch</p>
+          </div>
+          <button type="button" class="modal-close-btn" id="closeOpenAttendanceModal">&times;</button>
+        </div>
+
+        <div style="padding: 1.25rem 1.5rem;">
+          <input type="hidden" id="openAttendanceBatchId">
+          <input type="hidden" id="openAttendanceDate">
+
+          <div class="table-container" style="max-height: 380px; overflow-y: auto; border: 1px solid var(--border-glass); border-radius: 8px;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="padding: 0.75rem 1rem;">Student Name</th>
+                  <th style="padding: 0.75rem 1rem; text-align: center;">Status</th>
+                </tr>
+              </thead>
+              <tbody id="openAttendanceStudentTableBody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="sb-modal-footer" style="padding-top:1.25rem; margin-top:1.25rem; border-top:1px solid var(--border-glass); display: flex; justify-content: flex-end; gap: 0.75rem;">
+            <button type="button" class="btn-sb-ghost" id="btnCloseOpenAttendance">Close</button>
+            <button type="button" class="btn-sb-primary" id="btnSaveOpenAttendance">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ===== END OPEN ATTENDANCE MODAL ===== -->
+
+    <!-- ===== DELETE ATTENDANCE MODAL ===== -->
+    <div class="sb-modal-overlay" id="deleteAttendanceModal" style="display:none; z-index: 1050;">
+      <div class="sb-modal" style="max-width: 440px;">
+        <div class="sb-modal-header">
+          <div>
+            <div class="sb-modal-badge" style="background: rgba(239,68,68,0.15); color: var(--color-danger); border-color: rgba(239,68,68,0.3);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+              Confirm Deletion
+            </div>
+            <h2 class="sb-modal-title">Delete Attendance Sheet</h2>
+          </div>
+          <button type="button" class="modal-close-btn" id="closeDeleteAttendanceModal">&times;</button>
+        </div>
+
+        <div style="padding: 1.25rem 1.5rem;">
+          <p id="deleteAttendanceConfirmMessage" style="color: var(--text-secondary); font-size: 0.95rem; line-height: 1.5;">
+            Do you want to delete this attendance sheet?
+          </p>
+
+          <div class="sb-modal-footer" style="padding-top:1.25rem; margin-top:1.25rem; border-top:1px solid var(--border-glass); display: flex; justify-content: flex-end; gap: 0.75rem;">
+            <button type="button" class="btn-sb-ghost" id="btnCancelDeleteAttendance">No</button>
+            <button type="button" class="btn-sb-primary" id="btnConfirmDeleteAttendance" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+              Yes
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ===== END DELETE ATTENDANCE MODAL ===== -->
+
   </div>
 
   <!-- Client UX Logic Scripts -->
@@ -2409,6 +2593,7 @@
   <script src="js/students.js"></script>
   <script src="js/coaches.js"></script>
   <script src="js/batches.js"></script>
+  <script src="js/attendance.js"></script>
   <script src="js/navigation.js"></script>
   <script src="js/dashboard.js"></script>
 </body>

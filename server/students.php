@@ -23,7 +23,7 @@ if ($method === 'GET') {
     $id = intval($_GET['id'] ?? 0);
     try {
         if ($id > 0) {
-            $stmt = $pdo->prepare('SELECT * FROM students WHERE student_id = ?');
+            $stmt = $pdo->prepare('SELECT * FROM vsa_students WHERE student_id = ?');
             $stmt->execute([$id]);
             $student = $stmt->fetch();
             if (!$student) {
@@ -33,7 +33,7 @@ if ($method === 'GET') {
             }
             echo json_encode(['success' => true, 'student' => $student]);
         } else {
-            $stmt = $pdo->query('SELECT * FROM students ORDER BY student_id DESC');
+            $stmt = $pdo->query('SELECT * FROM vsa_students ORDER BY student_id DESC');
             $students = $stmt->fetchAll();
             echo json_encode(['success' => true, 'students' => $students]);
         }
@@ -85,7 +85,7 @@ if ($method === 'POST') {
         $relativePath = 'uploads/students/' . $filename;
 
         try {
-            $stmtOld = $pdo->prepare('SELECT student_photo FROM students WHERE student_id = ?');
+            $stmtOld = $pdo->prepare('SELECT student_photo FROM vsa_students WHERE student_id = ?');
             $stmtOld->execute([$student_id]);
             $oldStudent = $stmtOld->fetch();
             if ($oldStudent && !empty($oldStudent['student_photo'])) {
@@ -103,7 +103,7 @@ if ($method === 'POST') {
         }
 
         try {
-            $stmt = $pdo->prepare('UPDATE students SET student_photo = ? WHERE student_id = ?');
+            $stmt = $pdo->prepare('UPDATE vsa_students SET student_photo = ? WHERE student_id = ?');
             $stmt->execute([$relativePath, $student_id]);
             echo json_encode(['success' => true, 'student_photo' => $relativePath]);
         } catch (PDOException $e) {
@@ -123,7 +123,7 @@ if ($method === 'POST') {
         }
 
         try {
-            $stmtOld = $pdo->prepare('SELECT student_photo FROM students WHERE student_id = ?');
+            $stmtOld = $pdo->prepare('SELECT student_photo FROM vsa_students WHERE student_id = ?');
             $stmtOld->execute([$student_id]);
             $student = $stmtOld->fetch();
             if ($student && !empty($student['student_photo'])) {
@@ -132,7 +132,7 @@ if ($method === 'POST') {
                     @unlink($oldFile);
                 }
             }
-            $stmt = $pdo->prepare('UPDATE students SET student_photo = NULL WHERE student_id = ?');
+            $stmt = $pdo->prepare('UPDATE vsa_students SET student_photo = NULL WHERE student_id = ?');
             $stmt->execute([$student_id]);
             echo json_encode(['success' => true]);
         } catch (PDOException $e) {
@@ -177,7 +177,7 @@ if ($method === 'POST') {
 
     try {
         $stmt = $pdo->prepare(
-            'INSERT INTO students (
+            'INSERT INTO vsa_students (
                 student_name, student_email, student_phone, address, date_of_birth, joined_date, status,
                 parent_name, gender, blood_group, branch_name, coach_name, batch_name, city, postal_code,
                 father_contact_number, mother_contact_number, emergency_contact_number, whatsapp_number
@@ -233,7 +233,7 @@ if ($method === 'PUT') {
 
     try {
         $stmt = $pdo->prepare(
-            'UPDATE students SET
+            'UPDATE vsa_students SET
                 student_name = ?, student_phone = ?, address = ?, date_of_birth = ?, status = ?,
                 parent_name = ?, gender = ?, blood_group = ?, branch_name = ?, coach_name = ?, batch_name = ?,
                 city = ?, postal_code = ?, father_contact_number = ?, mother_contact_number = ?,
@@ -249,7 +249,7 @@ if ($method === 'PUT') {
         ]);
 
         if ($stmt->rowCount() === 0) {
-            $check = $pdo->prepare('SELECT student_id FROM students WHERE student_id = ?');
+            $check = $pdo->prepare('SELECT student_id FROM vsa_students WHERE student_id = ?');
             $check->execute([$student_id]);
             if (!$check->fetch()) {
                 http_response_code(404);
@@ -278,7 +278,7 @@ if ($method === 'DELETE') {
     }
 
     try {
-        $stmtOld = $pdo->prepare('SELECT student_photo FROM students WHERE student_id = ?');
+        $stmtOld = $pdo->prepare('SELECT student_photo FROM vsa_students WHERE student_id = ?');
         $stmtOld->execute([$student_id]);
         $student = $stmtOld->fetch();
         if ($student && !empty($student['student_photo'])) {
@@ -288,7 +288,7 @@ if ($method === 'DELETE') {
             }
         }
 
-        $stmt = $pdo->prepare('DELETE FROM students WHERE student_id = ?');
+        $stmt = $pdo->prepare('DELETE FROM vsa_students WHERE student_id = ?');
         $stmt->execute([$student_id]);
 
         if ($stmt->rowCount() === 0) {

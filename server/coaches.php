@@ -25,8 +25,8 @@ if ($method === 'GET') {
         if ($id > 0) {
             $stmt = $pdo->prepare('
                 SELECT c.*, b.batch_name, b.sport AS batch_sport
-                FROM coaches c
-                LEFT JOIN batches b ON c.batch_id = b.batch_id
+                FROM vsa_coaches c
+                LEFT JOIN vsa_batches b ON c.batch_id = b.batch_id
                 WHERE c.coach_id = ?
             ');
             $stmt->execute([$id]);
@@ -40,8 +40,8 @@ if ($method === 'GET') {
         } else {
             $stmt = $pdo->query('
                 SELECT c.*, b.batch_name, b.sport AS batch_sport
-                FROM coaches c
-                LEFT JOIN batches b ON c.batch_id = b.batch_id
+                FROM vsa_coaches c
+                LEFT JOIN vsa_batches b ON c.batch_id = b.batch_id
                 ORDER BY c.coach_id DESC
             ');
             $coaches = $stmt->fetchAll();
@@ -95,7 +95,7 @@ if ($method === 'POST') {
         $relativePath = 'uploads/coaches/' . $filename;
 
         try {
-            $stmtOld = $pdo->prepare('SELECT coach_photo FROM coaches WHERE coach_id = ?');
+            $stmtOld = $pdo->prepare('SELECT coach_photo FROM vsa_coaches WHERE coach_id = ?');
             $stmtOld->execute([$coach_id]);
             $oldCoach = $stmtOld->fetch();
             if ($oldCoach && !empty($oldCoach['coach_photo'])) {
@@ -113,7 +113,7 @@ if ($method === 'POST') {
         }
 
         try {
-            $stmt = $pdo->prepare('UPDATE coaches SET coach_photo = ? WHERE coach_id = ?');
+            $stmt = $pdo->prepare('UPDATE vsa_coaches SET coach_photo = ? WHERE coach_id = ?');
             $stmt->execute([$relativePath, $coach_id]);
             echo json_encode(['success' => true, 'coach_photo' => $relativePath]);
         } catch (PDOException $e) {
@@ -133,7 +133,7 @@ if ($method === 'POST') {
         }
 
         try {
-            $stmtOld = $pdo->prepare('SELECT coach_photo FROM coaches WHERE coach_id = ?');
+            $stmtOld = $pdo->prepare('SELECT coach_photo FROM vsa_coaches WHERE coach_id = ?');
             $stmtOld->execute([$coach_id]);
             $coach = $stmtOld->fetch();
             if ($coach && !empty($coach['coach_photo'])) {
@@ -142,7 +142,7 @@ if ($method === 'POST') {
                     @unlink($oldFile);
                 }
             }
-            $stmt = $pdo->prepare('UPDATE coaches SET coach_photo = NULL WHERE coach_id = ?');
+            $stmt = $pdo->prepare('UPDATE vsa_coaches SET coach_photo = NULL WHERE coach_id = ?');
             $stmt->execute([$coach_id]);
             echo json_encode(['success' => true]);
         } catch (PDOException $e) {
@@ -176,7 +176,7 @@ if ($method === 'POST') {
 
     try {
         $stmt = $pdo->prepare(
-            'INSERT INTO coaches (
+            'INSERT INTO vsa_coaches (
                 coach_name, coach_email, coach_phone, coach_dob, coach_joined_date,
                 coach_license, coach_address, coach_city, coach_postal_code,
                 emergency_contact_name, emergency_contact_number, coach_sport, status, batch_id
@@ -230,7 +230,7 @@ if ($method === 'PUT') {
 
     try {
         $stmt = $pdo->prepare(
-            'UPDATE coaches SET
+            'UPDATE vsa_coaches SET
                 coach_name = ?, coach_email = ?, coach_phone = ?, coach_dob = ?, coach_joined_date = ?,
                 coach_license = ?, coach_address = ?, coach_city = ?, coach_postal_code = ?,
                 emergency_contact_name = ?, emergency_contact_number = ?, coach_sport = ?, status = ?,
@@ -266,7 +266,7 @@ if ($method === 'DELETE') {
     }
 
     try {
-        $stmtOld = $pdo->prepare('SELECT coach_photo FROM coaches WHERE coach_id = ?');
+        $stmtOld = $pdo->prepare('SELECT coach_photo FROM vsa_coaches WHERE coach_id = ?');
         $stmtOld->execute([$coach_id]);
         $coach = $stmtOld->fetch();
         if ($coach && !empty($coach['coach_photo'])) {
@@ -276,7 +276,7 @@ if ($method === 'DELETE') {
             }
         }
 
-        $stmt = $pdo->prepare('DELETE FROM coaches WHERE coach_id = ?');
+        $stmt = $pdo->prepare('DELETE FROM vsa_coaches WHERE coach_id = ?');
         $stmt->execute([$coach_id]);
 
         if ($stmt->rowCount() === 0) {

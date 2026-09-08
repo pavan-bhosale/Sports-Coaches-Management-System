@@ -61,6 +61,7 @@ function navigateToSection(targetHref, showToastNotice = true) {
   const studentsSection = document.getElementById('studentsSection');
   const batchesSection = document.getElementById('batchesSection');
   const coachesSection = document.getElementById('coachesSection');
+  const attendanceSection = document.getElementById('attendanceSection');
   const globalStatusPill = document.querySelector('.content-header .status-indicator-pill');
 
   // Reset all sections
@@ -70,12 +71,30 @@ function navigateToSection(targetHref, showToastNotice = true) {
   if (studentsSection) studentsSection.style.display = 'none';
   if (batchesSection) batchesSection.style.display = 'none';
   if (coachesSection) coachesSection.style.display = 'none';
+  if (attendanceSection) attendanceSection.style.display = 'none';
+
+  const storedRole = localStorage.getItem('vava_role') || 'admin';
+
+  // 1. Role-based Attendance Access Protection
+  if (targetHref === '#attendance' && storedRole !== 'coach') {
+    if (showToastNotice && typeof showToast === 'function') {
+      showToast('Attendance module is accessible to coaches only.', 'error');
+    }
+    navigateToSection('#overview', false);
+    return;
+  }
 
   if (targetHref === '#overview') {
     if (welcomeBanner) welcomeBanner.style.display = '';
     if (kpiGrid) kpiGrid.style.display = '';
     if (dashboardGridLayout) dashboardGridLayout.style.display = '';
     if (globalStatusPill) globalStatusPill.style.display = '';
+  } else if (targetHref === '#attendance') {
+    if (attendanceSection) {
+      attendanceSection.style.display = '';
+      if (typeof fetchAttendanceSheets === 'function') fetchAttendanceSheets();
+    }
+    if (globalStatusPill) globalStatusPill.style.display = 'none';
   } else if (targetHref === '#students') {
     if (studentsSection) {
       studentsSection.style.display = '';
@@ -108,6 +127,12 @@ function navigateToSection(targetHref, showToastNotice = true) {
 
 function handleHashRoute() {
   const currentHash = window.location.hash || '#overview';
+  const storedRole = localStorage.getItem('vava_role') || 'admin';
+  if (currentHash === '#attendance' && storedRole !== 'coach') {
+    window.location.hash = '#overview';
+    navigateToSection('#overview', false);
+    return;
+  }
   if (currentHash !== currentActiveSectionHash) {
     navigateToSection(currentHash, false);
   }
@@ -132,7 +157,7 @@ window.recordPaymentModal = (name, amount) => {
 
 // ── Navigation Initialization & Event Listeners ───────────
 document.addEventListener('DOMContentLoaded', () => {
-  // 1. Role Title Setting
+  // 1. Role Title Setting & Attendance Nav Visibility
   const dashboardTitles = {
     admin:   'Super Admin Dashboard',
     coach:   'Coach Dashboard',
@@ -142,6 +167,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const pageTitleEl = document.getElementById('pageTitle');
   if (pageTitleEl) {
     pageTitleEl.textContent = dashboardTitles[storedRole] || 'Super Admin Dashboard';
+  }
+
+  const navAttendanceEl = document.getElementById('nav-attendance');
+  if (navAttendanceEl && storedRole !== 'coach') {
+    navAttendanceEl.style.display = 'none';
   }
 
   // 2. Navigation Link Click Handling
@@ -158,6 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 3. Sidebar Toggle (Retractable Desktop & Mobile Open)
   const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
   const appSidebar = document.getElementById('appSidebar');
+  const sidebarBackdrop = document.getElementById('sidebarBackdrop');
   const dashboardLayout = document.querySelector('.dashboard-layout');
 
   if (sidebarToggleBtn && dashboardLayout) {
@@ -169,9 +200,15 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
+    if (sidebarBackdrop) {
+      sidebarBackdrop.addEventListener('click', () => {
+        dashboardLayout.classList.remove('sidebar-mobile-open');
+      });
+    }
+
     document.addEventListener('click', (e) => {
       if (window.innerWidth <= 768 && dashboardLayout.classList.contains('sidebar-mobile-open')) {
-        if (appSidebar && !appSidebar.contains(e.target) && !sidebarToggleBtn.contains(e.target)) {
+        if (appSidebar && !appSidebar.contains(e.target) && !sidebarToggleBtn.contains(e.target) && (!sidebarBackdrop || !sidebarBackdrop.contains(e.target))) {
           dashboardLayout.classList.remove('sidebar-mobile-open');
         }
       }

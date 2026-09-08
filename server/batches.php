@@ -20,7 +20,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 // ── GET: fetch all batches ─────────────────────────────────────────────────
 if ($method === 'GET') {
-    $stmt = $pdo->query('SELECT batch_id, batch_name, batch_location, batch_time, sport, max_students, created_at FROM batches ORDER BY created_at DESC');
+    $stmt = $pdo->query('SELECT batch_id, batch_name, batch_location, batch_time, sport, max_students, created_at FROM vsa_batches ORDER BY created_at DESC');
     $batches = $stmt->fetchAll();
     echo json_encode(['success' => true, 'batches' => $batches]);
     exit;
@@ -43,7 +43,7 @@ if ($method === 'POST') {
     }
 
     $stmt = $pdo->prepare(
-        'INSERT INTO batches (batch_name, batch_location, batch_time, sport, max_students) VALUES (?, ?, ?, ?, ?)'
+        'INSERT INTO vsa_batches (batch_name, batch_location, batch_time, sport, max_students) VALUES (?, ?, ?, ?, ?)'
     );
     $stmt->execute([$batch_name, $batch_location, $batch_time, $sport, $max_students]);
     $newId = $pdo->lastInsertId();
@@ -80,13 +80,13 @@ if ($method === 'PUT') {
     }
 
     $stmt = $pdo->prepare(
-        'UPDATE batches SET batch_name=?, batch_location=?, batch_time=?, sport=?, max_students=? WHERE batch_id=?'
+        'UPDATE vsa_batches SET batch_name=?, batch_location=?, batch_time=?, sport=?, max_students=? WHERE batch_id=?'
     );
     $stmt->execute([$batch_name, $batch_location, $batch_time, $sport, $max_students, $batch_id]);
 
     if ($stmt->rowCount() === 0) {
         // rowCount may be 0 if data unchanged; treat as success if batch exists
-        $check = $pdo->prepare('SELECT batch_id FROM batches WHERE batch_id=?');
+        $check = $pdo->prepare('SELECT batch_id FROM vsa_batches WHERE batch_id=?');
         $check->execute([$batch_id]);
         if (!$check->fetch()) {
             http_response_code(404);
@@ -110,7 +110,7 @@ if ($method === 'DELETE') {
         exit;
     }
 
-    $stmt = $pdo->prepare('DELETE FROM batches WHERE batch_id = ?');
+    $stmt = $pdo->prepare('DELETE FROM vsa_batches WHERE batch_id = ?');
     $stmt->execute([$batch_id]);
 
     if ($stmt->rowCount() === 0) {

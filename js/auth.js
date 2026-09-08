@@ -88,9 +88,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
 
       if (res.ok) {
-        // Save token and role to localStorage
-        localStorage.setItem('vava_token', data.token);
+        // Save token, role, and user object to localStorage
+        localStorage.setItem('vava_token', data.token || response.credential || '');
         localStorage.setItem('vava_role', currentRole);
+        if (data.user) {
+          localStorage.setItem('vava_user', JSON.stringify(data.user));
+          localStorage.setItem('vava_email', data.user.email || '');
+        }
         
         showToast(`Google Auth successful! Logging in as ${config.title}...`, 'success');
         

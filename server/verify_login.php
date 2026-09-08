@@ -63,12 +63,12 @@ $name  = $payload['name'] ?? $payload['email'];
 
 // Determine which table and column to check based on role
 if ($role === 'coach') {
-    $stmt = $pdo->prepare('SELECT * FROM coaches WHERE coach_email = ?');
+    $stmt = $pdo->prepare('SELECT * FROM vsa_coaches WHERE coach_email = ?');
 } elseif ($role === 'student') {
-    $stmt = $pdo->prepare('SELECT * FROM students WHERE student_email = ?');
+    $stmt = $pdo->prepare('SELECT * FROM vsa_students WHERE student_email = ?');
 } else {
     // Default: superadmin
-    $stmt = $pdo->prepare('SELECT * FROM superadmin WHERE admin_email = ?');
+    $stmt = $pdo->prepare('SELECT * FROM vsa_superadmin WHERE admin_email = ?');
 }
 
 $stmt->execute([$email]);
@@ -80,12 +80,22 @@ if (!$verifiedUser) {
     exit;
 }
 
-// User is verified — return success
+// User is verified — build user payload
+$userData = [
+    'email' => $email,
+    'name'  => $name,
+    'role'  => $role
+];
+
+if ($role === 'coach' && $verifiedUser) {
+    $userData['coach_id']   = intval($verifiedUser['coach_id'] ?? 0);
+    $userData['coach_name'] = $verifiedUser['coach_name'] ?? $name;
+    $userData['batch_id']   = intval($verifiedUser['batch_id'] ?? 0);
+    $userData['batch_name'] = $verifiedUser['batch_name'] ?? 'Unassigned';
+}
+
 echo json_encode([
     'success' => true,
-    'user' => [
-        'email' => $email,
-        'name'  => $name
-    ]
+    'user'    => $userData
 ]);
 ?>

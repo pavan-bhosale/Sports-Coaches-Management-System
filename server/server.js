@@ -31,7 +31,7 @@ app.post('/api/auth/google', async (req, res) => {
         const name = payload.name;
 
         // Check superadmin table
-        const [verifiedRows] = await db.execute('SELECT * FROM superadmin WHERE email = ?', [email]);
+        const [verifiedRows] = await db.execute('SELECT * FROM vsa_superadmin WHERE admin_email = ?', [email]);
         if (verifiedRows.length === 0 && email !== SUPERADMIN_EMAIL) {
              return res.status(403).json({ error: "You aren't a verified user." });
         }
@@ -43,22 +43,22 @@ app.post('/api/auth/google', async (req, res) => {
             finalRole = 'admin';
             dbUser = { id: 0, name: 'Super Admin', email };
         } else if (role === 'coach') {
-            const [rows] = await db.execute('SELECT * FROM coaches WHERE coach_email = ?', [email]);
+            const [rows] = await db.execute('SELECT * FROM vsa_coaches WHERE coach_email = ?', [email]);
             if (rows.length > 0) {
                 dbUser = rows[0];
                 // Update google_id if first login
                 if (!dbUser.google_id) {
-                    await db.execute('UPDATE coaches SET google_id = ? WHERE coach_id = ?', [googleId, dbUser.coach_id]);
+                    await db.execute('UPDATE vsa_coaches SET google_id = ? WHERE coach_id = ?', [googleId, dbUser.coach_id]);
                 }
             } else {
                 return res.status(403).json({ error: 'Access denied. Email not found in Coaches database.' });
             }
         } else if (role === 'student') {
-            const [rows] = await db.execute('SELECT * FROM students WHERE student_email = ?', [email]);
+            const [rows] = await db.execute('SELECT * FROM vsa_students WHERE student_email = ?', [email]);
             if (rows.length > 0) {
                 dbUser = rows[0];
                  if (!dbUser.google_id) {
-                    await db.execute('UPDATE students SET google_id = ? WHERE student_id = ?', [googleId, dbUser.student_id]);
+                    await db.execute('UPDATE vsa_students SET google_id = ? WHERE student_id = ?', [googleId, dbUser.student_id]);
                 }
             } else {
                 return res.status(403).json({ error: 'Access denied. Email not found in Students database.' });

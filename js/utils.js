@@ -3,9 +3,10 @@
  */
 
 // API Endpoints
-const STUDENTS_API = 'http://localhost/VAVA_sports/server/students.php';
-const COACHES_API  = 'http://localhost/VAVA_sports/server/coaches.php';
-const BATCHES_API  = 'http://localhost/VAVA_sports/server/batches.php';
+const STUDENTS_API   = 'http://localhost/VAVA_sports/server/students.php';
+const COACHES_API    = 'http://localhost/VAVA_sports/server/coaches.php';
+const BATCHES_API    = 'http://localhost/VAVA_sports/server/batches.php';
+const ATTENDANCE_API = 'http://localhost/VAVA_sports/server/attendance.php';
 
 // Modal Open / Close Helpers
 function openModal(id) {
@@ -204,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (actionsBtn) {
       e.stopPropagation();
       const id = actionsBtn.getAttribute('data-id');
-      const menu = document.getElementById(`batchMenu-${id}`) || document.getElementById(`coachMenu-${id}`) || document.getElementById(`studentMenu-${id}`);
+      const menu = document.getElementById(`batchMenu-${id}`) || document.getElementById(`coachMenu-${id}`) || document.getElementById(`studentMenu-${id}`) || document.getElementById(`attendanceMenu-${id}`);
       document.querySelectorAll('.batch-actions-menu.open').forEach(m => {
         if (m !== menu) m.classList.remove('open');
       });
