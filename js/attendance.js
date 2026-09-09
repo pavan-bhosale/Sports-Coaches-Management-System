@@ -132,11 +132,8 @@ function applyAttendanceDateFilter() {
     if (labelEl) labelEl.textContent = formatShortDateDisplay(filter.singleDate);
     if (clearBtn) clearBtn.style.display = 'inline-flex';
   } else if (filter.type === 'range') {
-    const startParts = filter.startDate.split('-');
-    const endParts = filter.endDate.split('-');
-    const sameYear = startParts[0] === endParts[0];
-    const startTxt = formatShortDateDisplay(filter.startDate, !sameYear);
-    const endTxt = formatShortDateDisplay(filter.endDate, true);
+    const startTxt = formatShortDateDisplay(filter.startDate, false);
+    const endTxt = formatShortDateDisplay(filter.endDate, false);
     if (labelEl) labelEl.textContent = `${startTxt} – ${endTxt}`;
     if (clearBtn) clearBtn.style.display = 'inline-flex';
   } else {
@@ -166,44 +163,212 @@ function applyAttendanceDateFilter() {
   }
 }
 
-// Clear date filter
-function clearAttendanceDateFilter() {
-  activeAttendanceDateFilter = { type: 'all', singleDate: '', startDate: '', endDate: '' };
-  const singleInput = document.getElementById('filterAttendanceSingleDate');
-  const startInput = document.getElementById('filterAttendanceStartDate');
-  const endInput = document.getElementById('filterAttendanceEndDate');
-  if (singleInput) singleInput.value = '';
-  if (startInput) startInput.value = '';
-  if (endInput) endInput.value = '';
+// ── Dedicated Attendance Calendar State & Logic ─────────────────────────────
+let calViewYear = 2026;
+let calViewMonth = 8; // 0-indexed: 8 = September
+let calSelection = {
+  start: null, // 'YYYY-MM-DD'
+  end: null    // 'YYYY-MM-DD'
+};
+
+// Set of dates that currently have attendance sheets
+function getDatesWithAttendanceSheets() {
+  const dates = new Set();
+  document.querySelectorAll('#attendanceCardsContainer .attendance-card-mobile').forEach(c => {
+    if (c.dataset.date) dates.add(c.dataset.date);
+  });
+  return dates;
+}
+
+// Render Attendance Calendar Month & Days
+function renderAttendanceCalendar() {
+  const monthYearLabel = document.getElementById('attendanceCalMonthYearLabel');
+  const daysGrid = document.getElementById('attendanceCalDaysGrid');
+  const summaryValue = document.getElementById('attendanceCalSummaryValue');
+  if (!monthYearLabel || !daysGrid) return;
+
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  monthYearLabel.textContent = `${monthNames[calViewMonth]} ${calViewYear}`;
+
+  // Weekday offset: Monday is 0, Sunday is 6
+  const firstDayObj = new Date(calViewYear, calViewMonth, 1);
+  const firstDayWeekday = (firstDayObj.getDay() + 6) % 7; 
+  const totalDaysInMonth = new Date(calViewYear, calViewMonth + 1, 0).getDate();
+
+  // Get sheet dates set
+  const sheetDates = getDatesWithAttendanceSheets();
+
+  daysGrid.innerHTML = '';
+
+  // Leading empty cells
+  for (let i = 0; i < firstDayWeekday; i++) {
+    const emptyCell = document.createElement('div');
+    emptyCell.className = 'cal-day-cell cal-day-empty';
+    daysGrid.appendChild(emptyCell);
+  }
+
+  // Day cells
+  for (let day = 1; day <= totalDaysInMonth; day++) {
+    const dayStr = String(day).padStart(2, '0');
+    const monthStr = String(calViewMonth + 1).padStart(2, '0');
+    const dateStr = `${calViewYear}-${monthStr}-${dayStr}`;
+
+    const cell = document.createElement('button');
+    cell.type = 'button';
+    cell.className = 'cal-day-cell';
+    cell.dataset.date = dateStr;
+    cell.setAttribute('aria-label', `${monthNames[calViewMonth]} ${day}, ${calViewYear}`);
+
+    const numSpan = document.createElement('span');
+    numSpan.className = 'cal-day-num';
+    numSpan.textContent = day;
+    cell.appendChild(numSpan);
+
+    // Indicator dot if this date has attendance records
+    if (sheetDates.has(dateStr)) {
+      const dot = document.createElement('span');
+      dot.className = 'cal-sheet-dot';
+      cell.appendChild(dot);
+    }
+
+    // Selection styling
+    const { start, end } = calSelection;
+    if (start && !end) {
+      if (dateStr === start) {
+        cell.classList.add('cal-day-selected', 'cal-day-single');
+      }
+    } else if (start && end) {
+      if (dateStr === start) {
+        cell.classList.add('cal-day-selected', 'cal-day-start');
+      } else if (dateStr === end) {
+        cell.classList.add('cal-day-selected', 'cal-day-end');
+      } else if (dateStr > start && dateStr < end) {
+        cell.classList.add('cal-day-in-range');
+      }
+    }
+
+    cell.addEventListener('click', () => handleAttendanceCalendarDayClick(dateStr));
+    daysGrid.appendChild(cell);
+  }
+
+  // Update Summary label in modal footer
+  if (summaryValue) {
+    if (calSelection.start && calSelection.end) {
+      const startParts = calSelection.start.split('-');
+      const endParts = calSelection.end.split('-');
+      const sameYear = startParts[0] === endParts[0];
+      const s = formatShortDateDisplay(calSelection.start, !sameYear);
+      const e = formatShortDateDisplay(calSelection.end, true);
+      summaryValue.textContent = `${s} – ${e}`;
+    } else if (calSelection.start) {
+      summaryValue.textContent = formatShortDateDisplay(calSelection.start, true);
+    } else {
+      summaryValue.textContent = 'All Dates';
+    }
+  }
+}
+
+// Handle Day Click on Attendance Calendar
+function handleAttendanceCalendarDayClick(dateStr) {
+  // If no selection yet, or both start & end were already selected -> start new single selection
+  if (!calSelection.start || (calSelection.start && calSelection.end)) {
+    calSelection.start = dateStr;
+    calSelection.end = null;
+    activeAttendanceDateFilter = {
+      type: 'single',
+      singleDate: dateStr,
+      startDate: '',
+      endDate: ''
+    };
+  } else {
+    // Start was selected, end was not
+    if (dateStr === calSelection.start) {
+      // Tapped same date twice -> single date
+      calSelection.end = null;
+      activeAttendanceDateFilter = {
+        type: 'single',
+        singleDate: dateStr,
+        startDate: '',
+        endDate: ''
+      };
+    } else if (dateStr < calSelection.start) {
+      // Earlier second date -> auto swap so start <= end
+      calSelection.end = calSelection.start;
+      calSelection.start = dateStr;
+      activeAttendanceDateFilter = {
+        type: 'range',
+        singleDate: '',
+        startDate: calSelection.start,
+        endDate: calSelection.end
+      };
+    } else {
+      // Later second date -> standard range
+      calSelection.end = dateStr;
+      activeAttendanceDateFilter = {
+        type: 'range',
+        singleDate: '',
+        startDate: calSelection.start,
+        endDate: calSelection.end
+      };
+    }
+  }
+
+  // Re-render calendar highlights
+  renderAttendanceCalendar();
+
+  // IMMEDIATELY apply filter to cards and count
   applyAttendanceDateFilter();
 }
 
-// Open Attendance Date Filter Modal
-function openAttendanceDateFilterModal() {
-  const filter = activeAttendanceDateFilter;
-  const tabSingle = document.getElementById('tabSingleDate');
-  const tabRange = document.getElementById('tabDateRange');
-  const paneSingle = document.getElementById('paneSingleDate');
-  const paneRange = document.getElementById('paneDateRange');
-  const singleInput = document.getElementById('filterAttendanceSingleDate');
-  const startInput = document.getElementById('filterAttendanceStartDate');
-  const endInput = document.getElementById('filterAttendanceEndDate');
+// Reset Attendance Filter
+function resetAttendanceCalendarFilter(shouldClose = false) {
+  calSelection.start = null;
+  calSelection.end = null;
+  activeAttendanceDateFilter = {
+    type: 'all',
+    singleDate: '',
+    startDate: '',
+    endDate: ''
+  };
 
-  if (filter.type === 'range') {
-    if (tabRange) tabRange.classList.add('active');
-    if (tabSingle) tabSingle.classList.remove('active');
-    if (paneRange) paneRange.style.display = 'block';
-    if (paneSingle) paneSingle.style.display = 'none';
-    if (startInput) startInput.value = filter.startDate || '';
-    if (endInput) endInput.value = filter.endDate || '';
+  renderAttendanceCalendar();
+  applyAttendanceDateFilter();
+
+  if (shouldClose) {
+    closeModal('attendanceDateFilterModal');
+  }
+}
+
+// Open Dedicated Calendar Modal
+function openAttendanceDateFilterModal() {
+  // If active filter is set, navigate calendar to that date
+  if (calSelection.start) {
+    const parts = calSelection.start.split('-');
+    if (parts.length === 3) {
+      calViewYear = parseInt(parts[0], 10);
+      calViewMonth = parseInt(parts[1], 10) - 1;
+    }
   } else {
-    if (tabSingle) tabSingle.classList.add('active');
-    if (tabRange) tabRange.classList.remove('active');
-    if (paneSingle) paneSingle.style.display = 'block';
-    if (paneRange) paneRange.style.display = 'none';
-    if (singleInput) singleInput.value = filter.singleDate || '';
+    // If no filter, center around the latest attendance sheet's date
+    const firstCard = document.querySelector('#attendanceCardsContainer .attendance-card-mobile');
+    if (firstCard && firstCard.dataset.date) {
+      const p = firstCard.dataset.date.split('-');
+      if (p.length === 3) {
+        calViewYear = parseInt(p[0], 10);
+        calViewMonth = parseInt(p[1], 10) - 1;
+      }
+    } else {
+      const now = new Date();
+      calViewYear = now.getFullYear();
+      calViewMonth = now.getMonth();
+    }
   }
 
+  renderAttendanceCalendar();
   openModal('attendanceDateFilterModal');
 }
 
@@ -757,85 +922,47 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnCancelDeleteModal) btnCancelDeleteModal.addEventListener('click', () => closeModal('deleteAttendanceModal'));
   if (btnConfirmDeleteModal) btnConfirmDeleteModal.addEventListener('click', executeDeleteAttendanceSheet);
 
-  // Date Filter Controls
+  // Attendance Date Filter Controls
   const btnSelectDate = document.getElementById('btnAttendanceSelectDate');
   if (btnSelectDate) btnSelectDate.addEventListener('click', openAttendanceDateFilterModal);
 
   const btnClearDate = document.getElementById('btnAttendanceClearDate');
-  if (btnClearDate) btnClearDate.addEventListener('click', clearAttendanceDateFilter);
+  if (btnClearDate) btnClearDate.addEventListener('click', resetAttendanceCalendarFilter);
 
   const btnResetEmpty = document.getElementById('btnResetDateFilterEmptyState');
-  if (btnResetEmpty) btnResetEmpty.addEventListener('click', clearAttendanceDateFilter);
+  if (btnResetEmpty) btnResetEmpty.addEventListener('click', resetAttendanceCalendarFilter);
 
-  // Date Filter Modal Controls
+  // Dedicated Calendar Modal Controls
+  const btnResetCal = document.getElementById('btnResetAttendanceFilter');
+  if (btnResetCal) btnResetCal.addEventListener('click', () => resetAttendanceCalendarFilter(true));
+
   const closeDateModal = document.getElementById('closeAttendanceDateModal');
-  const cancelDateModal = document.getElementById('btnCancelAttendanceDateFilter');
   if (closeDateModal) closeDateModal.addEventListener('click', () => closeModal('attendanceDateFilterModal'));
-  if (cancelDateModal) cancelDateModal.addEventListener('click', () => closeModal('attendanceDateFilterModal'));
 
-  const btnClearModal = document.getElementById('btnClearAttendanceDateFilter');
-  if (btnClearModal) {
-    btnClearModal.addEventListener('click', () => {
-      clearAttendanceDateFilter();
-      closeModal('attendanceDateFilterModal');
-    });
-  }
+  const btnDoneCalendar = document.getElementById('btnDoneAttendanceCalendar');
+  if (btnDoneCalendar) btnDoneCalendar.addEventListener('click', () => closeModal('attendanceDateFilterModal'));
 
-  // Date Filter Tabs
-  const tabSingle = document.getElementById('tabSingleDate');
-  const tabRange = document.getElementById('tabDateRange');
-  const paneSingle = document.getElementById('paneSingleDate');
-  const paneRange = document.getElementById('paneDateRange');
-
-  if (tabSingle && tabRange) {
-    tabSingle.addEventListener('click', () => {
-      tabSingle.classList.add('active');
-      tabRange.classList.remove('active');
-      if (paneSingle) paneSingle.style.display = 'block';
-      if (paneRange) paneRange.style.display = 'none';
-    });
-
-    tabRange.addEventListener('click', () => {
-      tabRange.classList.add('active');
-      tabSingle.classList.remove('active');
-      if (paneRange) paneRange.style.display = 'block';
-      if (paneSingle) paneSingle.style.display = 'none';
-    });
-  }
-
-  // Apply Date Filter Button
-  const btnApplyFilter = document.getElementById('btnApplyAttendanceDateFilter');
-  if (btnApplyFilter) {
-    btnApplyFilter.addEventListener('click', () => {
-      const isSingleTab = tabSingle && tabSingle.classList.contains('active');
-      const singleInput = document.getElementById('filterAttendanceSingleDate');
-      const startInput  = document.getElementById('filterAttendanceStartDate');
-      const endInput    = document.getElementById('filterAttendanceEndDate');
-
-      if (isSingleTab) {
-        const val = singleInput ? singleInput.value.trim() : '';
-        if (val) {
-          activeAttendanceDateFilter = { type: 'single', singleDate: val, startDate: '', endDate: '' };
-        } else {
-          activeAttendanceDateFilter = { type: 'all', singleDate: '', startDate: '', endDate: '' };
-        }
-      } else {
-        let s = startInput ? startInput.value.trim() : '';
-        let e = endInput ? endInput.value.trim() : '';
-        if (s && e) {
-          if (s > e) { const tmp = s; s = e; e = tmp; }
-          activeAttendanceDateFilter = { type: 'range', singleDate: '', startDate: s, endDate: e };
-        } else if (s) {
-          activeAttendanceDateFilter = { type: 'single', singleDate: s, startDate: '', endDate: '' };
-        } else if (e) {
-          activeAttendanceDateFilter = { type: 'single', singleDate: e, startDate: '', endDate: '' };
-        } else {
-          activeAttendanceDateFilter = { type: 'all', singleDate: '', startDate: '', endDate: '' };
-        }
+  const btnPrevMonth = document.getElementById('btnCalPrevMonth');
+  if (btnPrevMonth) {
+    btnPrevMonth.addEventListener('click', () => {
+      calViewMonth--;
+      if (calViewMonth < 0) {
+        calViewMonth = 11;
+        calViewYear--;
       }
+      renderAttendanceCalendar();
+    });
+  }
 
-      closeModal('attendanceDateFilterModal');
-      applyAttendanceDateFilter();
+  const btnNextMonth = document.getElementById('btnCalNextMonth');
+  if (btnNextMonth) {
+    btnNextMonth.addEventListener('click', () => {
+      calViewMonth++;
+      if (calViewMonth > 11) {
+        calViewMonth = 0;
+        calViewYear++;
+      }
+      renderAttendanceCalendar();
     });
   }
 });

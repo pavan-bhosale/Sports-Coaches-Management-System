@@ -855,12 +855,14 @@
                 </button>
               </div>
               <button type="button" class="btn-sb-primary btn-attendance-new-sheet" id="btnNewAttendanceSheet">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                  <line x1="12" y1="11" x2="12" y2="17"></line>
+                  <line x1="9" y1="14" x2="15" y2="14"></line>
                 </svg>
                 <span class="btn-attendance-label-desktop">New Attendance Sheet</span>
-                <span class="btn-attendance-label-mobile">+ New Sheet</span>
+                <span class="btn-attendance-label-mobile">New Sheet</span>
               </button>
             </div>
           </div>
@@ -2529,69 +2531,80 @@
     </div>
     <!-- ===== END NEW ATTENDANCE SHEET MODAL ===== -->
 
-    <!-- ===== ATTENDANCE DATE FILTER MODAL ===== -->
-    <div class="sb-modal-overlay" id="attendanceDateFilterModal" style="display:none; z-index: 1050;">
-      <div class="sb-modal" style="max-width: 440px; width: 92%;">
-        <div class="sb-modal-header">
-          <div>
-            <div class="sb-modal-badge" style="background: rgba(16, 185, 129, 0.15); color: var(--color-primary); border-color: rgba(16, 185, 129, 0.3);">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
-              Filter Records
-            </div>
-            <h2 class="sb-modal-title" style="font-size: 1.25rem;">Select Attendance Date</h2>
-            <p class="sb-modal-subtitle" style="margin-top:0.25rem; font-size: 0.825rem;">Filter sheets by single date or date range</p>
+    <!-- ===== ATTENDANCE DEDICATED CALENDAR MODAL ===== -->
+    <div class="sb-modal-overlay attendance-cal-overlay" id="attendanceDateFilterModal" style="display:none; z-index: 1050;">
+      <div class="sb-modal attendance-cal-modal" id="attendanceCalModal">
+        <!-- Modal Header Row 1: Compact Badge on Left, Close (X) on Right -->
+        <div class="attendance-cal-header-row1">
+          <div class="attendance-cal-badge">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <span>Attendance Filter</span>
           </div>
-          <button type="button" class="modal-close-btn" id="closeAttendanceDateModal">&times;</button>
+          <button type="button" class="modal-close-btn attendance-cal-close-btn" id="closeAttendanceDateModal" aria-label="Close calendar">&times;</button>
         </div>
 
-        <div style="padding: 1.25rem 1.5rem;">
-          <!-- Filter Type Tabs: Single Date vs Date Range -->
-          <div class="attendance-date-tabs">
-            <button type="button" class="attendance-date-tab active" id="tabSingleDate">Single Date</button>
-            <button type="button" class="attendance-date-tab" id="tabDateRange">Date Range</button>
-          </div>
+        <!-- Modal Header Row 2: "Select Date or Range" Heading + Compact "Reset" on the SAME LINE -->
+        <div class="attendance-cal-header-row2">
+          <h2 class="attendance-cal-heading">Select Date or Range</h2>
+          <button type="button" class="attendance-cal-reset-btn" id="btnResetAttendanceFilter" title="Reset date filter">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+              <path d="M3 3v5h5"></path>
+            </svg>
+            <span>Reset</span>
+          </button>
+        </div>
 
-          <!-- Tab Pane 1: Single Date -->
-          <div id="paneSingleDate" class="attendance-date-pane">
-            <div class="form-group" style="margin-bottom: 1rem;">
-              <label for="filterAttendanceSingleDate" style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary);">Date</label>
-              <input type="date" id="filterAttendanceSingleDate" class="sb-input batch-time-input" style="width: 100%;">
-            </div>
-          </div>
-
-          <!-- Tab Pane 2: Date Range -->
-          <div id="paneDateRange" class="attendance-date-pane" style="display: none;">
-            <div class="form-group" style="margin-bottom: 0.85rem;">
-              <label for="filterAttendanceStartDate" style="display: block; margin-bottom: 0.4rem; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary);">From Date</label>
-              <input type="date" id="filterAttendanceStartDate" class="sb-input batch-time-input" style="width: 100%;">
-            </div>
-            <div class="form-group" style="margin-bottom: 1rem;">
-              <label for="filterAttendanceEndDate" style="display: block; margin-bottom: 0.4rem; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary);">To Date</label>
-              <input type="date" id="filterAttendanceEndDate" class="sb-input batch-time-input" style="width: 100%;">
-            </div>
-          </div>
-
-          <!-- Modal Action Buttons -->
-          <div class="sb-modal-footer" style="padding-top:1rem; border-top:1px solid var(--border-glass); display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
-            <button type="button" class="btn-sb-ghost" id="btnClearAttendanceDateFilter" style="color: var(--text-muted); font-size: 0.825rem; padding: 0.45rem 0.75rem;">
-              Clear / All Dates
+        <!-- CALENDAR COMPONENT -->
+        <div class="attendance-cal-container">
+          <!-- Month Navigation -->
+          <div class="attendance-cal-month-nav">
+            <button type="button" class="attendance-cal-nav-btn" id="btnCalPrevMonth" title="Previous Month" aria-label="Previous Month">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
             </button>
-            <div style="display: flex; gap: 0.5rem;">
-              <button type="button" class="btn-sb-ghost" id="btnCancelAttendanceDateFilter" style="font-size: 0.825rem; padding: 0.45rem 0.75rem;">Cancel</button>
-              <button type="button" class="btn-sb-primary" id="btnApplyAttendanceDateFilter" style="font-size: 0.825rem; padding: 0.45rem 0.85rem;">
-                Apply Filter
-              </button>
-            </div>
+            <span class="attendance-cal-month-title" id="attendanceCalMonthYearLabel">September 2026</span>
+            <button type="button" class="attendance-cal-nav-btn" id="btnCalNextMonth" title="Next Month" aria-label="Next Month">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
           </div>
+
+          <!-- Weekdays Header -->
+          <div class="attendance-cal-weekdays">
+            <span>Mon</span>
+            <span>Tue</span>
+            <span>Wed</span>
+            <span>Thu</span>
+            <span>Fri</span>
+            <span>Sat</span>
+            <span>Sun</span>
+          </div>
+
+          <!-- Days Grid -->
+          <div class="attendance-cal-days" id="attendanceCalDaysGrid"></div>
+        </div>
+
+        <!-- Footer with Selection Info & Done button (Always on SAME LINE) -->
+        <div class="attendance-cal-footer">
+          <div class="attendance-cal-status-row">
+            <span class="attendance-cal-status-label">FILTER:</span>
+            <span class="attendance-cal-status-text" id="attendanceCalSummaryValue">All Dates</span>
+          </div>
+          <button type="button" class="btn-sb-primary attendance-cal-done-btn" id="btnDoneAttendanceCalendar">
+            Done
+          </button>
         </div>
       </div>
     </div>
-    <!-- ===== END ATTENDANCE DATE FILTER MODAL ===== -->
+    <!-- ===== END ATTENDANCE DEDICATED CALENDAR MODAL ===== -->
 
     <!-- ===== OPEN ATTENDANCE MODAL ===== -->
     <div class="sb-modal-overlay" id="openAttendanceModal" style="display:none; z-index: 1050;">

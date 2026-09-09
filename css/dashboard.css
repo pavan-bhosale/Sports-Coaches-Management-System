@@ -4298,35 +4298,347 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   background: rgba(239, 68, 68, 0.25);
 }
 
-/* Modal Date Tabs */
-.attendance-date-tabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  background: var(--bg-app);
-  padding: 0.3rem;
-  border-radius: var(--radius-sm);
-  margin-bottom: 1.25rem;
-  border: 1px solid var(--border-glass);
+/* Dedicated Mobile-Friendly Attendance Calendar Modal */
+.attendance-cal-modal {
+  max-width: 360px !important;
+  width: 94% !important;
+  padding: 0 !important;
+  overflow: hidden;
+  border-radius: var(--radius-lg) !important;
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-glass) !important;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
-.attendance-date-tab {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-  font-weight: 600;
-  padding: 0.55rem 0.75rem;
-  border-radius: var(--radius-xs);
+/* Modal Header Row 1: Compact Badge on Left, Close (X) on Right */
+.attendance-cal-header-row1 {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0.85rem 1.15rem 0.35rem 1.15rem !important;
+}
+
+.attendance-cal-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+  padding: 0.22rem 0.55rem !important;
+  border-radius: 999px !important;
+  background: rgba(16, 185, 129, 0.12) !important;
+  border: 1px solid rgba(16, 185, 129, 0.28) !important;
+  color: var(--color-primary) !important;
+  font-size: 0.725rem !important;
+  font-weight: 600 !important;
+  width: fit-content !important;
+  max-width: fit-content !important;
+  flex-shrink: 0 !important;
+}
+
+.attendance-cal-badge svg {
+  color: var(--color-primary) !important;
+  flex-shrink: 0 !important;
+}
+
+.attendance-cal-close-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 28px !important;
+  height: 28px !important;
+  font-size: 1.35rem !important;
+  line-height: 1 !important;
+  color: var(--text-secondary) !important;
+  cursor: pointer !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: var(--radius-xs) !important;
+  transition: color 0.15s ease, background 0.15s ease !important;
+  flex-shrink: 0 !important;
+  padding: 0 !important;
+}
+
+.attendance-cal-close-btn:hover {
+  color: var(--text-primary) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Modal Header Row 2: "Select Date or Range" Heading + Compact "Reset" on the SAME LINE */
+.attendance-cal-header-row2 {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0.5rem !important;
+  padding: 0.15rem 1.15rem 0.75rem 1.15rem !important;
+  border-bottom: 1px solid var(--border-glass) !important;
+}
+
+.attendance-cal-heading {
+  margin: 0 !important;
+  font-size: 1.05rem !important;
+  font-weight: 700 !important;
+  color: var(--text-primary) !important;
+  letter-spacing: -0.01em !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+
+.attendance-cal-reset-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.35rem !important;
+  padding: 0.25rem 0.65rem !important;
+  height: 28px !important;
+  width: auto !important;
+  max-width: fit-content !important;
+  background: rgba(239, 68, 68, 0.1) !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  border-radius: var(--radius-xs) !important;
+  color: #fca5a5 !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all var(--transition-fast) !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+
+.attendance-cal-reset-btn:hover {
+  background: rgba(239, 68, 68, 0.2) !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  color: #ffffff !important;
+}
+
+.attendance-cal-reset-btn:active {
+  transform: scale(0.97) !important;
+}
+
+.attendance-cal-reset-btn svg {
+  flex-shrink: 0 !important;
+  color: #f87171 !important;
+}
+
+/* Calendar Container */
+.attendance-cal-container {
+  padding: 0.9rem 1.15rem 0.75rem 1.15rem;
+}
+
+/* Month Navigation */
+.attendance-cal-month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.attendance-cal-nav-btn {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
   cursor: pointer;
   transition: all var(--transition-fast);
+}
+
+.attendance-cal-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.attendance-cal-month-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+/* Weekdays */
+.attendance-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 0.35rem;
   text-align: center;
 }
 
-.attendance-date-tab.active {
+.attendance-cal-weekdays span {
+  font-size: 0.725rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.2rem 0;
+}
+
+/* Days Grid */
+.attendance-cal-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.cal-day-cell {
+  position: relative;
+  height: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-xs);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  padding: 0;
+}
+
+.cal-day-cell:hover:not(.cal-day-empty) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.cal-day-empty {
+  pointer-events: none;
+  cursor: default;
+}
+
+.cal-day-num {
+  line-height: 1;
+}
+
+/* Dot indicating attendance sheet exists on this date */
+.cal-sheet-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
   background: var(--color-primary);
-  color: #080c14;
-  font-weight: 700;
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+/* Single Selected Day */
+.cal-day-selected.cal-day-single {
+  background: var(--color-primary) !important;
+  color: #080c14 !important;
+  font-weight: 700 !important;
+  border-radius: var(--radius-xs) !important;
+}
+
+.cal-day-selected.cal-day-single .cal-sheet-dot {
+  background: #080c14 !important;
+}
+
+/* Range Start */
+.cal-day-selected.cal-day-start {
+  background: var(--color-primary) !important;
+  color: #080c14 !important;
+  font-weight: 700 !important;
+  border-top-left-radius: var(--radius-xs) !important;
+  border-bottom-left-radius: var(--radius-xs) !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.cal-day-selected.cal-day-start .cal-sheet-dot {
+  background: #080c14 !important;
+}
+
+/* Range End */
+.cal-day-selected.cal-day-end {
+  background: var(--color-primary) !important;
+  color: #080c14 !important;
+  font-weight: 700 !important;
+  border-top-right-radius: var(--radius-xs) !important;
+  border-bottom-right-radius: var(--radius-xs) !important;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+.cal-day-selected.cal-day-end .cal-sheet-dot {
+  background: #080c14 !important;
+}
+
+/* In Range */
+.cal-day-in-range {
+  background: rgba(16, 185, 129, 0.2) !important;
+  color: #6ee7b7 !important;
+  font-weight: 600 !important;
+  border-radius: 0 !important;
+}
+
+.cal-day-in-range .cal-sheet-dot {
+  background: #6ee7b7 !important;
+}
+
+/* Footer Info Bar (Always on SAME LINE: FILTER text on LEFT, Done on RIGHT) */
+.attendance-cal-footer {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0.65rem !important;
+  padding: 0.75rem 1.15rem !important;
+  background: rgba(0, 0, 0, 0.22) !important;
+  border-top: 1px solid var(--border-glass) !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+}
+
+.attendance-cal-status-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  overflow: hidden !important;
+}
+
+.attendance-cal-status-label {
+  font-size: 0.725rem !important;
+  color: var(--text-muted) !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  flex-shrink: 0 !important;
+}
+
+.attendance-cal-status-text {
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  color: var(--color-primary) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+
+.attendance-cal-done-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  width: auto !important;
+  min-width: 60px !important;
+  height: 32px !important;
+  padding: 0 0.9rem !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  border-radius: var(--radius-xs) !important;
+  margin: 0 !important;
 }
 
 .btn-attendance-label-mobile {
