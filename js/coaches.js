@@ -20,15 +20,17 @@ function updateCoachesLiveCount(count) {
   el.textContent = count === 1 ? '1 Active Coach' : `${count} Active Coaches`;
 }
 
-// ── Fetch & Render Coaches (Table) ─────────────────────────
+// ── Fetch & Render Coaches (Table & Mobile Cards) ─────────
 async function fetchCoaches() {
   const requestId = ++fetchCoachesRequestId;
   const tableWidget = document.getElementById('coachesTableWidget');
+  const cardsContainer = document.getElementById('coachCardsContainer');
   const tableBody   = document.getElementById('coachRosterBody');
   const emptyState  = document.getElementById('coachesEmptyState');
   if (!tableBody || !emptyState || !tableWidget) return;
 
   tableBody.innerHTML = '';
+  if (cardsContainer) cardsContainer.innerHTML = '';
 
   try {
     const res = await fetch(COACHES_API);
@@ -41,22 +43,24 @@ async function fetchCoaches() {
 
     if (coaches.length === 0) {
       tableWidget.style.display = 'none';
+      if (cardsContainer) cardsContainer.style.display = 'none';
       emptyState.style.display  = 'flex';
-      tableBody.innerHTML = '';
     } else {
       emptyState.style.display  = 'none';
-      tableWidget.style.display = 'block';
+      tableWidget.style.display = '';
+      if (cardsContainer) cardsContainer.style.display = '';
       tableBody.innerHTML = '';
 
       coaches.forEach(coach => {
-        const tr = document.createElement('tr');
-        tr.dataset.coachId = coach.coach_id;
         const initials = getCoachInitials(coach.coach_name);
         const licenseLabel = formatLicenseLabel(coach.coach_license);
         const joinDateFormatted = formatCoachDate(coach.coach_joined_date);
         const phoneFormatted = coach.coach_phone ? `+91 ${coach.coach_phone}` : '—';
         const coachJsonStr = encodeURIComponent(JSON.stringify(coach));
 
+        // 1. Desktop Table Row
+        const tr = document.createElement('tr');
+        tr.dataset.coachId = coach.coach_id;
         let batchesHtml = '';
         if (coach.batch_name) {
           batchesHtml = `<div class="coach-batch-list"><div class="coach-batch-tag"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${coach.batch_name}</div></div>`;
@@ -110,6 +114,92 @@ async function fetchCoaches() {
           </td>
         `;
         tableBody.appendChild(tr);
+
+        // 2. Mobile Card Element (Reference Design Structure)
+        if (cardsContainer) {
+          const card = document.createElement('div');
+          card.className = 'coach-card-mobile';
+          card.dataset.coachId = coach.coach_id;
+
+          const avatarInnerHtml = (coach.coach_photo && coach.coach_photo.trim() !== '' && coach.coach_photo !== 'null')
+            ? `<img src="${coach.coach_photo}" class="coach-photo-img" alt="${coach.coach_name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="coach-avatar-initials" style="display:none;">${initials}</div>`
+            : `<div class="coach-avatar-initials">${initials}</div>`;
+          const avatarHtml = `<div class="coach-card-avatar">${avatarInnerHtml}</div>`;
+
+          const batchBadgeHtml = coach.batch_name
+            ? `<span class="coach-card-pill pill-batch"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ${coach.batch_name}</span>`
+            : `<span class="coach-card-pill pill-batch"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> No Batch</span>`;
+
+          card.innerHTML = `
+            <div class="coach-card-top">
+              <div class="coach-card-profile">
+                ${avatarHtml}
+                <div class="coach-card-info">
+                  <a href="javascript:void(0)" class="coach-card-name coach-name-link" data-id="${coach.coach_id}">${coach.coach_name}</a>
+                  <div class="coach-card-email">${coach.coach_email || '—'}</div>
+                  <div class="coach-card-badges">
+                    ${batchBadgeHtml}
+                    <span class="coach-card-pill pill-license">${licenseLabel}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="batch-actions-wrap">
+                <button class="batch-actions-btn coach-three-dots-btn" data-id="${coach.coach_id}" type="button" aria-label="Coach Actions">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="5" r="1.5" fill="currentColor"/>
+                    <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+                    <circle cx="12" cy="19" r="1.5" fill="currentColor"/>
+                  </svg>
+                </button>
+                <div class="batch-actions-menu" id="coachMenuMobile-${coach.coach_id}">
+                  <button class="batch-action-item coach-edit-item" data-id="${coach.coach_id}" data-coach="${coachJsonStr}">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    Edit Coach
+                  </button>
+                  <button class="batch-action-item danger coach-delete-item" data-id="${coach.coach_id}">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                      <path d="M10 11v6"/><path d="M14 11v6"/>
+                    </svg>
+                    Delete Coach
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="coach-card-divider"></div>
+
+            <div class="coach-card-bottom-grid">
+              <div class="coach-meta-col">
+                <div class="coach-meta-val">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  <span>${coach.coach_city || '—'}</span>
+                </div>
+                <div class="coach-meta-lbl">Location</div>
+              </div>
+              <div class="coach-meta-col">
+                <div class="coach-meta-val">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  <span>${joinDateFormatted}</span>
+                </div>
+                <div class="coach-meta-lbl">Join Date</div>
+              </div>
+              <div class="coach-meta-col">
+                <div class="coach-meta-val">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.37 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.76a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  <span>${phoneFormatted}</span>
+                </div>
+                <div class="coach-meta-lbl">Phone Number</div>
+              </div>
+            </div>
+          `;
+
+          cardsContainer.appendChild(card);
+        }
       });
 
       // Re-apply coach search filter if search term is active
@@ -720,6 +810,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const term = e.target.value.toLowerCase().trim();
       document.querySelectorAll('#coachRosterBody tr').forEach(row => {
         row.style.display = row.textContent.toLowerCase().includes(term) ? '' : 'none';
+      });
+      document.querySelectorAll('#coachCardsContainer .coach-card-mobile').forEach(card => {
+        card.style.display = card.textContent.toLowerCase().includes(term) ? '' : 'none';
       });
     });
   }

@@ -205,7 +205,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (actionsBtn) {
       e.stopPropagation();
       const id = actionsBtn.getAttribute('data-id');
-      const menu = document.getElementById(`batchMenu-${id}`) || document.getElementById(`coachMenu-${id}`) || document.getElementById(`studentMenu-${id}`) || document.getElementById(`attendanceMenu-${id}`);
+      const wrap = actionsBtn.closest('.batch-actions-wrap');
+      const menu = (wrap && wrap.querySelector('.batch-actions-menu')) || document.getElementById(`batchMenu-${id}`) || document.getElementById(`coachMenu-${id}`) || document.getElementById(`studentMenu-${id}`) || document.getElementById(`attendanceMenu-${id}`);
       document.querySelectorAll('.batch-actions-menu.open').forEach(m => {
         if (m !== menu) m.classList.remove('open');
       });

@@ -919,21 +919,15 @@
         <!-- ===== STUDENTS SECTION ===== -->
         <section id="studentsSection" style="display:none;">
           <!-- Section Action Bar -->
-          <div class="sb-action-bar">
-            <div class="sb-action-bar-left">
-              <div class="status-indicator-pill">
-                <span class="live-dot"></span>
-                <span id="studentsLiveCount">0 Active Students</span>
-              </div>
-              <div class="sb-search-box" style="margin-left: 1rem;">
+          <div class="sb-action-bar students-action-bar">
+            <div class="students-controls-row">
+              <div class="sb-search-box">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="11" cy="11" r="8" />
                   <line x1="21" y1="21" x2="16.65" y2="16.65" />
                 </svg>
-                <input type="text" id="sbSearchInput" placeholder="Search Students" class="sb-search-input">
+                <input type="text" id="sbSearchInput" placeholder="Search Students..." class="sb-search-input">
               </div>
-            </div>
-            <div class="sb-action-bar-right">
               <button type="button" class="btn-sb-primary" id="btnAddStudent">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -944,10 +938,14 @@
                 Add Student
               </button>
             </div>
+            <div class="status-indicator-pill">
+              <span class="live-dot"></span>
+              <span id="studentsLiveCount">0 Active Students</span>
+            </div>
           </div>
 
-          <!-- Students Table Widget -->
-          <div class="dashboard-widget" id="studentsTableWidget" style="padding:0;overflow:hidden;margin-top:1.25rem;display:none;">
+          <!-- Students Table Widget (Desktop) -->
+          <div class="dashboard-widget desktop-students-table-widget" id="studentsTableWidget" style="padding:0;overflow:hidden;margin-top:1.25rem;display:none;">
             <div class="table-container">
               <table class="data-table" id="studentsTable">
                 <thead>
@@ -969,6 +967,11 @@
             </div>
           </div>
 
+          <!-- Students Mobile Cards Container (Mobile) -->
+          <div id="studentCardsContainer" class="mobile-students-cards-container" style="display:none;">
+            <!-- Mobile Cards Populated by JS -->
+          </div>
+
           <!-- Empty State (shown by JS when no students) -->
           <div id="studentsEmptyState" class="batches-empty-state" style="display:none;">
             <div class="batches-empty-icon">
@@ -986,14 +989,15 @@
         <!-- ===== BATCHES SECTION ===== -->
         <section id="batchesSection" style="display:none;">
           <!-- Action Bar -->
-          <div class="sb-action-bar">
-            <div class="sb-action-bar-left">
-              <div class="status-indicator-pill">
-                <span class="live-dot"></span>
-                <span id="batchesLiveCount">0 Active Batches</span>
+          <div class="sb-action-bar batches-action-bar">
+            <div class="batches-controls-row">
+              <div class="sb-search-box">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <input type="text" id="batchSearchInput" placeholder="Search batches by name or location..." class="sb-search-input">
               </div>
-            </div>
-            <div class="sb-action-bar-right">
               <button type="button" class="btn-sb-primary" id="btnAddNewBatch">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <line x1="12" y1="5" x2="12" y2="19" />
@@ -1002,10 +1006,14 @@
                 Add New Batch
               </button>
             </div>
+            <div class="status-indicator-pill">
+              <span class="live-dot"></span>
+              <span id="batchesLiveCount">0 Active Batches</span>
+            </div>
           </div>
 
-          <!-- Batches Table -->
-          <div class="dashboard-widget" id="batchesTableWidget" style="padding:0;overflow:hidden;margin-top:1.25rem;display:none;">
+          <!-- Batches Table (Desktop) -->
+          <div class="dashboard-widget desktop-batches-table-widget" id="batchesTableWidget" style="padding:0;overflow:hidden;margin-top:1.25rem;display:none;">
             <div class="table-container">
               <table class="data-table" id="batchesTable">
                 <thead>
@@ -1023,6 +1031,11 @@
                 </tbody>
               </table>
             </div>
+          </div>
+
+          <!-- Batches Mobile Cards Container (Mobile) -->
+          <div id="batchCardsContainer" class="mobile-batches-cards-container" style="display:none;">
+            <!-- Mobile Cards Populated by JS -->
           </div>
 
           <!-- Empty State (shown by JS when no batches) -->
@@ -1044,33 +1057,31 @@
         <!-- ===== COACHES SECTION ===== -->
         <section id="coachesSection" style="display:none;">
           <!-- Action Bar -->
-          <div class="sb-action-bar">
-            <div class="sb-action-bar-left">
-              <div class="status-indicator-pill">
-                <span class="live-dot"></span>
-                <span id="coachesLiveCount">0 Active Coaches</span>
-              </div>
-              <div class="sb-search-box" style="margin-left: 1rem;">
+          <div class="sb-action-bar coaches-action-bar">
+            <div class="coaches-controls-row">
+              <div class="sb-search-box">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="11" cy="11" r="8"></circle>
                   <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                 </svg>
                 <input type="text" id="coachSearchInput" class="sb-search-input" placeholder="Search coaches by name or license...">
               </div>
-            </div>
-            <div class="sb-action-bar-right">
               <button type="button" class="btn-sb-primary" id="btnAddCoach">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
-                Register Coach
+                <span>Register Coach</span>
               </button>
+            </div>
+            <div class="status-indicator-pill">
+              <span class="live-dot"></span>
+              <span id="coachesLiveCount">0 Active Coaches</span>
             </div>
           </div>
 
-          <!-- Coaches Table -->
-          <div class="dashboard-widget" id="coachesTableWidget" style="padding:0;overflow:hidden;margin-top:1.25rem;display:none;">
+          <!-- Desktop Coaches Table Widget -->
+          <div class="dashboard-widget desktop-coaches-table-widget" id="coachesTableWidget" style="padding:0;overflow:hidden;margin-top:1.25rem;display:none;">
             <div class="table-container">
               <table class="data-table" id="coachesTable">
                 <thead>
@@ -1089,6 +1100,11 @@
                 </tbody>
               </table>
             </div>
+          </div>
+
+          <!-- Mobile Coaches Cards Container -->
+          <div class="mobile-coaches-cards-container" id="coachCardsContainer" style="display:none;">
+            <!-- Populated dynamically by JS -->
           </div>
 
           <!-- Empty State (shown by JS when no coaches) -->

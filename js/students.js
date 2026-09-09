@@ -13,15 +13,17 @@ function updateStudentsLiveCount(count) {
   el.textContent = count === 1 ? '1 Active Student' : `${count} Active Students`;
 }
 
-// ── Fetch & Render Students (Table) ────────────────────────
+// ── Fetch & Render Students (Table & Mobile Cards) ────────────────────────
 async function fetchStudents() {
   const requestId = ++fetchStudentsRequestId;
-  const tableWidget = document.getElementById('studentsTableWidget');
-  const tableBody   = document.getElementById('studentsTableBody');
-  const emptyState  = document.getElementById('studentsEmptyState');
+  const tableWidget    = document.getElementById('studentsTableWidget');
+  const cardsContainer = document.getElementById('studentCardsContainer');
+  const tableBody      = document.getElementById('studentsTableBody');
+  const emptyState     = document.getElementById('studentsEmptyState');
   if (!tableBody || !emptyState || !tableWidget) return;
 
   tableBody.innerHTML = '';
+  if (cardsContainer) cardsContainer.innerHTML = '';
 
   try {
     const res = await fetch(STUDENTS_API);
@@ -34,16 +36,18 @@ async function fetchStudents() {
 
     if (students.length === 0) {
       tableWidget.style.display = 'none';
+      if (cardsContainer) cardsContainer.style.display = 'none';
       emptyState.style.display  = 'flex';
       tableBody.innerHTML = '';
+      if (cardsContainer) cardsContainer.innerHTML = '';
     } else {
       emptyState.style.display  = 'none';
       tableWidget.style.display = 'block';
+      if (cardsContainer) cardsContainer.style.display = '';
       tableBody.innerHTML = '';
+      if (cardsContainer) cardsContainer.innerHTML = '';
 
       students.forEach(student => {
-        const tr = document.createElement('tr');
-        tr.dataset.studentId = student.student_id;
         const initials = getStudentInitials(student.student_name);
         const branchLabel = formatBranchLabel(student.branch_name);
         const coachLabel = formatCoachLabel(student.coach_name);
@@ -51,6 +55,9 @@ async function fetchStudents() {
         const studentJsonStr = encodeURIComponent(JSON.stringify(student));
         const batchDisplay = student.batch_name || 'No Batch';
 
+        // 1) Desktop Table Row
+        const tr = document.createElement('tr');
+        tr.dataset.studentId = student.student_id;
         tr.innerHTML = `
           <td>
             <div class="student-cell">
@@ -98,6 +105,112 @@ async function fetchStudents() {
           </td>
         `;
         tableBody.appendChild(tr);
+
+        // 2) Mobile Card Element
+        if (cardsContainer) {
+          const card = document.createElement('div');
+          card.className = 'student-card-mobile';
+          card.dataset.studentId = student.student_id;
+          card.innerHTML = `
+            <div class="student-card-header">
+              <div class="student-card-avatar bg-avatar-green" style="${student.student_photo ? 'background:none;padding:0;' : ''}">
+                ${student.student_photo ? `<img src="${student.student_photo}?t=${Date.now()}" alt="Student Photo">` : initials}
+              </div>
+              <div class="student-card-info">
+                <a href="javascript:void(0)" class="student-card-name student-name-link" data-id="${student.student_id}">${student.student_name}</a>
+                <div class="student-card-parent">Parent: ${student.parent_name || '—'}</div>
+              </div>
+              <span class="student-batch-badge">${batchDisplay}</span>
+              <div class="batch-actions-wrap">
+                <button class="batch-actions-btn student-three-dots-btn" data-id="${student.student_id}" type="button" aria-label="Student Actions">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="5" r="2"/>
+                    <circle cx="12" cy="12" r="2"/>
+                    <circle cx="12" cy="19" r="2"/>
+                  </svg>
+                </button>
+                <div class="batch-actions-menu" id="studentMenu-mobile-${student.student_id}">
+                  <button class="batch-action-item student-edit-item" data-id="${student.student_id}" data-student="${studentJsonStr}">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    Edit Student
+                  </button>
+                  <button class="batch-action-item danger student-delete-item" data-id="${student.student_id}">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                      <path d="M10 11v6"/><path d="M14 11v6"/>
+                    </svg>
+                    Delete Student
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="student-card-divider"></div>
+
+            <div class="student-card-grid-top">
+              <div class="student-meta-col">
+                <div class="student-meta-val">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                  </svg>
+                  <span>${branchLabel}</span>
+                </div>
+                <div class="student-meta-lbl">Branch</div>
+              </div>
+              <div class="student-meta-col">
+                <div class="student-meta-val">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
+                    <path d="M9 22v-4h6v4"/>
+                    <path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/>
+                    <path d="M12 10h.01"/><path d="M12 14h.01"/>
+                  </svg>
+                  <span>${student.city || '—'}</span>
+                </div>
+                <div class="student-meta-lbl">City</div>
+              </div>
+              <div class="student-meta-col">
+                <div class="student-meta-val">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+                  </svg>
+                  <span>${student.blood_group || 'N/A'}</span>
+                </div>
+                <div class="student-meta-lbl">Blood Group</div>
+              </div>
+            </div>
+
+            <div class="student-card-divider"></div>
+
+            <div class="student-card-grid-bottom">
+              <div class="student-meta-col">
+                <div class="student-meta-val">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.37 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.76a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                  </svg>
+                  <span>${whatsappFormatted}</span>
+                </div>
+                <div class="student-meta-lbl">WhatsApp Number</div>
+              </div>
+              <div class="student-meta-col">
+                <div class="student-meta-val">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                  <span>${coachLabel}</span>
+                </div>
+                <div class="student-meta-lbl">Coach</div>
+              </div>
+            </div>
+          `;
+          cardsContainer.appendChild(card);
+        }
       });
 
       // Re-apply student search filter if search term is active
@@ -638,6 +751,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const term = e.target.value.toLowerCase().trim();
       document.querySelectorAll('#studentsTableBody tr').forEach(row => {
         row.style.display = row.textContent.toLowerCase().includes(term) ? '' : 'none';
+      });
+      document.querySelectorAll('#studentCardsContainer .student-card-mobile').forEach(card => {
+        card.style.display = card.textContent.toLowerCase().includes(term) ? '' : 'none';
       });
     });
   }
