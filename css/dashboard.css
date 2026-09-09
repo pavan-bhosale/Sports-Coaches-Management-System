@@ -2936,16 +2936,13 @@ input[type="date"].reg-input::-webkit-calendar-picker-indicator:hover {
 
 /* Tablet & Medium Screens (<= 1024px) */
 @media (max-width: 1024px) {
-  .kpi-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
+  /* Main Wrapper Margin Reset */
+  .main-wrapper {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
-  .dashboard-grid-layout {
-    grid-template-columns: 1fr !important;
-  }
-}
 
-/* Mobile Phone Screens (<= 768px) */
-@media (max-width: 768px) {
   /* Off-canvas Sidebar Drawer */
   .app-sidebar {
     position: fixed !important;
@@ -2967,33 +2964,135 @@ input[type="date"].reg-input::-webkit-calendar-picker-indicator:hover {
     opacity: 1 !important;
   }
 
-  /* Main Content Layout Adjustments */
-  .main-content {
-    margin-left: 0 !important;
+  /* Top Utility Bar */
+  .app-topbar {
+    height: auto !important;
+    min-height: var(--topbar-height);
+    padding: 0.65rem 1rem !important;
+    flex-wrap: wrap !important;
+    gap: 0.65rem !important;
+  }
+
+  .topbar-left {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    gap: 0.75rem !important;
+  }
+
+  .branch-selector-wrapper {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: 260px !important;
+  }
+
+  .branch-select {
     width: 100% !important;
+    max-width: 100% !important;
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+  }
+
+  .topbar-right {
+    flex: 1 1 auto !important;
+    justify-content: flex-end !important;
+    gap: 0.5rem !important;
+    max-width: 100% !important;
+  }
+
+  .search-wrapper {
+    flex: 1 1 auto !important;
+    max-width: 220px !important;
+  }
+
+  .search-input {
+    width: 100% !important;
+  }
+
+  .search-input:focus {
+    width: 100% !important;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .dashboard-grid-layout {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Mobile Phone Screens (<= 768px) */
+@media (max-width: 768px) {
+  /* Main Content Layout Adjustments */
+  .dashboard-content {
     padding: 1rem 0.75rem !important;
+    gap: 1.25rem !important;
   }
 
   /* Content Header Stack */
   .content-header {
     flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 1rem !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
   }
 
-  .header-actions {
+  .page-title {
+    font-size: 1.4rem !important;
+  }
+
+  .welcome-banner {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1.25rem !important;
+    padding: 1.25rem 1rem !important;
+  }
+
+  .banner-title {
+    font-size: 1.35rem !important;
+  }
+
+  .banner-actions {
     width: 100% !important;
+    flex-direction: row !important;
+    gap: 0.75rem !important;
+  }
+
+  .banner-actions .btn-secondary,
+  .banner-actions .btn-primary {
+    flex: 1 !important;
+    justify-content: center !important;
+    font-size: 0.8rem !important;
+    padding: 0 0.5rem !important;
+  }
+
+  /* Section Action Bars */
+  .sb-action-bar {
     flex-direction: column !important;
     align-items: stretch !important;
     gap: 0.75rem !important;
   }
 
-  .search-box, .branch-selector-wrap {
+  .sb-action-bar-left {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
     width: 100% !important;
   }
 
-  .search-input, .branch-selector {
+  .sb-action-bar-left .sb-search-box {
+    margin-left: 0 !important;
     width: 100% !important;
+  }
+
+  .sb-action-bar-right {
+    width: 100% !important;
+  }
+
+  .btn-sb-primary {
+    width: 100% !important;
+    justify-content: center !important;
   }
 
   /* KPI Grid & Dashboard Grids */
@@ -3007,13 +3106,19 @@ input[type="date"].reg-input::-webkit-calendar-picker-indicator:hover {
   }
 
   /* Full-Page Form Registration Grids */
-  .reg-grid-2col, .reg-grid-3col {
+  .reg-grid, .reg-grid-2col, .reg-grid-3col {
     grid-template-columns: 1fr !important;
     gap: 0.75rem !important;
   }
 
+  .reg-header { padding: 1.25rem 1rem !important; }
+  .reg-body   { padding: 1.25rem 1rem !important; }
+  .reg-footer { padding: 1rem !important; flex-direction: column !important; align-items: stretch !important; }
+  .reg-footer-actions { width: 100% !important; justify-content: stretch !important; }
+  .reg-submit-btn, .btn-ghost { width: 100% !important; justify-content: center !important; }
+
   /* Modal Dialog Scaling */
-  .reg-modal-content, .sb-modal-content {
+  .reg-modal-content, .sb-modal-content, .sb-modal {
     width: 95vw !important;
     max-width: 100% !important;
     max-height: 90vh !important;
@@ -3023,33 +3128,66 @@ input[type="date"].reg-input::-webkit-calendar-picker-indicator:hover {
     border-radius: var(--radius-md) !important;
   }
 
-  /* Responsive Data Tables with Touch Scrolling */
-  .data-table-container, .table-responsive-wrapper {
+  /* Responsive Data Tables with Touch Scrolling & Compact Cell Sizing */
+  .table-container, .data-table-container, .table-responsive-wrapper {
     width: 100% !important;
+    max-width: 100% !important;
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch !important;
+    border-radius: var(--radius-sm) !important;
   }
 
   .data-table {
-    min-width: 680px !important;
+    width: 100% !important;
+    min-width: 580px !important;
+    font-size: 0.8125rem !important;
   }
 
-  .data-table th:first-child,
-  .data-table td:first-child {
-    position: sticky !important;
-    left: 0 !important;
-    background: #0f172a !important;
-    z-index: 2 !important;
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3) !important;
+  .data-table th, .data-table td {
+    padding: 0.65rem 0.6rem !important;
   }
 
-  .data-table th:last-child,
-  .data-table td:last-child {
-    position: sticky !important;
-    right: 0 !important;
-    background: #0f172a !important;
-    z-index: 2 !important;
-    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.3) !important;
+  .student-cell {
+    gap: 0.5rem !important;
+  }
+
+  .student-avatar {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 0.7rem !important;
+  }
+
+  .student-name {
+    font-size: 0.825rem !important;
+  }
+
+  .student-sub {
+    font-size: 0.7rem !important;
+  }
+
+  .status-toggle-group {
+    padding: 2px !important;
+  }
+
+  .btn-status {
+    padding: 0.25rem 0.45rem !important;
+    font-size: 0.7rem !important;
+  }
+
+  .action-btn-row {
+    gap: 0.35rem !important;
+    flex-wrap: wrap !important;
+  }
+
+  .btn-whatsapp-action {
+    height: 28px !important;
+    padding: 0 0.5rem !important;
+    font-size: 0.7rem !important;
+  }
+
+  .btn-icon-sm {
+    width: 28px !important;
+    height: 28px !important;
   }
 
   /* Input tap-target & iOS auto-zoom prevention */
@@ -3061,19 +3199,85 @@ input[type="date"].reg-input::-webkit-calendar-picker-indicator:hover {
   select,
   textarea {
     font-size: 16px !important;
-    min-height: 44px !important;
+    min-height: 42px !important;
   }
 
   /* Button Touch Targets */
   .btn-sb-primary,
   .btn-sb-ghost,
   .batch-actions-btn {
-    min-height: 44px !important;
+    min-height: 42px !important;
     padding: 0.65rem 1rem !important;
   }
 }
 
-/* Small Phones (<= 480px) */
+/* Small Mobile Screens (<= 576px) */
+@media (max-width: 576px) {
+  .app-topbar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .topbar-left {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+
+  .branch-selector-wrapper {
+    max-width: none !important;
+    flex: 1 !important;
+  }
+
+  .topbar-right {
+    width: 100% !important;
+    justify-content: space-between !important;
+  }
+
+  .search-wrapper {
+    max-width: none !important;
+    flex: 1 !important;
+  }
+
+  .btn-quick-add span {
+    display: none !important;
+  }
+
+  .btn-quick-add {
+    padding: 0 0.65rem !important;
+  }
+
+  .banner-actions {
+    flex-direction: column !important;
+  }
+
+  .dashboard-widget {
+    padding: 1rem 0.75rem !important;
+  }
+
+  .widget-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+  }
+
+  .widget-header .batch-select {
+    width: 100% !important;
+  }
+
+  .widget-footer {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+    text-align: center !important;
+  }
+
+  .btn-save-attendance {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+/* Extra Small Phones (<= 480px) */
 @media (max-width: 480px) {
   .reg-modal-header {
     padding: 1rem !important;
@@ -3089,6 +3293,15 @@ input[type="date"].reg-input::-webkit-calendar-picker-indicator:hover {
   }
 
   .reg-footer-btns button {
+    width: 100% !important;
+  }
+
+  .sb-modal-footer {
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+
+  .sb-modal-footer button {
     width: 100% !important;
   }
 }

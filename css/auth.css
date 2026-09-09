@@ -1043,8 +1043,26 @@ html, body {
 }
 
 @media (max-width: 480px) {
+  .auth-panel {
+    padding: 1.5rem 0.75rem !important;
+  }
+  
+  .auth-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 1.5rem 1rem !important;
+  }
+  
+  .role-tabs {
+    gap: 0.25rem !important;
+  }
+  
+  .role-tab {
+    padding: 0.5rem 0.35rem !important;
+  }
+
   .role-tab span {
-    font-size: 0.8125rem;
+    font-size: 0.75rem !important;
   }
   
   .form-options {

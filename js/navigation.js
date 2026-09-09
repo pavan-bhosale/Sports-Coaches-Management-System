@@ -193,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (sidebarToggleBtn && dashboardLayout) {
     sidebarToggleBtn.addEventListener('click', () => {
-      if (window.innerWidth <= 768) {
+      if (window.innerWidth <= 1024) {
         dashboardLayout.classList.toggle('sidebar-mobile-open');
       } else {
         dashboardLayout.classList.toggle('sidebar-collapsed');
@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.addEventListener('click', (e) => {
-      if (window.innerWidth <= 768 && dashboardLayout.classList.contains('sidebar-mobile-open')) {
+      if (window.innerWidth <= 1024 && dashboardLayout.classList.contains('sidebar-mobile-open')) {
         if (appSidebar && !appSidebar.contains(e.target) && !sidebarToggleBtn.contains(e.target) && (!sidebarBackdrop || !sidebarBackdrop.contains(e.target))) {
           dashboardLayout.classList.remove('sidebar-mobile-open');
         }
@@ -217,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   navLinks.forEach(link => {
     link.addEventListener('click', () => {
-      if (window.innerWidth <= 768 && dashboardLayout) {
+      if (window.innerWidth <= 1024 && dashboardLayout) {
         dashboardLayout.classList.remove('sidebar-mobile-open');
       }
     });
