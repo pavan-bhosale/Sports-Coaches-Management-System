@@ -207,15 +207,34 @@ document.addEventListener('DOMContentLoaded', () => {
       const id = actionsBtn.getAttribute('data-id');
       const wrap = actionsBtn.closest('.batch-actions-wrap');
       const menu = (wrap && wrap.querySelector('.batch-actions-menu')) || document.getElementById(`batchMenu-${id}`) || document.getElementById(`coachMenu-${id}`) || document.getElementById(`studentMenu-${id}`) || document.getElementById(`attendanceMenu-${id}`);
-      document.querySelectorAll('.batch-actions-menu.open').forEach(m => {
-        if (m !== menu) m.classList.remove('open');
-      });
-      if (menu) menu.classList.toggle('open');
+      
+      const wasOpen = menu && menu.classList.contains('open');
+
+      // Close all currently open menus and reset elevation
+      document.querySelectorAll('.batch-actions-menu.open').forEach(m => m.classList.remove('open'));
+      document.querySelectorAll('.batch-actions-menu.drop-up').forEach(m => m.classList.remove('drop-up'));
+      document.querySelectorAll('.menu-open').forEach(el => el.classList.remove('menu-open'));
+
+      if (menu && !wasOpen) {
+        menu.classList.add('open');
+        if (wrap) wrap.classList.add('menu-open');
+        const card = actionsBtn.closest('.batch-card-mobile, .student-card-mobile, .coach-card-mobile, .attendance-card-mobile');
+        if (card) card.classList.add('menu-open');
+
+        // Check if menu extends past bottom of screen (allowing for bottom nav)
+        const rect = menu.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        if (rect.bottom > viewportHeight - 75 && rect.top > rect.height) {
+          menu.classList.add('drop-up');
+        }
+      }
       return;
     }
 
     if (!e.target.closest('.batch-actions-wrap')) {
       document.querySelectorAll('.batch-actions-menu.open').forEach(m => m.classList.remove('open'));
+      document.querySelectorAll('.batch-actions-menu.drop-up').forEach(m => m.classList.remove('drop-up'));
+      document.querySelectorAll('.menu-open').forEach(el => el.classList.remove('menu-open'));
     }
   });
 

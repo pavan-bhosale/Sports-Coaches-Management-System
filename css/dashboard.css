@@ -40,11 +40,11 @@
   --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   
   /* Spatial System & Radii */
-  --radius-xs: 6px;
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
-  --radius-xl: 24px;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px; /* Reduced from 20px: clean, compact, professional corner radius */
+  --radius-xl: 14px;
   --radius-full: 9999px;
   
   /* Sidebar width */
@@ -387,43 +387,45 @@ html, body {
 }
 
 .app-topbar {
-  height: var(--topbar-height);
-  background: rgba(11, 17, 30, 0.88);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border-glass);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 clamp(1.25rem, 3vw, 2.5rem);
-  position: sticky;
-  top: 0;
-  z-index: 90;
+  display: none !important;
 }
 
-.topbar-left {
+.content-header-title-wrap {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: 0.85rem;
 }
 
 .sidebar-toggle-btn {
-  background: var(--bg-surface);
+  background: var(--bg-surface-elevated);
   border: 1px solid var(--border-glass);
-  color: var(--text-secondary);
-  width: 40px;
-  height: 40px;
+  color: var(--text-primary);
+  width: 38px;
+  height: 38px;
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  flex-shrink: 0;
   transition: all var(--transition-fast);
 }
 
 .sidebar-toggle-btn:hover {
-  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
   border-color: var(--border-glass-hover);
+}
+
+@media (min-width: 1025px) {
+  .sidebar-toggle-btn {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .sidebar-toggle-btn {
+    display: flex !important;
+  }
 }
 
 /* Multi-Branch Selector */
@@ -2119,17 +2121,22 @@ html, body {
   position: absolute;
   right: 0;
   top: calc(100% + 6px);
-  z-index: 200;
+  z-index: 500;
   background: var(--bg-surface);
   border: 1px solid var(--border-glass-hover);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65);
   min-width: 150px;
   padding: 0.4rem 0;
   display: none;
   animation: slideUpModal 0.15s ease;
 }
 .batch-actions-menu.open { display: block; }
+.batch-actions-menu.drop-up {
+  top: auto !important;
+  bottom: calc(100% + 6px) !important;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.65) !important;
+}
 
 .batch-action-item {
   display: flex;
@@ -3626,7 +3633,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     position: relative;
     width: 100%;
     box-sizing: border-box;
-    overflow: hidden;
+    overflow: visible !important;
   }
 
   .student-card-header {
@@ -4001,7 +4008,24 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     position: relative;
     width: 100%;
     box-sizing: border-box;
-    overflow: hidden;
+    overflow: visible !important;
+  }
+
+  /* Actions Dropdown Stacking Context Fix: Elevate card and wrapper when menu is open */
+  .batch-card-mobile.menu-open,
+  .batch-card-mobile:has(.batch-actions-menu.open),
+  .student-card-mobile.menu-open,
+  .student-card-mobile:has(.batch-actions-menu.open),
+  .coach-card-mobile.menu-open,
+  .coach-card-mobile:has(.batch-actions-menu.open),
+  .attendance-card-mobile.menu-open,
+  .attendance-card-mobile:has(.batch-actions-menu.open) {
+    z-index: 100 !important;
+  }
+
+  .batch-actions-wrap.menu-open,
+  .batch-actions-wrap:has(.batch-actions-menu.open) {
+    z-index: 110 !important;
   }
 
   .batch-card-top {
@@ -4130,6 +4154,502 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 @media (min-width: 769px) {
   .mobile-batches-cards-container {
+    display: none !important;
+  }
+}
+
+/* ==========================================================================
+   MOBILE ATTENDANCE MODULE REFINEMENT (IMAGE 1 TARGET DESIGN)
+   ========================================================================== */
+
+/* Coach + Batch Header Card (Desktop & Responsive Base) */
+.coach-attendance-card {
+  display: flex;
+  align-items: center;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 0.85rem 1.25rem;
+  margin-bottom: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+  gap: 1.5rem;
+}
+
+.coach-attendance-col {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.coach-attendance-icon {
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.coach-attendance-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.coach-attendance-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  line-height: 1.1;
+}
+
+.coach-attendance-val {
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.coach-attendance-divider {
+  width: 1px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+/* Attendance Action Bar & Controls */
+.attendance-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.attendance-pill-row {
+  display: flex;
+  align-items: center;
+}
+
+.attendance-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Attendance Date Filter Control (Base & Desktop) */
+.attendance-date-filter-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 0 1 320px;
+}
+
+.btn-attendance-date-select {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 38px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 0 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.825rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-attendance-date-select svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.btn-attendance-date-select:hover {
+  border-color: var(--color-primary);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-attendance-date-clear {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-xs);
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: var(--color-danger);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: all var(--transition-fast);
+}
+
+.btn-attendance-date-clear:hover {
+  background: rgba(239, 68, 68, 0.25);
+}
+
+/* Modal Date Tabs */
+.attendance-date-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  background: var(--bg-app);
+  padding: 0.3rem;
+  border-radius: var(--radius-sm);
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--border-glass);
+}
+
+.attendance-date-tab {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: center;
+}
+
+.attendance-date-tab.active {
+  background: var(--color-primary);
+  color: #080c14;
+  font-weight: 700;
+}
+
+.btn-attendance-label-mobile {
+  display: none;
+}
+
+/* Mobile Responsive Adjustments (Max-Width 768px) */
+@media (max-width: 768px) {
+  /* Coach + Batch 2-Column Responsive Card */
+  .coach-attendance-card {
+    display: grid !important;
+    grid-template-columns: 1fr auto 1fr !important;
+    align-items: center !important;
+    padding: 0.75rem 0.85rem !important;
+    margin-bottom: 0.65rem !important;
+    gap: 0 !important;
+    border-radius: var(--radius-lg) !important;
+  }
+
+  .coach-attendance-col {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.65rem !important;
+    min-width: 0 !important;
+  }
+
+  .coach-attendance-col.batch-col {
+    padding-left: 0.85rem !important;
+  }
+
+  .coach-attendance-divider {
+    width: 1px !important;
+    height: 32px !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    flex-shrink: 0 !important;
+  }
+
+  .coach-attendance-icon svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  .coach-attendance-label {
+    font-size: 0.725rem !important;
+  }
+
+  .coach-attendance-val {
+    font-size: 0.9rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* Action Bar on Mobile: Count Pill on Row 1, Select Date + New Sheet on Row 2 */
+  .attendance-action-bar {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.5rem !important;
+    margin-bottom: 0.65rem !important;
+    width: 100% !important;
+  }
+
+  .attendance-pill-row {
+    display: flex !important;
+    align-items: center !important;
+    margin-bottom: 0.1rem !important;
+  }
+
+  .attendance-status-pill {
+    align-self: flex-start !important;
+    padding: 0.25rem 0.65rem !important;
+    font-size: 0.7rem !important;
+    letter-spacing: 0.04em !important;
+    text-transform: uppercase !important;
+  }
+
+  .attendance-controls-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+  }
+
+  .attendance-date-filter-wrap {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+
+  .btn-attendance-date-select {
+    width: 100% !important;
+    height: 38px !important;
+    padding: 0 0.75rem !important;
+    border-radius: var(--radius-sm) !important;
+    font-size: 0.825rem !important;
+  }
+
+  .btn-attendance-new-sheet {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    height: 38px !important;
+    padding: 0 0.85rem !important;
+    font-size: 0.825rem !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+    border-radius: var(--radius-sm) !important;
+  }
+
+  .btn-attendance-label-desktop {
+    display: none !important;
+  }
+
+  .btn-attendance-label-mobile {
+    display: inline !important;
+  }
+
+  /* Hide Desktop Attendance Table on Mobile */
+  .desktop-attendance-table-widget {
+    display: none !important;
+  }
+
+  /* Mobile Attendance Cards Container */
+  .mobile-attendance-cards-container {
+    display: flex !important;
+    flex-direction: column;
+    gap: 0.65rem !important;
+    margin-top: 0.5rem !important;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .attendance-card-mobile {
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-lg);
+    padding: 0.75rem 0.85rem;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: visible;
+  }
+
+  .attendance-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .attendance-date-block {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 0;
+  }
+
+  .attendance-calendar-icon {
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .attendance-calendar-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .attendance-date-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+  }
+
+  .attendance-date-val {
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .attendance-day-val {
+    font-size: 0.725rem;
+    color: var(--text-muted);
+    line-height: 1.2;
+  }
+
+  .attendance-three-dots-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 0.35rem;
+    border-radius: var(--radius-xs);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all var(--transition-fast);
+  }
+
+  .attendance-three-dots-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .attendance-card-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.06);
+    width: 100%;
+    margin: 0.65rem 0;
+  }
+
+  .attendance-card-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .attendance-count-block {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+  }
+
+  .attendance-group-icon {
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .attendance-group-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .attendance-count-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .attendance-stat-label {
+    font-size: 0.725rem;
+    color: var(--text-muted);
+    line-height: 1.1;
+  }
+
+  .attendance-stat-val {
+    font-family: var(--font-heading);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+  }
+
+  .attendance-pct-block {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+  }
+
+  .attendance-circle-wrap {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+  }
+
+  .attendance-circle-chart {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .attendance-circle-chart .circle-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.08);
+    stroke-width: 3.8;
+  }
+
+  .attendance-circle-chart .circle-fg {
+    fill: none;
+    stroke: var(--color-primary);
+    stroke-width: 3.8;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.3s ease;
+  }
+
+  .attendance-pct-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    text-align: left;
+  }
+
+  .attendance-pct-val {
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.1;
+  }
+
+  .attendance-pct-label {
+    font-size: 0.725rem;
+    color: var(--text-muted);
+    line-height: 1.1;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-attendance-cards-container {
     display: none !important;
   }
 }

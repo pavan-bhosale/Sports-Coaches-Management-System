@@ -176,78 +176,26 @@
 
     <!-- Main Content Viewport -->
     <div class="main-wrapper">
-      <!-- Top Utility Header -->
-      <header class="app-topbar">
-        <div class="topbar-left">
-          <button type="button" class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Toggle Sidebar Navigation">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="3" y1="12" x2="21" y2="12"></line>
-              <line x1="3" y1="6" x2="21" y2="6"></line>
-              <line x1="3" y1="18" x2="21" y2="18"></line>
-            </svg>
-          </button>
-
-          <!-- Branch Filter Dropdown -->
-          <div class="branch-selector-wrapper">
-            <span class="branch-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
-              </svg>
-            </span>
-            <select class="branch-select" id="branchSelector" aria-label="Filter by Branch">
-              <option value="all" selected>All Branches (Vasai, Nallasopara, Virar)</option>
-              <option value="vasai">Vasai East Branch (Hilton Arcade)</option>
-              <option value="nallasopara">Nallasopara East Branch</option>
-              <option value="virar">Virar West Turf Branch</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="topbar-right">
-          <!-- Global Search -->
-          <div class="search-wrapper">
-            <span class="search-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-            </span>
-            <input type="text" id="globalSearchInput" class="search-input"
-              placeholder="Search student, batch, coach...">
-          </div>
-
-          <!-- Notification Bell with Overdue Alert Badge -->
-          <button type="button" class="icon-btn" id="notifBellBtn" aria-label="Notifications" title="View Alerts">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-            </svg>
-            <span class="notification-badge"></span>
-          </button>
-
-          <!-- Quick Action -->
-          <button type="button" class="btn-quick-add" id="btnQuickAdd">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            <span>New Admission</span>
-          </button>
-        </div>
-      </header>
-
       <!-- Dashboard Main View Container -->
       <main class="dashboard-content" id="mainDashboardView">
         <!-- Content Header & Breadcrumb -->
         <div class="content-header">
-          <div>
-            <div class="breadcrumb">
-              <span>Academy Management</span>
-              <span class="crumb-separator">/</span>
-              <span class="crumb-current" id="currentSectionName">Overview</span>
+          <div class="content-header-title-wrap">
+            <button type="button" class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Toggle Sidebar Navigation">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
+            </button>
+            <div>
+              <div class="breadcrumb">
+                <span>Academy Management</span>
+                <span class="crumb-separator">/</span>
+                <span class="crumb-current" id="currentSectionName">Overview</span>
+              </div>
+              <h1 class="page-title" id="pageTitle">Super Admin Dashboard</h1>
             </div>
-            <h1 class="page-title" id="pageTitle">Super Admin Dashboard</h1>
           </div>
           <div class="status-indicator-pill">
             <span class="live-dot"></span>
@@ -852,39 +800,73 @@
 
         <!-- ===== ATTENDANCE SECTION ===== -->
         <section id="attendanceSection" style="display:none;">
-          <!-- Coach Info Header -->
-          <div id="coachAttendanceHeader" class="coach-attendance-header" style="margin-bottom: 1.25rem; display: flex; gap: 2rem; background: var(--bg-card); padding: 0.9rem 1.25rem; border-radius: 8px; border: 1px solid var(--border-glass); align-items: center; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <span style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 500;">Coach:</span>
-              <strong id="coachHeaderName" style="color: var(--text-primary); font-size: 1rem; font-weight: 600;">-</strong>
+          <!-- Coach Info Header Card -->
+          <div id="coachAttendanceHeader" class="coach-attendance-card">
+            <div class="coach-attendance-col coach-col">
+              <div class="coach-attendance-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              </div>
+              <div class="coach-attendance-text">
+                <span class="coach-attendance-label">Coach:</span>
+                <strong id="coachHeaderName" class="coach-attendance-val">-</strong>
+              </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <span style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 500;">Batch:</span>
-              <strong id="coachHeaderBatch" style="color: var(--color-primary); font-size: 1rem; font-weight: 600;">-</strong>
+            <div class="coach-attendance-divider"></div>
+            <div class="coach-attendance-col batch-col">
+              <div class="coach-attendance-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </div>
+              <div class="coach-attendance-text">
+                <span class="coach-attendance-label">Batch:</span>
+                <strong id="coachHeaderBatch" class="coach-attendance-val">-</strong>
+              </div>
             </div>
           </div>
 
-          <!-- Action Bar -->
-          <div class="sb-action-bar">
-            <div class="sb-action-bar-left">
-              <div class="status-indicator-pill">
+          <!-- Attendance Action Area -->
+          <div class="attendance-action-bar">
+            <div class="attendance-pill-row">
+              <div class="status-indicator-pill attendance-status-pill">
                 <span class="live-dot"></span>
-                <span id="attendanceLiveCount">0 Attendance Sheets</span>
+                <span id="attendanceLiveCount">0 ATTENDANCE SHEETS</span>
               </div>
             </div>
-            <div class="sb-action-bar-right">
-              <button type="button" class="btn-sb-primary" id="btnNewAttendanceSheet">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
+            <div class="attendance-controls-row">
+              <div class="attendance-date-filter-wrap">
+                <button type="button" class="btn-attendance-date-select" id="btnAttendanceSelectDate">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                  <span id="attendanceSelectedDateLabel">Select Date</span>
+                </button>
+                <button type="button" class="btn-attendance-date-clear" id="btnAttendanceClearDate" style="display:none;" title="Clear Date Filter" aria-label="Clear Date Filter">
+                  &times;
+                </button>
+              </div>
+              <button type="button" class="btn-sb-primary btn-attendance-new-sheet" id="btnNewAttendanceSheet">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
-                New Attendance Sheet
+                <span class="btn-attendance-label-desktop">New Attendance Sheet</span>
+                <span class="btn-attendance-label-mobile">+ New Sheet</span>
               </button>
             </div>
           </div>
 
-          <!-- Attendance Table Widget -->
-          <div class="dashboard-widget" id="attendanceSectionTableWidget" style="padding:0;overflow:hidden;margin-top:1.25rem;display:none;">
+          <!-- Attendance Table Widget (Desktop) -->
+          <div class="dashboard-widget desktop-attendance-table-widget" id="attendanceSectionTableWidget" style="padding:0;overflow:hidden;margin-top:1rem;display:none;">
             <div class="table-container">
               <table class="data-table" id="attendanceSectionTable">
                 <thead>
@@ -902,7 +884,27 @@
             </div>
           </div>
 
-          <!-- Empty State -->
+          <!-- Attendance Mobile Cards Container (Mobile) -->
+          <div id="attendanceCardsContainer" class="mobile-attendance-cards-container" style="display:none;">
+            <!-- Mobile Cards Populated by JS -->
+          </div>
+
+          <!-- Date Filter Empty State -->
+          <div id="attendanceDateEmptyState" class="batches-empty-state" style="display:none; padding: 2.5rem 1rem;">
+            <div class="batches-empty-icon" style="width: 56px; height: 56px;">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </div>
+            <h3 id="attendanceDateEmptyTitle" style="font-size: 0.95rem;">No Attendance Sheets Found</h3>
+            <p id="attendanceDateEmptyMsg" style="font-size: 0.8rem;">No attendance sheets found for this date.</p>
+            <button type="button" class="btn-sb-ghost" id="btnResetDateFilterEmptyState" style="margin-top: 0.5rem; font-size: 0.8rem; padding: 0.35rem 0.75rem;">Show All Dates</button>
+          </div>
+
+          <!-- Empty State (No Attendance Sheets in Database) -->
           <div id="attendanceSectionEmptyState" class="batches-empty-state" style="display:none;">
             <div class="batches-empty-icon">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -2526,6 +2528,70 @@
       </div>
     </div>
     <!-- ===== END NEW ATTENDANCE SHEET MODAL ===== -->
+
+    <!-- ===== ATTENDANCE DATE FILTER MODAL ===== -->
+    <div class="sb-modal-overlay" id="attendanceDateFilterModal" style="display:none; z-index: 1050;">
+      <div class="sb-modal" style="max-width: 440px; width: 92%;">
+        <div class="sb-modal-header">
+          <div>
+            <div class="sb-modal-badge" style="background: rgba(16, 185, 129, 0.15); color: var(--color-primary); border-color: rgba(16, 185, 129, 0.3);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              Filter Records
+            </div>
+            <h2 class="sb-modal-title" style="font-size: 1.25rem;">Select Attendance Date</h2>
+            <p class="sb-modal-subtitle" style="margin-top:0.25rem; font-size: 0.825rem;">Filter sheets by single date or date range</p>
+          </div>
+          <button type="button" class="modal-close-btn" id="closeAttendanceDateModal">&times;</button>
+        </div>
+
+        <div style="padding: 1.25rem 1.5rem;">
+          <!-- Filter Type Tabs: Single Date vs Date Range -->
+          <div class="attendance-date-tabs">
+            <button type="button" class="attendance-date-tab active" id="tabSingleDate">Single Date</button>
+            <button type="button" class="attendance-date-tab" id="tabDateRange">Date Range</button>
+          </div>
+
+          <!-- Tab Pane 1: Single Date -->
+          <div id="paneSingleDate" class="attendance-date-pane">
+            <div class="form-group" style="margin-bottom: 1rem;">
+              <label for="filterAttendanceSingleDate" style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary);">Date</label>
+              <input type="date" id="filterAttendanceSingleDate" class="sb-input batch-time-input" style="width: 100%;">
+            </div>
+          </div>
+
+          <!-- Tab Pane 2: Date Range -->
+          <div id="paneDateRange" class="attendance-date-pane" style="display: none;">
+            <div class="form-group" style="margin-bottom: 0.85rem;">
+              <label for="filterAttendanceStartDate" style="display: block; margin-bottom: 0.4rem; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary);">From Date</label>
+              <input type="date" id="filterAttendanceStartDate" class="sb-input batch-time-input" style="width: 100%;">
+            </div>
+            <div class="form-group" style="margin-bottom: 1rem;">
+              <label for="filterAttendanceEndDate" style="display: block; margin-bottom: 0.4rem; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary);">To Date</label>
+              <input type="date" id="filterAttendanceEndDate" class="sb-input batch-time-input" style="width: 100%;">
+            </div>
+          </div>
+
+          <!-- Modal Action Buttons -->
+          <div class="sb-modal-footer" style="padding-top:1rem; border-top:1px solid var(--border-glass); display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+            <button type="button" class="btn-sb-ghost" id="btnClearAttendanceDateFilter" style="color: var(--text-muted); font-size: 0.825rem; padding: 0.45rem 0.75rem;">
+              Clear / All Dates
+            </button>
+            <div style="display: flex; gap: 0.5rem;">
+              <button type="button" class="btn-sb-ghost" id="btnCancelAttendanceDateFilter" style="font-size: 0.825rem; padding: 0.45rem 0.75rem;">Cancel</button>
+              <button type="button" class="btn-sb-primary" id="btnApplyAttendanceDateFilter" style="font-size: 0.825rem; padding: 0.45rem 0.85rem;">
+                Apply Filter
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ===== END ATTENDANCE DATE FILTER MODAL ===== -->
 
     <!-- ===== OPEN ATTENDANCE MODAL ===== -->
     <div class="sb-modal-overlay" id="openAttendanceModal" style="display:none; z-index: 1050;">

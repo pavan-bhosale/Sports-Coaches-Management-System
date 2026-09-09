@@ -24,7 +24,7 @@ function getAuthParams() {
 function updateAttendanceLiveCount(count) {
   const el = document.getElementById('attendanceLiveCount');
   if (!el) return;
-  el.textContent = count === 1 ? '1 Attendance Sheet' : `${count} Attendance Sheets`;
+  el.textContent = count === 1 ? '1 ATTENDANCE SHEET' : `${count} ATTENDANCE SHEETS`;
 }
 
 // Update Coach Info Header
@@ -39,15 +39,187 @@ function updateCoachHeader(info) {
   }
 }
 
+// Format date parts helper (Month Day, Year + Day of Week)
+function formatAttendanceDateParts(dateStr) {
+  if (!dateStr) return { fullDate: '', dayOfWeek: '' };
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const d = parseInt(parts[2], 10);
+    const dateObj = new Date(y, m, d);
+    const fullDate = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    const dayOfWeek = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+    return { fullDate, dayOfWeek };
+  }
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d.getTime())) return { fullDate: dateStr, dayOfWeek: '' };
+  return {
+    fullDate: d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+    dayOfWeek: d.toLocaleDateString('en-US', { weekday: 'long' })
+  };
+}
+
+// Active Attendance Date Filter State
+let activeAttendanceDateFilter = {
+  type: 'all', // 'all', 'single', 'range'
+  singleDate: '',
+  startDate: '',
+  endDate: ''
+};
+
+// Format short date for button display (e.g., 'Sep 8, 2026' or 'Sep 8')
+function formatShortDateDisplay(dateStr, includeYear = true) {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const d = parseInt(parts[2], 10);
+    const dateObj = new Date(y, m, d);
+    return dateObj.toLocaleDateString('en-US', includeYear 
+      ? { month: 'short', day: 'numeric', year: 'numeric' }
+      : { month: 'short', day: 'numeric' });
+  }
+  return dateStr;
+}
+
+// Apply date filter to both mobile cards and desktop table rows
+function applyAttendanceDateFilter() {
+  const cards = document.querySelectorAll('#attendanceCardsContainer .attendance-card-mobile');
+  const rows = document.querySelectorAll('#attendanceSectionTableBody tr');
+  const emptyState = document.getElementById('attendanceDateEmptyState');
+  const emptyMsg = document.getElementById('attendanceDateEmptyMsg');
+  const labelEl = document.getElementById('attendanceSelectedDateLabel');
+  const clearBtn = document.getElementById('btnAttendanceClearDate');
+
+  let visibleCount = 0;
+  const filter = activeAttendanceDateFilter;
+
+  cards.forEach(card => {
+    const cardDate = card.dataset.date || '';
+    let match = true;
+
+    if (filter.type === 'single') {
+      match = (cardDate === filter.singleDate);
+    } else if (filter.type === 'range') {
+      match = (cardDate >= filter.startDate && cardDate <= filter.endDate);
+    }
+
+    if (match) {
+      card.style.display = '';
+      visibleCount++;
+    } else {
+      card.style.display = 'none';
+    }
+  });
+
+  rows.forEach(row => {
+    const rowDate = row.dataset.date || '';
+    let match = true;
+
+    if (filter.type === 'single') {
+      match = (rowDate === filter.singleDate);
+    } else if (filter.type === 'range') {
+      match = (rowDate >= filter.startDate && rowDate <= filter.endDate);
+    }
+
+    row.style.display = match ? '' : 'none';
+  });
+
+  // Update button label & clear button visibility
+  if (filter.type === 'single') {
+    if (labelEl) labelEl.textContent = formatShortDateDisplay(filter.singleDate);
+    if (clearBtn) clearBtn.style.display = 'inline-flex';
+  } else if (filter.type === 'range') {
+    const startParts = filter.startDate.split('-');
+    const endParts = filter.endDate.split('-');
+    const sameYear = startParts[0] === endParts[0];
+    const startTxt = formatShortDateDisplay(filter.startDate, !sameYear);
+    const endTxt = formatShortDateDisplay(filter.endDate, true);
+    if (labelEl) labelEl.textContent = `${startTxt} – ${endTxt}`;
+    if (clearBtn) clearBtn.style.display = 'inline-flex';
+  } else {
+    if (labelEl) labelEl.textContent = 'Select Date';
+    if (clearBtn) clearBtn.style.display = 'none';
+  }
+
+  // Update Live Count pill to reflect visible filtered sheets
+  if (filter.type !== 'all') {
+    updateAttendanceLiveCount(visibleCount);
+  } else {
+    updateAttendanceLiveCount(cards.length);
+  }
+
+  // Handle empty state
+  if (emptyState) {
+    if (filter.type !== 'all' && visibleCount === 0 && cards.length > 0) {
+      emptyState.style.display = 'flex';
+      if (emptyMsg) {
+        emptyMsg.textContent = filter.type === 'single'
+          ? 'No attendance sheets found for this date.'
+          : 'No attendance sheets found for this date range.';
+      }
+    } else {
+      emptyState.style.display = 'none';
+    }
+  }
+}
+
+// Clear date filter
+function clearAttendanceDateFilter() {
+  activeAttendanceDateFilter = { type: 'all', singleDate: '', startDate: '', endDate: '' };
+  const singleInput = document.getElementById('filterAttendanceSingleDate');
+  const startInput = document.getElementById('filterAttendanceStartDate');
+  const endInput = document.getElementById('filterAttendanceEndDate');
+  if (singleInput) singleInput.value = '';
+  if (startInput) startInput.value = '';
+  if (endInput) endInput.value = '';
+  applyAttendanceDateFilter();
+}
+
+// Open Attendance Date Filter Modal
+function openAttendanceDateFilterModal() {
+  const filter = activeAttendanceDateFilter;
+  const tabSingle = document.getElementById('tabSingleDate');
+  const tabRange = document.getElementById('tabDateRange');
+  const paneSingle = document.getElementById('paneSingleDate');
+  const paneRange = document.getElementById('paneDateRange');
+  const singleInput = document.getElementById('filterAttendanceSingleDate');
+  const startInput = document.getElementById('filterAttendanceStartDate');
+  const endInput = document.getElementById('filterAttendanceEndDate');
+
+  if (filter.type === 'range') {
+    if (tabRange) tabRange.classList.add('active');
+    if (tabSingle) tabSingle.classList.remove('active');
+    if (paneRange) paneRange.style.display = 'block';
+    if (paneSingle) paneSingle.style.display = 'none';
+    if (startInput) startInput.value = filter.startDate || '';
+    if (endInput) endInput.value = filter.endDate || '';
+  } else {
+    if (tabSingle) tabSingle.classList.add('active');
+    if (tabRange) tabRange.classList.remove('active');
+    if (paneSingle) paneSingle.style.display = 'block';
+    if (paneRange) paneRange.style.display = 'none';
+    if (singleInput) singleInput.value = filter.singleDate || '';
+  }
+
+  openModal('attendanceDateFilterModal');
+}
+
 // ── Fetch & Render Main Attendance List ──────────────────────────────────────
 async function fetchAttendanceSheets() {
   const requestId = ++fetchAttendanceRequestId;
   const tableWidget = document.getElementById('attendanceSectionTableWidget');
   const tableBody   = document.getElementById('attendanceSectionTableBody');
   const emptyState  = document.getElementById('attendanceSectionEmptyState');
+  const cardsContainer = document.getElementById('attendanceCardsContainer');
+  const dateEmptyState = document.getElementById('attendanceDateEmptyState');
   if (!tableBody || !emptyState || !tableWidget) return;
 
   tableBody.innerHTML = '';
+  if (cardsContainer) cardsContainer.innerHTML = '';
+  if (dateEmptyState) dateEmptyState.style.display = 'none';
 
   const { role, email, coach_id } = getAuthParams();
 
@@ -67,36 +239,42 @@ async function fetchAttendanceSheets() {
 
     if (sheets.length === 0) {
       tableWidget.style.display = 'none';
+      if (cardsContainer) cardsContainer.style.display = 'none';
       emptyState.style.display  = 'flex';
       tableBody.innerHTML       = '';
+      if (cardsContainer) cardsContainer.innerHTML = '';
     } else {
       emptyState.style.display  = 'none';
       tableWidget.style.display = 'block';
+      if (cardsContainer) cardsContainer.style.display = '';
       tableBody.innerHTML       = '';
+      if (cardsContainer) cardsContainer.innerHTML = '';
 
       sheets.forEach(sheet => {
-        const tr = document.createElement('tr');
-        tr.dataset.batchId = sheet.batch_id;
-        tr.dataset.date = sheet.attendance_date;
-
         const safeBatchName = escapeHtml(sheet.batch_name);
         const safeCoachName = escapeHtml(sheet.coach_name);
         const formattedDate = formatDateDisplay(sheet.attendance_date);
+        const { fullDate, dayOfWeek } = formatAttendanceDateParts(sheet.attendance_date);
 
         // Calculate Attendance (Present/Total) and Present Percentage
         const presentCount = parseInt(sheet.present_count || 0, 10);
         const totalStudents = parseInt(sheet.total_batch_students !== undefined ? sheet.total_batch_students : (sheet.total_students || sheet.sheet_records_count || 0), 10);
 
         const attendanceDisplay = `${presentCount}/${totalStudents}`;
-        let pctDisplay = '0%';
+        let pct = 0;
         if (totalStudents > 0) {
-          const pct = (presentCount / totalStudents) * 100;
-          pctDisplay = (pct % 1 === 0 ? pct.toFixed(0) : pct.toFixed(2)) + '%';
+          pct = Math.round((presentCount / totalStudents) * 100);
         }
+        const pctDisplay = `${pct}%`;
 
         const menuKey = `${sheet.batch_id}_${sheet.attendance_date.replace(/-/g, '')}`;
 
-        // 4 Columns: Date | Attendance | Present Percentage | Actions
+        // 1. Desktop Table Row
+        const tr = document.createElement('tr');
+        tr.dataset.batchId = sheet.batch_id;
+        tr.dataset.batchName = sheet.batch_name || '';
+        tr.dataset.date = sheet.attendance_date;
+
         tr.innerHTML = `
           <td><span class="text-secondary" style="font-size:0.9rem; font-weight: 500;">${formattedDate}</span></td>
           <td><span style="font-weight: 600; font-size:0.875rem; color: var(--text-primary);">${attendanceDisplay}</span></td>
@@ -131,7 +309,121 @@ async function fetchAttendanceSheets() {
           </td>
         `;
         tableBody.appendChild(tr);
+
+        // 2. Mobile Attendance Card (Matches IMAGE 1 Target Design)
+        if (cardsContainer) {
+          const card = document.createElement('div');
+          card.className = 'attendance-card-mobile';
+          card.dataset.batchId = sheet.batch_id;
+          card.dataset.date = sheet.attendance_date;
+          card.dataset.batchName = sheet.batch_name || '';
+          card.dataset.coachName = sheet.coach_name || '';
+          card.dataset.fullDate = fullDate;
+          card.dataset.day = dayOfWeek;
+
+          card.innerHTML = `
+            <!-- Top Row: Calendar Icon, Date & Day, 3-dots Actions Menu -->
+            <div class="attendance-card-top">
+              <div class="attendance-date-block">
+                <div class="attendance-calendar-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                    <circle cx="8" cy="14" r="1" fill="currentColor"></circle>
+                    <circle cx="12" cy="14" r="1" fill="currentColor"></circle>
+                    <circle cx="16" cy="14" r="1" fill="currentColor"></circle>
+                    <circle cx="8" cy="18" r="1" fill="currentColor"></circle>
+                    <circle cx="12" cy="18" r="1" fill="currentColor"></circle>
+                    <circle cx="16" cy="18" r="1" fill="currentColor"></circle>
+                  </svg>
+                </div>
+                <div class="attendance-date-text">
+                  <div class="attendance-date-val">${fullDate}</div>
+                  <div class="attendance-day-val">${dayOfWeek}</div>
+                </div>
+              </div>
+              <div class="batch-actions-wrap">
+                <button class="batch-actions-btn attendance-three-dots-btn" data-id="mobile-${menuKey}" type="button" aria-label="Attendance Actions">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="5" r="2"/>
+                    <circle cx="12" cy="12" r="2"/>
+                    <circle cx="12" cy="19" r="2"/>
+                  </svg>
+                </button>
+                <div class="batch-actions-menu" id="attendanceMenu-mobile-${menuKey}">
+                  <button class="batch-action-item btn-open-attendance" type="button"
+                    onclick="openAttendanceSheet(${sheet.batch_id}, '${sheet.attendance_date}', '${safeBatchName.replace(/'/g, "\\'")}', '${safeCoachName.replace(/'/g, "\\'")}')">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    Open Attendance
+                  </button>
+                  <button class="batch-action-item danger btn-delete-attendance" type="button"
+                    onclick="promptDeleteAttendanceSheet(${sheet.batch_id}, '${sheet.attendance_date}', '${safeBatchName.replace(/'/g, "\\'")}')">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                    </svg>
+                    Delete Attendance
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="attendance-card-divider"></div>
+
+            <!-- Bottom Row: Users Icon, Attendance Count, Circular Progress Ring & Percentage -->
+            <div class="attendance-card-bottom">
+              <div class="attendance-count-block">
+                <div class="attendance-group-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                  </svg>
+                </div>
+                <div class="attendance-count-text">
+                  <span class="attendance-stat-label">Attendance</span>
+                  <span class="attendance-stat-val">${presentCount} / ${totalStudents}</span>
+                </div>
+              </div>
+
+              <div class="attendance-pct-block">
+                <div class="attendance-circle-wrap">
+                  <svg viewBox="0 0 36 36" class="attendance-circle-chart">
+                    <path class="circle-bg"
+                      d="M18 2.0845
+                        a 15.9155 15.9155 0 0 1 0 31.831
+                        a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                    <path class="circle-fg"
+                      stroke-dasharray="${pct}, 100"
+                      d="M18 2.0845
+                        a 15.9155 15.9155 0 0 1 0 31.831
+                        a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                  </svg>
+                </div>
+                <div class="attendance-pct-text">
+                  <span class="attendance-pct-val">${pctDisplay}</span>
+                  <span class="attendance-pct-label">Present</span>
+                </div>
+              </div>
+            </div>
+          `;
+          cardsContainer.appendChild(card);
+        }
       });
+
+      // Maintain active date filter if set
+      if (activeAttendanceDateFilter.type !== 'all') {
+        applyAttendanceDateFilter();
+      }
     }
   } catch (err) {
     console.error('Error fetching attendance sheets:', err);
@@ -464,4 +756,86 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnCloseDeleteModal) btnCloseDeleteModal.addEventListener('click', () => closeModal('deleteAttendanceModal'));
   if (btnCancelDeleteModal) btnCancelDeleteModal.addEventListener('click', () => closeModal('deleteAttendanceModal'));
   if (btnConfirmDeleteModal) btnConfirmDeleteModal.addEventListener('click', executeDeleteAttendanceSheet);
+
+  // Date Filter Controls
+  const btnSelectDate = document.getElementById('btnAttendanceSelectDate');
+  if (btnSelectDate) btnSelectDate.addEventListener('click', openAttendanceDateFilterModal);
+
+  const btnClearDate = document.getElementById('btnAttendanceClearDate');
+  if (btnClearDate) btnClearDate.addEventListener('click', clearAttendanceDateFilter);
+
+  const btnResetEmpty = document.getElementById('btnResetDateFilterEmptyState');
+  if (btnResetEmpty) btnResetEmpty.addEventListener('click', clearAttendanceDateFilter);
+
+  // Date Filter Modal Controls
+  const closeDateModal = document.getElementById('closeAttendanceDateModal');
+  const cancelDateModal = document.getElementById('btnCancelAttendanceDateFilter');
+  if (closeDateModal) closeDateModal.addEventListener('click', () => closeModal('attendanceDateFilterModal'));
+  if (cancelDateModal) cancelDateModal.addEventListener('click', () => closeModal('attendanceDateFilterModal'));
+
+  const btnClearModal = document.getElementById('btnClearAttendanceDateFilter');
+  if (btnClearModal) {
+    btnClearModal.addEventListener('click', () => {
+      clearAttendanceDateFilter();
+      closeModal('attendanceDateFilterModal');
+    });
+  }
+
+  // Date Filter Tabs
+  const tabSingle = document.getElementById('tabSingleDate');
+  const tabRange = document.getElementById('tabDateRange');
+  const paneSingle = document.getElementById('paneSingleDate');
+  const paneRange = document.getElementById('paneDateRange');
+
+  if (tabSingle && tabRange) {
+    tabSingle.addEventListener('click', () => {
+      tabSingle.classList.add('active');
+      tabRange.classList.remove('active');
+      if (paneSingle) paneSingle.style.display = 'block';
+      if (paneRange) paneRange.style.display = 'none';
+    });
+
+    tabRange.addEventListener('click', () => {
+      tabRange.classList.add('active');
+      tabSingle.classList.remove('active');
+      if (paneRange) paneRange.style.display = 'block';
+      if (paneSingle) paneSingle.style.display = 'none';
+    });
+  }
+
+  // Apply Date Filter Button
+  const btnApplyFilter = document.getElementById('btnApplyAttendanceDateFilter');
+  if (btnApplyFilter) {
+    btnApplyFilter.addEventListener('click', () => {
+      const isSingleTab = tabSingle && tabSingle.classList.contains('active');
+      const singleInput = document.getElementById('filterAttendanceSingleDate');
+      const startInput  = document.getElementById('filterAttendanceStartDate');
+      const endInput    = document.getElementById('filterAttendanceEndDate');
+
+      if (isSingleTab) {
+        const val = singleInput ? singleInput.value.trim() : '';
+        if (val) {
+          activeAttendanceDateFilter = { type: 'single', singleDate: val, startDate: '', endDate: '' };
+        } else {
+          activeAttendanceDateFilter = { type: 'all', singleDate: '', startDate: '', endDate: '' };
+        }
+      } else {
+        let s = startInput ? startInput.value.trim() : '';
+        let e = endInput ? endInput.value.trim() : '';
+        if (s && e) {
+          if (s > e) { const tmp = s; s = e; e = tmp; }
+          activeAttendanceDateFilter = { type: 'range', singleDate: '', startDate: s, endDate: e };
+        } else if (s) {
+          activeAttendanceDateFilter = { type: 'single', singleDate: s, startDate: '', endDate: '' };
+        } else if (e) {
+          activeAttendanceDateFilter = { type: 'single', singleDate: e, startDate: '', endDate: '' };
+        } else {
+          activeAttendanceDateFilter = { type: 'all', singleDate: '', startDate: '', endDate: '' };
+        }
+      }
+
+      closeModal('attendanceDateFilterModal');
+      applyAttendanceDateFilter();
+    });
+  }
 });
