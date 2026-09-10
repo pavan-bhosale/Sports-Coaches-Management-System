@@ -4641,6 +4641,109 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   margin: 0 !important;
 }
 
+/* Attendance Student Roster Modal & Table */
+.attendance-roster-modal {
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-glass);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.65);
+  overflow: hidden;
+}
+
+.attendance-roster-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.attendance-roster-table {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: collapse !important;
+  margin: 0 !important;
+}
+
+.attendance-roster-table th.roster-th-name,
+.attendance-roster-table td.roster-td-name {
+  width: auto !important;
+  text-align: left !important;
+  padding: 0.75rem 1rem !important;
+  overflow: hidden !important;
+  min-width: 0 !important;
+  vertical-align: middle !important;
+}
+
+.attendance-roster-table th.roster-th-status,
+.attendance-roster-table td.roster-td-status {
+  width: 80px !important;
+  min-width: 75px !important;
+  max-width: 90px !important;
+  text-align: center !important;
+  padding: 0.75rem 1.15rem 0.75rem 0.5rem !important;
+  white-space: nowrap !important;
+  vertical-align: middle !important;
+}
+
+.roster-student-cell {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.65rem !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.roster-student-avatar {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  font-size: 0.75rem !important;
+  border-radius: 50% !important;
+  background: var(--bg-surface-elevated) !important;
+  border: 1px solid var(--border-glass) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 600 !important;
+  color: var(--text-primary) !important;
+  flex-shrink: 0 !important;
+}
+
+.roster-student-name {
+  font-weight: 500 !important;
+  font-size: 0.875rem !important;
+  color: var(--text-primary) !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  min-width: 0 !important;
+}
+
+.roster-status-label {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  padding: 0.35rem !important;
+  border-radius: var(--radius-xs) !important;
+  user-select: none !important;
+  margin: 0 auto !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+.student-status-checkbox {
+  width: 20px !important;
+  height: 20px !important;
+  accent-color: var(--color-primary) !important;
+  cursor: pointer !important;
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+  display: block !important;
+}
+
 .btn-attendance-label-mobile {
   display: none;
 }
@@ -4957,6 +5060,108 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     font-size: 0.725rem;
     color: var(--text-muted);
     line-height: 1.1;
+  }
+
+  /* Mobile Attendance Student Roster Popup (Zero Horizontal Scrolling) */
+  .attendance-roster-modal {
+    width: 94% !important;
+    max-width: 440px !important;
+    margin: auto !important;
+    padding: 0 !important;
+    border-radius: var(--radius-lg) !important;
+    box-sizing: border-box !important;
+  }
+
+  .attendance-roster-modal-header {
+    padding: 1rem 1rem 0.65rem 1rem !important;
+  }
+
+  .attendance-roster-modal-body {
+    padding: 0.5rem 0.85rem 1rem 0.85rem !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+  }
+
+  .attendance-roster-table-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    max-height: 380px !important;
+    border: 1px solid var(--border-glass) !important;
+    border-radius: var(--radius-md) !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Override desktop .data-table min-width: 580px */
+  .attendance-roster-table.data-table {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+    font-size: 0.825rem !important;
+  }
+
+  .attendance-roster-table th.roster-th-name,
+  .attendance-roster-table td.roster-td-name {
+    width: auto !important;
+    padding: 0.65rem 0.6rem 0.65rem 0.85rem !important;
+    overflow: hidden !important;
+    min-width: 0 !important;
+    vertical-align: middle !important;
+  }
+
+  .attendance-roster-table th.roster-th-status,
+  .attendance-roster-table td.roster-td-status {
+    width: 76px !important;
+    min-width: 70px !important;
+    max-width: 85px !important;
+    padding: 0.65rem 1.15rem 0.65rem 0.5rem !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+  }
+
+  .roster-student-cell {
+    gap: 0.5rem !important;
+    min-width: 0 !important;
+  }
+
+  .roster-student-avatar {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    font-size: 0.675rem !important;
+  }
+
+  .roster-student-name {
+    font-size: 0.85rem !important;
+    line-height: 1.25 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    min-width: 0 !important;
+  }
+
+  .roster-status-label {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 auto !important;
+    padding: 0.35rem !important;
+  }
+
+  .student-status-checkbox {
+    width: 20px !important;
+    height: 20px !important;
+    cursor: pointer !important;
+    margin: 0 !important;
+    display: block !important;
+  }
+
+  .attendance-roster-modal-footer {
+    padding-top: 0.85rem !important;
+    margin-top: 0.85rem !important;
   }
 }
 

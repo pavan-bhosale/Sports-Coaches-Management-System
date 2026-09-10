@@ -2608,8 +2608,8 @@
 
     <!-- ===== OPEN ATTENDANCE MODAL ===== -->
     <div class="sb-modal-overlay" id="openAttendanceModal" style="display:none; z-index: 1050;">
-      <div class="sb-modal" style="max-width: 600px; width: 95%;">
-        <div class="sb-modal-header">
+      <div class="sb-modal attendance-roster-modal" style="max-width: 600px; width: 95%;">
+        <div class="sb-modal-header attendance-roster-modal-header">
           <div>
             <div class="sb-modal-badge" style="background: rgba(16, 185, 129, 0.15); color: var(--color-primary); border-color: rgba(16, 185, 129, 0.3);">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
@@ -2621,16 +2621,16 @@
           <button type="button" class="modal-close-btn" id="closeOpenAttendanceModal">&times;</button>
         </div>
 
-        <div style="padding: 1.25rem 1.5rem;">
+        <div class="attendance-roster-modal-body" style="padding: 1.25rem 1.5rem;">
           <input type="hidden" id="openAttendanceBatchId">
           <input type="hidden" id="openAttendanceDate">
 
-          <div class="table-container" style="max-height: 380px; overflow-y: auto; border: 1px solid var(--border-glass); border-radius: 8px;">
-            <table class="data-table">
+          <div class="table-container attendance-roster-table-wrap" style="max-height: 380px; overflow-y: auto; overflow-x: hidden; border: 1px solid var(--border-glass); border-radius: 8px;">
+            <table class="data-table attendance-roster-table">
               <thead>
                 <tr>
-                  <th style="padding: 0.75rem 1rem;">Student Name</th>
-                  <th style="padding: 0.75rem 1rem; text-align: center;">Status</th>
+                  <th class="roster-th-name">Student Name</th>
+                  <th class="roster-th-status">Status</th>
                 </tr>
               </thead>
               <tbody id="openAttendanceStudentTableBody">
@@ -2639,7 +2639,7 @@
             </table>
           </div>
 
-          <div class="sb-modal-footer" style="padding-top:1.25rem; margin-top:1.25rem; border-top:1px solid var(--border-glass); display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <div class="sb-modal-footer attendance-roster-modal-footer" style="padding-top:1.25rem; margin-top:1.25rem; border-top:1px solid var(--border-glass); display: flex; justify-content: flex-end; gap: 0.75rem;">
             <button type="button" class="btn-sb-ghost" id="btnCloseOpenAttendance">Close</button>
             <button type="button" class="btn-sb-primary" id="btnSaveOpenAttendance">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>

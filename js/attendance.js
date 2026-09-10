@@ -702,28 +702,25 @@ async function openAttendanceSheet(batchId, attendanceDate, batchName, coachName
     tbody.innerHTML = '';
     students.forEach(student => {
       const tr = document.createElement('tr');
+      tr.className = 'roster-tr';
       const isPresent = student.status === 'Present';
       const safeName = escapeHtml(student.student_name);
 
       tr.innerHTML = `
-        <td style="padding: 0.85rem 1rem;">
-          <div class="student-cell" style="display: flex; align-items: center; gap: 0.75rem;">
-            <div class="student-avatar" style="width: 32px; height: 32px; font-size: 0.8rem; border-radius: 50%; background: var(--bg-card-border); display: flex; align-items: center; justify-content: center; font-weight: 600;">
+        <td class="roster-td-name">
+          <div class="student-cell roster-student-cell">
+            <div class="student-avatar roster-student-avatar">
               ${getInitials(safeName)}
             </div>
-            <span class="student-name" style="font-weight: 500; font-size: 0.925rem;">${safeName}</span>
+            <span class="student-name roster-student-name" title="${safeName}">${safeName}</span>
           </div>
         </td>
-        <td style="padding: 0.85rem 1rem; text-align: center;">
-          <label class="status-checkbox-label" style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+        <td class="roster-td-status">
+          <label class="status-checkbox-label roster-status-label">
             <input type="checkbox" class="student-status-checkbox" 
               data-student-id="${student.student_id}" 
               ${isPresent ? 'checked' : ''} 
-              onchange="toggleCheckboxLabel(this)"
-              style="width: 18px; height: 18px; accent-color: var(--color-primary); cursor: pointer;">
-            <span class="status-indicator-badge ${isPresent ? 'badge-present' : 'badge-absent'}" style="font-size: 0.8rem; font-weight: 600; padding: 0.2rem 0.5rem; border-radius: 4px;">
-              ${isPresent ? 'Present' : 'Absent'}
-            </span>
+              aria-label="Mark attendance for ${safeName}">
           </label>
         </td>
       `;
@@ -740,11 +737,11 @@ function toggleCheckboxLabel(checkbox) {
   const badge = checkbox.parentNode.querySelector('.status-indicator-badge');
   if (!badge) return;
   if (checkbox.checked) {
-    badge.textContent = 'Present';
-    badge.className = 'status-indicator-badge badge-present';
+    badge.textContent = 'Present ✓';
+    badge.className = 'status-indicator-badge roster-status-badge badge-present';
   } else {
-    badge.textContent = 'Absent';
-    badge.className = 'status-indicator-badge badge-absent';
+    badge.textContent = 'Absent ○';
+    badge.className = 'status-indicator-badge roster-status-badge badge-absent';
   }
 }
 
