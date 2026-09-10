@@ -60,6 +60,24 @@ function formatAttendanceDateParts(dateStr) {
   };
 }
 
+// Format date display helper for Student Attendance History (DD/MM/YYYY)
+function formatAttendanceDateDDMMYYYY(dateStr) {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const y = parts[0];
+    const m = parts[1].padStart(2, '0');
+    const d = parts[2].padStart(2, '0');
+    return `${d}/${m}/${y}`;
+  }
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
 // Active Attendance Date Filter State
 let activeAttendanceDateFilter = {
   type: 'all', // 'all', 'single', 'range'
@@ -962,4 +980,480 @@ document.addEventListener('DOMContentLoaded', () => {
       renderAttendanceCalendar();
     });
   }
+
+  // ── Student Attendance View Event Listeners ─────────────────────────────────
+  const tabSheets = document.getElementById('tabAttendanceSheets');
+  const tabStudents = document.getElementById('tabAttendanceStudents');
+  if (tabSheets) {
+    tabSheets.addEventListener('click', () => switchAttendanceView('sheets'));
+  }
+  if (tabStudents) {
+    tabStudents.addEventListener('click', () => switchAttendanceView('students'));
+  }
+
+  // Search input live filtering
+  const studentSearchInput = document.getElementById('attendanceStudentsSearchInput');
+  if (studentSearchInput) {
+    studentSearchInput.addEventListener('input', (e) => {
+      studentSearchQuery = e.target.value;
+      applyStudentFiltersAndRender();
+    });
+  }
+
+  // Clear student search buttons
+  const btnClearStudentSearch = document.getElementById('btnAttendanceClearStudentSearch');
+  if (btnClearStudentSearch) {
+    btnClearStudentSearch.addEventListener('click', () => {
+      if (studentSearchInput) studentSearchInput.value = '';
+      studentSearchQuery = '';
+      applyStudentFiltersAndRender();
+      if (studentSearchInput) studentSearchInput.focus();
+    });
+  }
+
+  const btnResetStudentSearch = document.getElementById('btnResetStudentSearch');
+  if (btnResetStudentSearch) {
+    btnResetStudentSearch.addEventListener('click', () => {
+      if (studentSearchInput) studentSearchInput.value = '';
+      studentSearchQuery = '';
+      applyStudentFiltersAndRender();
+    });
+  }
+
+  // Sort by name button and dropdown
+  const btnSort = document.getElementById('btnAttendanceStudentSort');
+  const sortMenu = document.getElementById('attendanceStudentSortMenu');
+  const sortLabel = document.getElementById('attendanceStudentSortLabel');
+  if (btnSort && sortMenu) {
+    btnSort.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = sortMenu.style.display !== 'none';
+      sortMenu.style.display = isOpen ? 'none' : 'block';
+      btnSort.classList.toggle('open', !isOpen);
+      btnSort.setAttribute('aria-expanded', !isOpen ? 'true' : 'false');
+    });
+
+    // Close sort menu on click outside
+    document.addEventListener('click', (e) => {
+      if (!btnSort.contains(e.target) && !sortMenu.contains(e.target)) {
+        sortMenu.style.display = 'none';
+        btnSort.classList.remove('open');
+        btnSort.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    const sortItems = sortMenu.querySelectorAll('.sort-menu-item');
+    sortItems.forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const sortType = item.dataset.sortType || 'name';
+        studentSortType = sortType;
+        sortItems.forEach(si => si.classList.remove('active'));
+        item.classList.add('active');
+
+        if (sortLabel) {
+          sortLabel.textContent = 'Sort By';
+        }
+
+        sortMenu.style.display = 'none';
+        btnSort.classList.remove('open');
+        btnSort.setAttribute('aria-expanded', 'false');
+
+        applyStudentFiltersAndRender();
+      });
+    });
+  }
+
+  // Student details modal close buttons
+  const btnCloseDetails = document.getElementById('closeAttendanceStudentDetailsModal');
+  const btnCloseDetailsFooter = document.getElementById('btnCloseStudentDetailsModal');
+  if (btnCloseDetails) {
+    btnCloseDetails.addEventListener('click', () => closeModal('attendanceStudentDetailsModal'));
+  }
+  if (btnCloseDetailsFooter) {
+    btnCloseDetailsFooter.addEventListener('click', () => closeModal('attendanceStudentDetailsModal'));
+  }
 });
+
+// ============================================================================
+// ISOLATED STUDENT ATTENDANCE VIEW IMPLEMENTATION (IMAGES 2 & 3)
+// ============================================================================
+
+let activeAttendanceView = 'sheets'; // 'sheets' | 'students'
+let coachStudentsData = [];
+let filteredStudentsData = [];
+let studentSearchQuery = '';
+let studentSortType = 'name'; // 'name' | 'attendance' | 'city'
+let isFetchingCoachStudents = false;
+
+// ── Switch Between Attendance Sheets and Students View ───────────────────────
+function switchAttendanceView(viewName) {
+  if (activeAttendanceView === viewName) return;
+  activeAttendanceView = viewName;
+
+  const tabSheets = document.getElementById('tabAttendanceSheets');
+  const tabStudents = document.getElementById('tabAttendanceStudents');
+  const sheetsContainer = document.getElementById('attendanceSheetsViewContainer');
+  const studentsContainer = document.getElementById('attendanceStudentsViewContainer');
+
+  if (viewName === 'students') {
+    if (tabSheets) {
+      tabSheets.classList.remove('active');
+      tabSheets.setAttribute('aria-selected', 'false');
+    }
+    if (tabStudents) {
+      tabStudents.classList.add('active');
+      tabStudents.setAttribute('aria-selected', 'true');
+    }
+    if (sheetsContainer) sheetsContainer.style.display = 'none';
+    if (studentsContainer) studentsContainer.style.display = 'block';
+
+    fetchCoachStudentsAttendance(true);
+  } else {
+    if (tabStudents) {
+      tabStudents.classList.remove('active');
+      tabStudents.setAttribute('aria-selected', 'false');
+    }
+    if (tabSheets) {
+      tabSheets.classList.add('active');
+      tabSheets.setAttribute('aria-selected', 'true');
+    }
+    if (studentsContainer) studentsContainer.style.display = 'none';
+    if (sheetsContainer) sheetsContainer.style.display = 'block';
+  }
+}
+
+// ── Fetch Students for the Coach's Assigned Batch with Real Attendance Stats ─
+async function fetchCoachStudentsAttendance(forceRefresh = false) {
+  if (isFetchingCoachStudents) return;
+
+  const container = document.getElementById('attendanceStudentsCardsContainer');
+  const countEl = document.getElementById('attendanceStudentsCount');
+  const emptyEl = document.getElementById('attendanceStudentsEmptyState');
+
+  if (!forceRefresh && coachStudentsData.length > 0) {
+    applyStudentFiltersAndRender();
+    return;
+  }
+
+  isFetchingCoachStudents = true;
+  if (container && coachStudentsData.length === 0) {
+    container.innerHTML = '<div style="text-align:center; padding: 2.5rem 1rem; color: var(--text-secondary); font-size: 0.88rem;">Loading students...</div>';
+  }
+
+  const { role, email, coach_id } = getAuthParams();
+
+  try {
+    const url = `${ATTENDANCE_API}?action=get_coach_students_attendance&role=${encodeURIComponent(role)}&email=${encodeURIComponent(email)}&coach_id=${coach_id}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to load students attendance.');
+    }
+
+    if (data.coach_info) {
+      updateCoachHeader(data.coach_info);
+    }
+
+    coachStudentsData = data.students || [];
+
+    if (countEl) {
+      const count = coachStudentsData.length;
+      countEl.textContent = `${count} ${count === 1 ? 'STUDENT' : 'STUDENTS'}`;
+    }
+
+    applyStudentFiltersAndRender();
+  } catch (err) {
+    console.error('Error loading coach students attendance:', err);
+    if (container) {
+      container.innerHTML = `<div style="text-align:center; padding: 2rem 1rem; color: var(--color-danger); font-size: 0.85rem;">${escapeHtml(err.message || 'Error loading students')}</div>`;
+    }
+  } finally {
+    isFetchingCoachStudents = false;
+  }
+}
+
+// ── Filter, Sort and Render Student Cards ────────────────────────────────────
+function applyStudentFiltersAndRender() {
+  const container = document.getElementById('attendanceStudentsCardsContainer');
+  const emptyState = document.getElementById('attendanceStudentsEmptyState');
+  const emptyTitle = document.getElementById('attendanceStudentsEmptyTitle');
+  const emptyMsg = document.getElementById('attendanceStudentsEmptyMsg');
+  const clearBtn = document.getElementById('btnAttendanceClearStudentSearch');
+  if (!container) return;
+
+  const query = (studentSearchQuery || '').trim().toLowerCase();
+
+  if (clearBtn) {
+    clearBtn.style.display = query.length > 0 ? 'inline-block' : 'none';
+  }
+
+  // Filter students client-side by Name, ID, or City
+  filteredStudentsData = coachStudentsData.filter(st => {
+    if (!query) return true;
+    const nameMatch = (st.student_name || '').toLowerCase().includes(query);
+    const idMatch = String(st.student_id || '').includes(query);
+    const cityMatch = (st.city || '').toLowerCase().includes(query);
+    return nameMatch || idMatch || cityMatch;
+  });
+
+  // Sort students by Name, Attendance, or City
+  filteredStudentsData.sort((a, b) => {
+    if (studentSortType === 'attendance') {
+      const pctA = a.total_records > 0 ? (a.present_count / a.total_records) * 100 : 0;
+      const pctB = b.total_records > 0 ? (b.present_count / b.total_records) * 100 : 0;
+      if (pctB !== pctA) {
+        return pctB - pctA; // Highest -> Lowest
+      }
+      if (b.present_count !== a.present_count) {
+        return b.present_count - a.present_count;
+      }
+      return (a.student_name || '').localeCompare(b.student_name || '');
+    }
+
+    if (studentSortType === 'city') {
+      const cityA = (a.city || '').toLowerCase();
+      const cityB = (b.city || '').toLowerCase();
+      const comp = cityA.localeCompare(cityB);
+      if (comp !== 0) return comp;
+      return (a.student_name || '').localeCompare(b.student_name || '');
+    }
+
+    // Default: Sort by Name (A → Z)
+    const nameA = (a.student_name || '').toLowerCase();
+    const nameB = (b.student_name || '').toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
+
+  container.innerHTML = '';
+
+  if (filteredStudentsData.length === 0) {
+    if (emptyState) {
+      emptyState.style.display = 'flex';
+      if (emptyTitle && emptyMsg) {
+        if (query) {
+          emptyTitle.textContent = 'No students found';
+          emptyMsg.textContent = `No students match "${escapeHtml(studentSearchQuery)}".`;
+        } else {
+          emptyTitle.textContent = 'No Students Assigned';
+          emptyMsg.textContent = 'No students are currently assigned to your batch.';
+        }
+      }
+    }
+    return;
+  }
+
+  if (emptyState) emptyState.style.display = 'none';
+
+  filteredStudentsData.forEach(st => {
+    const safeName = escapeHtml(st.student_name);
+    const safeCity = escapeHtml(st.city || 'Vasai');
+    const present = parseInt(st.present_count || 0, 10);
+    const total = parseInt(st.total_records || 0, 10);
+    const pct = total > 0 ? Math.round((present / total) * 100) : 0;
+    const photoUrl = st.student_photo ? escapeHtml(st.student_photo) : null;
+    const initials = getInitials(st.student_name);
+
+    const card = document.createElement('div');
+    card.className = 'attendance-student-card';
+    card.dataset.studentId = st.student_id;
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-label', `View attendance details for ${safeName}`);
+
+    card.innerHTML = `
+      <!-- Left: Avatar, Name & City -->
+      <div class="student-card-left">
+        <div class="student-card-avatar">
+          ${photoUrl 
+            ? `<img src="${photoUrl}" alt="${safeName}" onerror="this.parentElement.textContent='${initials}'">` 
+            : `<span>${initials}</span>`
+          }
+        </div>
+        <div class="student-card-info">
+          <span class="student-card-name" title="${safeName}">${safeName}</span>
+          <span class="student-card-city">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            ${safeCity}
+          </span>
+        </div>
+      </div>
+
+      <!-- Middle: Attendance Fraction & Progress Bar -->
+      <div class="student-card-middle">
+        <span class="student-card-stat-label">Attendance</span>
+        <span class="student-card-stat-fraction">${present} / ${total}</span>
+        <div class="student-card-progress-track">
+          <div class="student-card-progress-fill" style="width: ${pct}%;"></div>
+        </div>
+      </div>
+
+      <!-- Right: Circular Indicator & Clickable Arrow -->
+      <div class="student-card-pct-ring">
+        <svg viewBox="0 0 36 36" class="attendance-circle-chart">
+          <path class="circle-bg"
+            d="M18 2.0845
+              a 15.9155 15.9155 0 0 1 0 31.831
+              a 15.9155 15.9155 0 0 1 0 -31.831"
+          />
+          <path class="circle-fg"
+            stroke-dasharray="${pct}, 100"
+            d="M18 2.0845
+              a 15.9155 15.9155 0 0 1 0 31.831
+              a 15.9155 15.9155 0 0 1 0 -31.831"
+          />
+        </svg>
+        <span class="student-card-pct-text">${pct}%</span>
+      </div>
+
+      <button type="button" class="student-card-arrow-btn" aria-label="Open ${safeName} attendance details">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+    `;
+
+    // Click on card or arrow opens details popup
+    card.addEventListener('click', () => {
+      openStudentAttendanceDetails(st.student_id);
+    });
+
+    // Keyboard accessibility
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openStudentAttendanceDetails(st.student_id);
+      }
+    });
+
+    container.appendChild(card);
+  });
+}
+
+// ── Open Student Attendance Details Popup ─────────────────────────────────────
+async function openStudentAttendanceDetails(studentId) {
+  const modal = document.getElementById('attendanceStudentDetailsModal');
+  const avatarEl = document.getElementById('modalStudentAvatar');
+  const nameEl = document.getElementById('modalStudentName');
+  const cityEl = document.getElementById('modalStudentCity');
+  const batchEl = document.getElementById('modalStudentBatch');
+  const phoneEl = document.getElementById('modalStudentPhone');
+  const fractionEl = document.getElementById('modalOverallFraction');
+  const pctTextEl = document.getElementById('modalOverallPctText');
+  const ringFg = document.getElementById('modalOverallRingFg');
+  const tbody = document.getElementById('modalStudentHistoryBody');
+  const historyEmpty = document.getElementById('modalHistoryEmptyState');
+
+  if (!modal) return;
+
+  if (tbody) tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; padding: 1.5rem; color: var(--text-secondary);">Loading history...</td></tr>';
+  if (historyEmpty) historyEmpty.style.display = 'none';
+
+  // Instant display from cached student data
+  const cached = coachStudentsData.find(s => s.student_id === studentId);
+  if (cached) {
+    const safeName = escapeHtml(cached.student_name);
+    const safeCity = escapeHtml(cached.city || 'Vasai');
+    const safeBatch = escapeHtml(cached.batch_name || 'Batch');
+    const phone = cached.student_phone ? escapeHtml(cached.student_phone) : 'Not Provided';
+    const present = parseInt(cached.present_count || 0, 10);
+    const total = parseInt(cached.total_records || 0, 10);
+    const pct = total > 0 ? Math.round((present / total) * 100) : 0;
+    const initials = getInitials(cached.student_name);
+
+    if (nameEl) nameEl.textContent = cached.student_name;
+    if (cityEl) cityEl.textContent = safeCity;
+    if (batchEl) batchEl.textContent = safeBatch;
+    if (phoneEl) phoneEl.textContent = phone;
+    if (fractionEl) fractionEl.textContent = `${present} / ${total}`;
+    if (pctTextEl) pctTextEl.textContent = `${pct}%`;
+    if (ringFg) ringFg.setAttribute('stroke-dasharray', `${pct}, 100`);
+
+    if (avatarEl) {
+      if (cached.student_photo) {
+        avatarEl.innerHTML = `<img src="${escapeHtml(cached.student_photo)}" alt="${safeName}" onerror="this.parentElement.textContent='${initials}'">`;
+      } else {
+        avatarEl.textContent = initials;
+      }
+    }
+  }
+
+  openModal('attendanceStudentDetailsModal');
+
+  const { role, email, coach_id } = getAuthParams();
+
+  try {
+    const url = `${ATTENDANCE_API}?action=get_student_attendance_history&student_id=${studentId}&role=${encodeURIComponent(role)}&email=${encodeURIComponent(email)}&coach_id=${coach_id}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to load student attendance history.');
+    }
+
+    const student = data.student || {};
+    const stats = data.stats || {};
+    const history = data.history || [];
+
+    const safeName = escapeHtml(student.student_name || (cached ? cached.student_name : 'Student'));
+    const safeCity = escapeHtml(student.city || (cached ? cached.city : 'Vasai'));
+    const safeBatch = escapeHtml(student.batch_name || (cached ? cached.batch_name : 'Batch'));
+    const phone = student.student_phone ? escapeHtml(student.student_phone) : 'Not Provided';
+    const present = parseInt(stats.present_count !== undefined ? stats.present_count : (cached ? cached.present_count : 0), 10);
+    const total = parseInt(stats.total_records !== undefined ? stats.total_records : (cached ? cached.total_records : 0), 10);
+    const pct = parseInt(stats.percentage !== undefined ? stats.percentage : (total > 0 ? Math.round((present / total) * 100) : 0), 10);
+    const initials = getInitials(safeName);
+
+    if (nameEl) nameEl.textContent = student.student_name || safeName;
+    if (cityEl) cityEl.textContent = safeCity;
+    if (batchEl) batchEl.textContent = safeBatch;
+    if (phoneEl) phoneEl.textContent = phone;
+    if (fractionEl) fractionEl.textContent = `${present} / ${total}`;
+    if (pctTextEl) pctTextEl.textContent = `${pct}%`;
+    if (ringFg) ringFg.setAttribute('stroke-dasharray', `${pct}, 100`);
+
+    if (avatarEl) {
+      if (student.student_photo) {
+        avatarEl.innerHTML = `<img src="${escapeHtml(student.student_photo)}" alt="${safeName}" onerror="this.parentElement.textContent='${initials}'">`;
+      } else {
+        avatarEl.textContent = initials;
+      }
+    }
+
+    // Populate history table
+    if (tbody) {
+      if (history.length === 0) {
+        tbody.innerHTML = '';
+        if (historyEmpty) historyEmpty.style.display = 'block';
+      } else {
+        if (historyEmpty) historyEmpty.style.display = 'none';
+        tbody.innerHTML = '';
+
+        history.forEach(rec => {
+          const displayDate = formatAttendanceDateDDMMYYYY(rec.attendance_date);
+          const isPresent = rec.status === 'Present';
+          const tr = document.createElement('tr');
+
+          tr.innerHTML = `
+            <td style="font-weight: 500; color: #fff;">${displayDate}</td>
+            <td class="${isPresent ? 'status-present-cell' : 'status-absent-cell'}">
+              <span class="history-status-dot"></span>
+              ${isPresent ? 'Present' : 'Absent'}
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    }
+  } catch (err) {
+    console.error('Error fetching student history:', err);
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="2" style="text-align:center; padding: 1.5rem; color: var(--color-danger);">${escapeHtml(err.message || 'Error loading history')}</td></tr>`;
+    }
+  }
+}
+

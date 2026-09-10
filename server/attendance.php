@@ -135,6 +135,128 @@ if ($method === 'GET') {
         exit;
     }
 
+    // Action: Fetch all students in coach's assigned batch with real attendance statistics
+    if ($action === 'get_coach_students_attendance') {
+        try {
+            $stmt = $pdo->prepare('
+                SELECT 
+                    s.student_id,
+                    s.student_name,
+                    s.city,
+                    s.student_photo,
+                    COALESCE(NULLIF(s.student_phone, ""), NULLIF(s.father_contact_number, ""), s.emergency_contact_number, "") AS student_phone,
+                    b.batch_id,
+                    COALESCE(NULLIF(s.batch_name, ""), b.batch_name, "Unassigned") AS batch_name,
+                    COUNT(a.attendance_id) AS total_records,
+                    SUM(CASE WHEN a.status = "Present" THEN 1 ELSE 0 END) AS present_count
+                FROM vsa_students s
+                CROSS JOIN vsa_batches b ON b.batch_id = ?
+                LEFT JOIN vsa_attendance a ON s.student_id = a.student_id AND a.batch_id = b.batch_id
+                WHERE (s.batch_id = b.batch_id OR LOWER(TRIM(s.batch_name)) = LOWER(TRIM(b.batch_name)))
+                GROUP BY s.student_id, s.student_name, s.city, s.student_photo, student_phone, b.batch_id, s.batch_name, b.batch_name
+                ORDER BY s.student_name ASC
+            ');
+            $stmt->execute([$coach_batch_id]);
+            $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Format counts as integers for safety
+            $formatted = array_map(function($st) {
+                $st['total_records'] = intval($st['total_records'] ?? 0);
+                $st['present_count'] = intval($st['present_count'] ?? 0);
+                $st['percentage'] = $st['total_records'] > 0 
+                    ? round(($st['present_count'] / $st['total_records']) * 100) 
+                    : 0;
+                return $st;
+            }, $students);
+
+            echo json_encode([
+                'success' => true,
+                'coach_info' => [
+                    'coach_id' => intval($coach['coach_id']),
+                    'coach_name' => $coach['coach_name'],
+                    'batch_id' => intval($coach['batch_id']),
+                    'batch_name' => $coach['batch_name']
+                ],
+                'students' => $formatted
+            ]);
+        } catch (PDOException $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
+        }
+        exit;
+    }
+
+    // Action: Fetch full attendance history for a single student in this batch
+    if ($action === 'get_student_attendance_history') {
+        $student_id = intval($_GET['student_id'] ?? 0);
+        if (!$student_id) {
+            http_response_code(400);
+            echo json_encode(['error' => 'student_id is required.']);
+            exit;
+        }
+
+        try {
+            // Verify student belongs to coach's batch
+            $checkStmt = $pdo->prepare('
+                SELECT 
+                    s.student_id, 
+                    s.student_name, 
+                    s.city, 
+                    s.student_photo,
+                    COALESCE(NULLIF(s.student_phone, ""), NULLIF(s.father_contact_number, ""), s.emergency_contact_number, "") AS student_phone,
+                    COALESCE(NULLIF(s.batch_name, ""), b.batch_name, "Unassigned") AS batch_name
+                FROM vsa_students s
+                CROSS JOIN vsa_batches b ON b.batch_id = ?
+                WHERE s.student_id = ? AND (s.batch_id = b.batch_id OR LOWER(TRIM(s.batch_name)) = LOWER(TRIM(b.batch_name)))
+                LIMIT 1
+            ');
+            $checkStmt->execute([$coach_batch_id, $student_id]);
+            $student = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$student) {
+                http_response_code(403);
+                echo json_encode(['error' => 'Access denied or student not found in your assigned batch.']);
+                exit;
+            }
+
+            // Fetch records sorted Latest -> Oldest
+            $histStmt = $pdo->prepare('
+                SELECT 
+                    attendance_date, 
+                    status 
+                FROM vsa_attendance 
+                WHERE student_id = ? AND batch_id = ? 
+                ORDER BY attendance_date DESC
+            ');
+            $histStmt->execute([$student_id, $coach_batch_id]);
+            $history = $histStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $presentCount = 0;
+            $totalCount = count($history);
+            foreach ($history as $h) {
+                if ($h['status'] === 'Present') {
+                    $presentCount++;
+                }
+            }
+            $percentage = $totalCount > 0 ? round(($presentCount / $totalCount) * 100) : 0;
+
+            echo json_encode([
+                'success' => true,
+                'student' => $student,
+                'stats' => [
+                    'present_count' => $presentCount,
+                    'total_records' => $totalCount,
+                    'percentage' => $percentage
+                ],
+                'history' => $history
+            ]);
+        } catch (PDOException $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
+        }
+        exit;
+    }
+
     // Default GET: Fetch Attendance sheets ONLY for coach's assigned batch_id
     try {
         $stmt = $pdo->prepare('
