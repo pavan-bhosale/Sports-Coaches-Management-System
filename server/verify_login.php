@@ -87,11 +87,24 @@ $userData = [
     'role'  => $role
 ];
 
+if (!empty($payload['picture'])) {
+    $userData['picture'] = $payload['picture'];
+}
+
 if ($role === 'coach' && $verifiedUser) {
     $userData['coach_id']   = intval($verifiedUser['coach_id'] ?? 0);
     $userData['coach_name'] = $verifiedUser['coach_name'] ?? $name;
     $userData['batch_id']   = intval($verifiedUser['batch_id'] ?? 0);
     $userData['batch_name'] = $verifiedUser['batch_name'] ?? 'Unassigned';
+    if (!empty($verifiedUser['coach_photo'])) {
+        $userData['coach_photo'] = $verifiedUser['coach_photo'];
+    }
+} elseif ($role === 'student' && $verifiedUser) {
+    $userData['student_id']   = intval($verifiedUser['student_id'] ?? 0);
+    $userData['student_name'] = $verifiedUser['student_name'] ?? $name;
+    if (!empty($verifiedUser['student_photo'])) {
+        $userData['student_photo'] = $verifiedUser['student_photo'];
+    }
 }
 
 echo json_encode([

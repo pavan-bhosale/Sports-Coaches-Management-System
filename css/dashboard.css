@@ -257,6 +257,8 @@ html, body {
   background: var(--bg-surface);
   border: 1px solid var(--border-glass);
   text-decoration: none;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .avatar-wrapper {
@@ -271,28 +273,48 @@ html, body {
   font-size: 0.8125rem;
   color: #080c14;
   flex-shrink: 0;
+  overflow: hidden;
+  user-select: none;
+}
+
+.avatar-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
 }
 
 .user-info {
   flex: 1;
+  min-width: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.15rem;
 }
 
 .user-name {
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.25;
 }
 
 .user-role {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   color: var(--color-primary);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
 }
 
 .logout-icon-btn {
@@ -306,6 +328,7 @@ html, body {
   padding: 0.35rem;
   border-radius: var(--radius-xs);
   transition: all var(--transition-fast);
+  flex-shrink: 0;
 }
 
 .logout-icon-btn:hover {
@@ -6161,4 +6184,659 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     font-size: 0.68rem;
   }
 }
+
+/* ==========================================================================
+   SUPERADMIN ATTENDANCE MODULE ENHANCEMENTS
+   ========================================================================== */
+
+/* Superadmin Attendance: Hide empty Coach/Batch info card completely */
+.is-superadmin #coachAttendanceHeader,
+#coachAttendanceHeader.superadmin-hidden {
+  display: none !important;
+}
+
+/* Superadmin Attendance: Clean, tight vertical spacing between header and toggle */
+.dashboard-content.is-superadmin-attendance,
+.dashboard-content:has(#attendanceSection.is-superadmin) {
+  gap: 0.65rem !important;
+}
+
+.dashboard-content.is-superadmin-attendance .content-header,
+.dashboard-content:has(#attendanceSection.is-superadmin) .content-header {
+  padding-bottom: 0.65rem !important;
+}
+
+#attendanceSection.is-superadmin .attendance-view-toggle-wrap {
+  margin-top: 0.15rem !important;
+  margin-bottom: 0.6rem !important;
+}
+
+/* Superadmin Attendance Card (Clean, compact, matching Coach Attendance visual system) */
+.superadmin-attendance-card {
+  padding: 0.65rem 0.8rem !important;
+  border-radius: var(--radius-lg, 10px) !important;
+  background: var(--bg-surface-elevated, #111a2e);
+  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08));
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* Top Row: Batch Name (Left) & Calendar Date + 3-dots (Right) */
+.superadmin-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0.5rem;
+}
+
+.superadmin-card-top .attendance-batch-block {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.superadmin-card-top .attendance-batch-icon {
+  color: var(--text-muted, #94a3b8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.superadmin-card-top .attendance-batch-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.superadmin-card-top .attendance-batch-val {
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.superadmin-card-top .attendance-date-actions-block {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.superadmin-card-top .attendance-date-block {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  text-align: right;
+}
+
+.superadmin-card-top .attendance-calendar-icon {
+  color: var(--text-muted, #94a3b8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.superadmin-card-top .attendance-calendar-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.superadmin-card-top .attendance-date-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.05rem;
+}
+
+.superadmin-card-top .attendance-date-val {
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.superadmin-card-top .attendance-day-val {
+  font-size: 0.68rem;
+  color: var(--text-muted, #94a3b8);
+  font-weight: 400;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.superadmin-attendance-card .attendance-card-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  width: 100%;
+  margin: 0.45rem 0;
+}
+
+/* Bottom Row: Coach (Left), Attendance Count (Middle), Percentage (Right) */
+.superadmin-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0.4rem;
+}
+
+.superadmin-card-bottom .attendance-coach-block {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  flex: 1 1 0;
+  overflow: hidden;
+}
+
+.superadmin-card-bottom .attendance-user-icon {
+  color: var(--text-muted, #94a3b8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.superadmin-card-bottom .attendance-user-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.superadmin-card-bottom .attendance-coach-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.superadmin-card-bottom .attendance-stat-label {
+  font-size: 0.68rem;
+  color: var(--text-muted, #94a3b8);
+  font-weight: 400;
+  line-height: 1.1;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.superadmin-card-bottom .attendance-coach-name {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-primary, #ffffff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.superadmin-card-bottom .attendance-count-block {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.superadmin-card-bottom .attendance-group-icon {
+  color: var(--text-muted, #94a3b8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.superadmin-card-bottom .attendance-group-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.superadmin-card-bottom .attendance-count-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.superadmin-card-bottom .attendance-count-val {
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.superadmin-card-bottom .attendance-pct-block {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.superadmin-card-bottom .attendance-circle-wrap {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  flex-shrink: 0;
+}
+
+.superadmin-card-bottom .attendance-pct-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  text-align: left;
+}
+
+.superadmin-card-bottom .attendance-pct-val {
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary, #ffffff);
+  line-height: 1.1;
+}
+
+.superadmin-card-bottom .attendance-pct-label {
+  font-size: 0.68rem;
+  color: var(--text-muted, #94a3b8);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+/* Superadmin Student Attendance Card */
+.superadmin-student-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.superadmin-student-left {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.superadmin-student-left .student-card-avatar {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1e293b, #334155);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: #fff;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.superadmin-student-left .student-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.superadmin-student-left .student-card-name {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.superadmin-student-card .student-card-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  color: var(--text-secondary, #94a3b8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.superadmin-student-card .student-card-meta-item {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.72rem;
+  color: var(--text-secondary, #94a3b8);
+  font-weight: 400;
+}
+
+.superadmin-student-card .meta-dot {
+  color: var(--text-muted, #64748b);
+  font-size: 0.65rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.superadmin-student-right {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.superadmin-student-right .student-card-pct-ring {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.superadmin-student-right .student-card-pct-ring .attendance-circle-chart {
+  width: 100%;
+  height: 100%;
+}
+
+.superadmin-student-right .student-card-pct-text {
+  position: absolute;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.superadmin-student-right .student-card-arrow-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #94a3b8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.superadmin-student-card:hover .student-card-arrow-btn {
+  color: #00e676;
+}
+
+/* Strictly enforce NO progress track or middle numeric fraction for Superadmin Students view */
+.superadmin-student-card .student-card-progress-track,
+.superadmin-student-card .superadmin-student-middle,
+.superadmin-student-card .student-card-middle {
+  display: none !important;
+}
+
+/* Read-only Roster Status Badges */
+.roster-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.roster-status-badge.badge-present {
+  background: rgba(0, 230, 118, 0.12);
+  color: #00e676;
+  border: 1px solid rgba(0, 230, 118, 0.28);
+}
+
+.roster-status-badge.badge-absent {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.28);
+}
+
+/* Responsive adjustments for Superadmin Attendance */
+@media (max-width: 480px) {
+  .superadmin-attendance-card {
+    padding: 0.55rem 0.7rem !important;
+  }
+  .superadmin-card-top .attendance-batch-val {
+    font-size: 0.84rem;
+  }
+  .superadmin-card-top .attendance-date-val {
+    font-size: 0.78rem;
+  }
+  .superadmin-card-bottom .attendance-coach-name {
+    font-size: 0.78rem;
+  }
+  .superadmin-card-bottom .attendance-count-val {
+    font-size: 0.82rem;
+  }
+  .superadmin-card-bottom .attendance-circle-wrap {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+  }
+  .superadmin-card-bottom .attendance-pct-val {
+    font-size: 0.82rem;
+  }
+  .superadmin-student-card {
+    padding: 0.5rem 0.65rem !important;
+    gap: 0.35rem;
+  }
+  .superadmin-student-left {
+    gap: 0.45rem;
+  }
+  .superadmin-student-left .student-card-avatar {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    font-size: 0.76rem;
+  }
+  .superadmin-student-left .student-card-name {
+    font-size: 0.82rem;
+  }
+  .superadmin-student-card .student-card-meta-row {
+    font-size: 0.68rem;
+    gap: 0.2rem;
+  }
+  .superadmin-student-card .student-card-meta-item {
+    font-size: 0.68rem;
+  }
+  .superadmin-student-right {
+    gap: 0.3rem;
+  }
+  .superadmin-student-right .student-card-pct-ring {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+  }
+  .superadmin-student-right .student-card-pct-text {
+    font-size: 0.64rem;
+  }
+}
+
+@media (max-width: 375px) {
+  .superadmin-attendance-card {
+    padding: 0.5rem 0.6rem !important;
+  }
+  .superadmin-card-top {
+    gap: 0.35rem;
+  }
+  .superadmin-card-top .attendance-batch-icon svg {
+    width: 15px;
+    height: 15px;
+  }
+  .superadmin-card-top .attendance-batch-val {
+    font-size: 0.8rem;
+  }
+  .superadmin-card-top .attendance-calendar-icon svg {
+    width: 14px;
+    height: 14px;
+  }
+  .superadmin-card-top .attendance-date-val {
+    font-size: 0.74rem;
+  }
+  .superadmin-card-top .attendance-day-val {
+    font-size: 0.64rem;
+  }
+  .superadmin-card-bottom {
+    gap: 0.25rem;
+  }
+  .superadmin-card-bottom .attendance-user-icon svg,
+  .superadmin-card-bottom .attendance-group-icon svg {
+    width: 14px;
+    height: 14px;
+  }
+  .superadmin-card-bottom .attendance-coach-name {
+    font-size: 0.74rem;
+  }
+  .superadmin-card-bottom .attendance-count-val {
+    font-size: 0.78rem;
+  }
+  .superadmin-card-bottom .attendance-stat-label,
+  .superadmin-card-bottom .attendance-pct-label {
+    font-size: 0.62rem;
+  }
+  .superadmin-card-bottom .attendance-circle-wrap {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+  }
+  .superadmin-card-bottom .attendance-pct-val {
+    font-size: 0.76rem;
+  }
+  .superadmin-student-card {
+    padding: 0.45rem 0.55rem !important;
+    gap: 0.3rem;
+  }
+  .superadmin-student-left {
+    gap: 0.4rem;
+  }
+  .superadmin-student-left .student-card-avatar {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    font-size: 0.72rem;
+  }
+  .superadmin-student-left .student-card-name {
+    font-size: 0.8rem;
+  }
+  .superadmin-student-card .student-card-meta-row {
+    font-size: 0.64rem;
+    gap: 0.18rem;
+  }
+  .superadmin-student-card .student-card-meta-item {
+    font-size: 0.64rem;
+  }
+  .superadmin-student-right {
+    gap: 0.25rem;
+  }
+  .superadmin-student-right .student-card-pct-ring {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+  }
+  .superadmin-student-right .student-card-pct-text {
+    font-size: 0.62rem;
+  }
+  .superadmin-student-right .student-card-arrow-btn {
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+  }
+  .superadmin-student-right .student-card-arrow-btn svg {
+    width: 13px;
+    height: 13px;
+  }
+}
+
+@media (max-width: 330px) {
+  .superadmin-attendance-card {
+    padding: 0.45rem 0.5rem !important;
+  }
+  .superadmin-card-top {
+    gap: 0.25rem;
+  }
+  .superadmin-card-top .attendance-batch-val {
+    font-size: 0.76rem;
+  }
+  .superadmin-card-top .attendance-date-val {
+    font-size: 0.7rem;
+  }
+  .superadmin-card-bottom {
+    gap: 0.2rem;
+  }
+  .superadmin-card-bottom .attendance-coach-name {
+    font-size: 0.7rem;
+  }
+  .superadmin-card-bottom .attendance-count-val {
+    font-size: 0.74rem;
+  }
+  .superadmin-student-card {
+    padding: 0.4rem 0.45rem !important;
+    gap: 0.25rem;
+  }
+  .superadmin-student-left {
+    gap: 0.35rem;
+  }
+  .superadmin-student-left .student-card-avatar {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    font-size: 0.68rem;
+  }
+  .superadmin-student-left .student-card-name {
+    font-size: 0.76rem;
+  }
+  .superadmin-student-card .student-card-meta-row {
+    font-size: 0.6rem;
+    gap: 0.15rem;
+  }
+  .superadmin-student-card .student-card-meta-item {
+    font-size: 0.6rem;
+  }
+  .superadmin-student-right .student-card-pct-ring {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+  }
+  .superadmin-student-right .student-card-pct-text {
+    font-size: 0.58rem;
+  }
+  .superadmin-student-right .student-card-arrow-btn {
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+  }
+  .superadmin-student-right .student-card-arrow-btn svg {
+    width: 11px;
+    height: 11px;
+  }
+}
+
+
+
 

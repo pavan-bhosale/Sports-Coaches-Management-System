@@ -63,6 +63,8 @@ function navigateToSection(targetHref, showToastNotice = true) {
   const coachesSection = document.getElementById('coachesSection');
   const attendanceSection = document.getElementById('attendanceSection');
   const globalStatusPill = document.querySelector('.content-header .status-indicator-pill');
+  const mainContent = document.getElementById('mainDashboardView');
+  if (mainContent) mainContent.classList.remove('is-superadmin-attendance');
 
   // Reset all sections
   if (welcomeBanner) welcomeBanner.style.display = 'none';
@@ -74,11 +76,13 @@ function navigateToSection(targetHref, showToastNotice = true) {
   if (attendanceSection) attendanceSection.style.display = 'none';
 
   const storedRole = localStorage.getItem('vava_role') || 'admin';
+  const isSuperAdmin = (storedRole === 'admin' || storedRole === 'superadmin');
+  const isCoach = (storedRole === 'coach');
 
   // 1. Role-based Attendance Access Protection
-  if (targetHref === '#attendance' && storedRole !== 'coach') {
+  if (targetHref === '#attendance' && !isCoach && !isSuperAdmin) {
     if (showToastNotice && typeof showToast === 'function') {
-      showToast('Attendance module is accessible to coaches only.', 'error');
+      showToast('Access denied. Attendance is not accessible to your role.', 'error');
     }
     navigateToSection('#overview', false);
     return;
@@ -92,9 +96,27 @@ function navigateToSection(targetHref, showToastNotice = true) {
   } else if (targetHref === '#attendance') {
     if (attendanceSection) {
       attendanceSection.style.display = '';
+      const coachHeader = document.getElementById('coachAttendanceHeader');
+      if (isSuperAdmin) {
+        attendanceSection.classList.add('is-superadmin');
+        if (mainContent) mainContent.classList.add('is-superadmin-attendance');
+        if (coachHeader) {
+          coachHeader.style.setProperty('display', 'none', 'important');
+          coachHeader.classList.add('superadmin-hidden');
+        }
+      } else {
+        attendanceSection.classList.remove('is-superadmin');
+        if (mainContent) mainContent.classList.remove('is-superadmin-attendance');
+        if (coachHeader) {
+          coachHeader.style.removeProperty('display');
+          coachHeader.classList.remove('superadmin-hidden');
+        }
+      }
       if (typeof fetchAttendanceSheets === 'function') fetchAttendanceSheets();
     }
     if (globalStatusPill) globalStatusPill.style.display = 'none';
+
+
   } else if (targetHref === '#students') {
     if (studentsSection) {
       studentsSection.style.display = '';
@@ -128,7 +150,9 @@ function navigateToSection(targetHref, showToastNotice = true) {
 function handleHashRoute() {
   const currentHash = window.location.hash || '#overview';
   const storedRole = localStorage.getItem('vava_role') || 'admin';
-  if (currentHash === '#attendance' && storedRole !== 'coach') {
+  const isSuperAdmin = (storedRole === 'admin' || storedRole === 'superadmin');
+  const isCoach = (storedRole === 'coach');
+  if (currentHash === '#attendance' && !isCoach && !isSuperAdmin) {
     window.location.hash = '#overview';
     navigateToSection('#overview', false);
     return;
@@ -155,6 +179,108 @@ window.recordPaymentModal = (name, amount) => {
   }
 };
 
+// ── Dynamic Sidebar Profile Element Initialization ───────
+function initSidebarUserProfile() {
+  const emailEl = document.getElementById('sidebarUserEmail');
+  const roleEl = document.getElementById('sidebarUserRole');
+  const avatarEl = document.getElementById('sidebarUserAvatar');
+  const chipEl = document.getElementById('sidebarUserProfileChip');
+  const logoutBtn = document.getElementById('sidebarLogoutBtn') || document.querySelector('.logout-icon-btn');
+
+  const storedRole = (localStorage.getItem('vava_role') || 'admin').toLowerCase();
+  const storedEmail = localStorage.getItem('vava_email') || '';
+  let userObj = null;
+  try {
+    const raw = localStorage.getItem('vava_user');
+    if (raw) userObj = JSON.parse(raw);
+  } catch (e) {
+    console.error('Failed to parse vava_user:', e);
+  }
+
+  // 1. Dynamic Email
+  const displayEmail = storedEmail || userObj?.email || '';
+
+  // 2. Dynamic Role (using existing role logic / labels)
+  const roleLabels = {
+    admin: 'SUPER ADMIN',
+    superadmin: 'SUPER ADMIN',
+    coach: 'COACH',
+    student: 'STUDENT'
+  };
+  const roleLabel = roleLabels[storedRole] || (storedRole ? storedRole.toUpperCase() : 'USER');
+
+  // 3. Render Email & Role
+  if (emailEl) {
+    emailEl.textContent = displayEmail || 'Authenticated User';
+    if (displayEmail) {
+      emailEl.setAttribute('title', displayEmail);
+    }
+  }
+
+  if (roleEl) {
+    roleEl.textContent = roleLabel;
+  }
+
+  if (chipEl && displayEmail) {
+    chipEl.setAttribute('title', `${displayEmail} • ${roleLabel}`);
+  }
+
+  // 4. Dynamic Avatar / Initials
+  if (avatarEl) {
+    const photoUrl = userObj?.picture || userObj?.coach_photo || userObj?.student_photo || userObj?.photo || '';
+    
+    // Dynamic initials calculation
+    let initials = '';
+    const displayName = userObj?.name || userObj?.coach_name || userObj?.student_name || '';
+    if (displayName && typeof displayName === 'string' && !displayName.includes('@')) {
+      const parts = displayName.trim().split(/\s+/).filter(Boolean);
+      if (parts.length >= 2) {
+        initials = (parts[0][0] + parts[1][0]).toUpperCase();
+      } else if (parts.length === 1 && parts[0].length >= 2) {
+        initials = parts[0].substring(0, 2).toUpperCase();
+      } else if (parts.length === 1) {
+        initials = parts[0].toUpperCase();
+      }
+    } else if (displayEmail) {
+      const prefix = displayEmail.split('@')[0].replace(/[^a-zA-Z0-9]/g, '');
+      if (prefix.length >= 2) {
+        initials = prefix.substring(0, 2).toUpperCase();
+      } else if (prefix.length === 1) {
+        initials = prefix.toUpperCase();
+      }
+    }
+
+    if (!initials) {
+      initials = roleLabel.substring(0, 2);
+    }
+
+    if (photoUrl) {
+      avatarEl.innerHTML = `<img src="${photoUrl}" alt="${displayEmail}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.parentElement.textContent='${initials}'">`;
+    } else {
+      avatarEl.textContent = initials;
+    }
+  }
+
+  // 5. Logout Handling
+  if (logoutBtn && !logoutBtn._hasLogoutBound) {
+    logoutBtn._hasLogoutBound = true;
+    logoutBtn.addEventListener('click', () => {
+      try {
+        localStorage.removeItem('vava_token');
+        localStorage.removeItem('vava_role');
+        localStorage.removeItem('vava_user');
+        localStorage.removeItem('vava_email');
+        if (window.google?.accounts?.id?.disableAutoSelect) {
+          google.accounts.id.disableAutoSelect();
+        }
+      } catch (err) {
+        console.error('Logout cleanup error:', err);
+      }
+    });
+  }
+}
+window.initSidebarUserProfile = initSidebarUserProfile;
+
 // ── Navigation Initialization & Event Listeners ───────────
 document.addEventListener('DOMContentLoaded', () => {
   // 1. Role Title Setting & Attendance Nav Visibility
@@ -170,9 +296,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const navAttendanceEl = document.getElementById('nav-attendance');
-  if (navAttendanceEl && storedRole !== 'coach') {
-    navAttendanceEl.style.display = 'none';
+  const isSuperAdminUser = (storedRole === 'admin' || storedRole === 'superadmin');
+  if (navAttendanceEl) {
+    if (storedRole !== 'coach' && !isSuperAdminUser) {
+      navAttendanceEl.style.display = 'none';
+    } else {
+      navAttendanceEl.style.display = '';
+    }
   }
+
+  // Initialize Sidebar Profile Element dynamically
+  initSidebarUserProfile();
 
   // 2. Navigation Link Click Handling
   const navLinks = document.querySelectorAll('.sidebar-nav .nav-link');

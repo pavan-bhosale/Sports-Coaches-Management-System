@@ -19,58 +19,104 @@ require_once 'db_connect.php';
 $method = $_SERVER['REQUEST_METHOD'];
 
 /**
- * Helper function to authenticate role and resolve logged-in coach info
+ * Helper function to authenticate role and resolve logged-in user info (Coach or Superadmin)
  */
-function resolveAuthenticatedCoach($pdo, $input = []) {
+function resolveAuthenticatedUser($pdo, $input = []) {
     $role = $_SERVER['HTTP_X_VAVA_ROLE'] ?? $_GET['role'] ?? $input['role'] ?? '';
     $email = $_SERVER['HTTP_X_VAVA_EMAIL'] ?? $_GET['email'] ?? $input['email'] ?? '';
     $coach_id = intval($_SERVER['HTTP_X_VAVA_COACH_ID'] ?? $_GET['coach_id'] ?? $input['coach_id'] ?? 0);
 
-    // If role is explicitly provided and is not 'coach', deny access
-    if (!empty($role) && strtolower($role) !== 'coach') {
+    $roleLower = strtolower(trim($role));
+
+    // If role is explicitly student, deny access
+    if ($roleLower === 'student') {
         http_response_code(403);
-        echo json_encode(['error' => 'Access denied. The Attendance module is accessible to coaches only.']);
+        echo json_encode(['error' => 'Access denied. The Attendance module is accessible to coaches and superadmin only.']);
         exit;
     }
 
-    $coach = null;
-    $query = '
-        SELECT 
-            c.coach_id,
-            c.coach_name,
-            c.coach_email,
-            c.batch_id,
-            COALESCE(NULLIF(c.batch_name, ""), b.batch_name, "Unassigned") AS batch_name
-        FROM vsa_coaches c
-        LEFT JOIN vsa_batches b ON c.batch_id = b.batch_id
-    ';
+    if ($roleLower === 'coach') {
+        $coach = null;
+        $query = '
+            SELECT 
+                c.coach_id,
+                c.coach_name,
+                c.coach_email,
+                c.batch_id,
+                COALESCE(NULLIF(c.batch_name, ""), b.batch_name, "Unassigned") AS batch_name
+            FROM vsa_coaches c
+            LEFT JOIN vsa_batches b ON c.batch_id = b.batch_id
+        ';
 
+        if ($coach_id > 0) {
+            $stmt = $pdo->prepare($query . ' WHERE c.coach_id = ?');
+            $stmt->execute([$coach_id]);
+            $coach = $stmt->fetch();
+        } elseif (!empty($email)) {
+            $stmt = $pdo->prepare($query . ' WHERE c.coach_email = ?');
+            $stmt->execute([$email]);
+            $coach = $stmt->fetch();
+        } else {
+            // Default: Fallback to first active coach assigned to a batch
+            $stmt = $pdo->query($query . ' WHERE c.batch_id IS NOT NULL ORDER BY c.coach_id ASC LIMIT 1');
+            $coach = $stmt->fetch();
+        }
+
+        if (!$coach) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Coach authorization failed or coach record not found.']);
+            exit;
+        }
+
+        return ['role' => 'coach', 'coach' => $coach];
+    }
+
+    if ($roleLower === 'admin' || $roleLower === 'superadmin') {
+        $admin = null;
+        if (!empty($email)) {
+            $stmt = $pdo->prepare('SELECT admin_id, admin_name, admin_email FROM vsa_superadmin WHERE admin_email = ?');
+            $stmt->execute([$email]);
+            $admin = $stmt->fetch();
+        } else {
+            // Local dev fallback to first active superadmin
+            $stmt = $pdo->query('SELECT admin_id, admin_name, admin_email FROM vsa_superadmin ORDER BY admin_id ASC LIMIT 1');
+            $admin = $stmt->fetch();
+        }
+
+        if (!$admin) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Superadmin authorization failed. Admin record not found.']);
+            exit;
+        }
+
+        return ['role' => 'superadmin', 'admin' => $admin];
+    }
+
+    // Default fallback: Check if coach_id passed -> coach, else deny
     if ($coach_id > 0) {
-        $stmt = $pdo->prepare($query . ' WHERE c.coach_id = ?');
+        $stmt = $pdo->prepare('
+            SELECT c.coach_id, c.coach_name, c.coach_email, c.batch_id,
+                   COALESCE(NULLIF(c.batch_name, ""), b.batch_name, "Unassigned") AS batch_name
+            FROM vsa_coaches c LEFT JOIN vsa_batches b ON c.batch_id = b.batch_id
+            WHERE c.coach_id = ?
+        ');
         $stmt->execute([$coach_id]);
         $coach = $stmt->fetch();
-    } elseif (!empty($email)) {
-        $stmt = $pdo->prepare($query . ' WHERE c.coach_email = ?');
-        $stmt->execute([$email]);
-        $coach = $stmt->fetch();
-    } else {
-        // Default: Fallback to first active coach assigned to a batch
-        $stmt = $pdo->query($query . ' WHERE c.batch_id IS NOT NULL ORDER BY c.coach_id ASC LIMIT 1');
-        $coach = $stmt->fetch();
+        if ($coach) {
+            return ['role' => 'coach', 'coach' => $coach];
+        }
     }
 
-    if (!$coach) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Coach authorization failed or coach record not found.']);
-        exit;
-    }
-
-    return $coach;
+    http_response_code(403);
+    echo json_encode(['error' => 'Access denied. The Attendance module is accessible to coaches and superadmin only.']);
+    exit;
 }
 
 // ── GET REQUESTS ─────────────────────────────────────────────────────────────
 if ($method === 'GET') {
-    $coach = resolveAuthenticatedCoach($pdo);
+    $auth = resolveAuthenticatedUser($pdo);
+    $isSuperadmin = ($auth['role'] === 'superadmin');
+    $coach = $auth['coach'] ?? null;
     $coach_batch_id = intval($coach['batch_id'] ?? 0);
     $action = $_GET['action'] ?? '';
 
@@ -86,7 +132,7 @@ if ($method === 'GET') {
         }
 
         // Access Control: Coach can only access their assigned batch
-        if ($batch_id !== $coach_batch_id) {
+        if (!$isSuperadmin && $batch_id !== $coach_batch_id) {
             http_response_code(403);
             echo json_encode(['error' => 'Access denied. You can only view attendance for your assigned batch.']);
             exit;
@@ -112,6 +158,8 @@ if ($method === 'GET') {
 
             echo json_encode([
                 'success' => true,
+                'is_superadmin' => $isSuperadmin,
+                'read_only' => $isSuperadmin,
                 'students' => $students
             ]);
         } catch (PDOException $e) {
@@ -121,12 +169,17 @@ if ($method === 'GET') {
         exit;
     }
 
-    // Action: Fetch list of active batches for the dropdown (only coach's assigned batch)
+    // Action: Fetch list of active batches for dropdown
     if ($action === 'get_batches') {
         try {
-            $stmt = $pdo->prepare('SELECT batch_id, batch_name FROM vsa_batches WHERE batch_id = ?');
-            $stmt->execute([$coach_batch_id]);
-            $batches = $stmt->fetchAll();
+            if ($isSuperadmin) {
+                $stmt = $pdo->query('SELECT batch_id, batch_name FROM vsa_batches ORDER BY batch_name ASC');
+                $batches = $stmt->fetchAll();
+            } else {
+                $stmt = $pdo->prepare('SELECT batch_id, batch_name FROM vsa_batches WHERE batch_id = ?');
+                $stmt->execute([$coach_batch_id]);
+                $batches = $stmt->fetchAll();
+            }
             echo json_encode(['success' => true, 'batches' => $batches]);
         } catch (PDOException $e) {
             http_response_code(500);
@@ -135,31 +188,57 @@ if ($method === 'GET') {
         exit;
     }
 
-    // Action: Fetch all students in coach's assigned batch with real attendance statistics
+    // Action: Fetch students with real attendance statistics
     if ($action === 'get_coach_students_attendance') {
         try {
-            $stmt = $pdo->prepare('
-                SELECT 
-                    s.student_id,
-                    s.student_name,
-                    s.city,
-                    s.student_photo,
-                    COALESCE(NULLIF(s.student_phone, ""), NULLIF(s.father_contact_number, ""), s.emergency_contact_number, "") AS student_phone,
-                    b.batch_id,
-                    COALESCE(NULLIF(s.batch_name, ""), b.batch_name, "Unassigned") AS batch_name,
-                    COUNT(a.attendance_id) AS total_records,
-                    SUM(CASE WHEN a.status = "Present" THEN 1 ELSE 0 END) AS present_count
-                FROM vsa_students s
-                CROSS JOIN vsa_batches b ON b.batch_id = ?
-                LEFT JOIN vsa_attendance a ON s.student_id = a.student_id AND a.batch_id = b.batch_id
-                WHERE (s.batch_id = b.batch_id OR LOWER(TRIM(s.batch_name)) = LOWER(TRIM(b.batch_name)))
-                GROUP BY s.student_id, s.student_name, s.city, s.student_photo, student_phone, b.batch_id, s.batch_name, b.batch_name
-                ORDER BY s.student_name ASC
-            ');
-            $stmt->execute([$coach_batch_id]);
+            if ($isSuperadmin) {
+                // Superadmin sees all students across all batches with batch and coach names
+                $stmt = $pdo->prepare('
+                    SELECT 
+                        s.student_id,
+                        s.student_name,
+                        s.city,
+                        s.student_photo,
+                        COALESCE(NULLIF(s.student_phone, ""), NULLIF(s.father_contact_number, ""), s.emergency_contact_number, "") AS student_phone,
+                        COALESCE(s.batch_id, b.batch_id, 0) AS batch_id,
+                        COALESCE(NULLIF(s.batch_name, ""), b.batch_name, "Unassigned") AS batch_name,
+                        COALESCE(NULLIF(s.coach_name, ""), c.coach_name, cb.coach_name, "Unassigned") AS coach_name,
+                        COUNT(a.attendance_id) AS total_records,
+                        SUM(CASE WHEN a.status = "Present" THEN 1 ELSE 0 END) AS present_count
+                    FROM vsa_students s
+                    LEFT JOIN vsa_batches b ON s.batch_id = b.batch_id
+                    LEFT JOIN vsa_coaches c ON s.coach_id = c.coach_id
+                    LEFT JOIN vsa_coaches cb ON b.batch_id = cb.batch_id
+                    LEFT JOIN vsa_attendance a ON s.student_id = a.student_id
+                    GROUP BY s.student_id, s.student_name, s.city, s.student_photo, student_phone, batch_id, batch_name, coach_name
+                    ORDER BY s.student_name ASC
+                ');
+                $stmt->execute();
+            } else {
+                // Coach sees students in assigned batch
+                $stmt = $pdo->prepare('
+                    SELECT 
+                        s.student_id,
+                        s.student_name,
+                        s.city,
+                        s.student_photo,
+                        COALESCE(NULLIF(s.student_phone, ""), NULLIF(s.father_contact_number, ""), s.emergency_contact_number, "") AS student_phone,
+                        b.batch_id,
+                        COALESCE(NULLIF(s.batch_name, ""), b.batch_name, "Unassigned") AS batch_name,
+                        COUNT(a.attendance_id) AS total_records,
+                        SUM(CASE WHEN a.status = "Present" THEN 1 ELSE 0 END) AS present_count
+                    FROM vsa_students s
+                    CROSS JOIN vsa_batches b ON b.batch_id = ?
+                    LEFT JOIN vsa_attendance a ON s.student_id = a.student_id AND a.batch_id = b.batch_id
+                    WHERE (s.batch_id = b.batch_id OR LOWER(TRIM(s.batch_name)) = LOWER(TRIM(b.batch_name)))
+                    GROUP BY s.student_id, s.student_name, s.city, s.student_photo, student_phone, b.batch_id, s.batch_name, b.batch_name
+                    ORDER BY s.student_name ASC
+                ');
+                $stmt->execute([$coach_batch_id]);
+            }
             $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Format counts as integers for safety
+            // Format counts as integers for safety and calculate percentage
             $formatted = array_map(function($st) {
                 $st['total_records'] = intval($st['total_records'] ?? 0);
                 $st['present_count'] = intval($st['present_count'] ?? 0);
@@ -169,16 +248,22 @@ if ($method === 'GET') {
                 return $st;
             }, $students);
 
-            echo json_encode([
+            $response = [
                 'success' => true,
-                'coach_info' => [
+                'is_superadmin' => $isSuperadmin,
+                'students' => $formatted
+            ];
+
+            if (!$isSuperadmin && $coach) {
+                $response['coach_info'] = [
                     'coach_id' => intval($coach['coach_id']),
                     'coach_name' => $coach['coach_name'],
                     'batch_id' => intval($coach['batch_id']),
                     'batch_name' => $coach['batch_name']
-                ],
-                'students' => $formatted
-            ]);
+                ];
+            }
+
+            echo json_encode($response);
         } catch (PDOException $e) {
             http_response_code(500);
             echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
@@ -186,7 +271,7 @@ if ($method === 'GET') {
         exit;
     }
 
-    // Action: Fetch full attendance history for a single student in this batch
+    // Action: Fetch full attendance history for a single student
     if ($action === 'get_student_attendance_history') {
         $student_id = intval($_GET['student_id'] ?? 0);
         if (!$student_id) {
@@ -196,40 +281,78 @@ if ($method === 'GET') {
         }
 
         try {
-            // Verify student belongs to coach's batch
-            $checkStmt = $pdo->prepare('
-                SELECT 
-                    s.student_id, 
-                    s.student_name, 
-                    s.city, 
-                    s.student_photo,
-                    COALESCE(NULLIF(s.student_phone, ""), NULLIF(s.father_contact_number, ""), s.emergency_contact_number, "") AS student_phone,
-                    COALESCE(NULLIF(s.batch_name, ""), b.batch_name, "Unassigned") AS batch_name
-                FROM vsa_students s
-                CROSS JOIN vsa_batches b ON b.batch_id = ?
-                WHERE s.student_id = ? AND (s.batch_id = b.batch_id OR LOWER(TRIM(s.batch_name)) = LOWER(TRIM(b.batch_name)))
-                LIMIT 1
-            ');
-            $checkStmt->execute([$coach_batch_id, $student_id]);
-            $student = $checkStmt->fetch(PDO::FETCH_ASSOC);
+            if ($isSuperadmin) {
+                $checkStmt = $pdo->prepare('
+                    SELECT 
+                        s.student_id, 
+                        s.student_name, 
+                        s.city, 
+                        s.student_photo,
+                        COALESCE(NULLIF(s.student_phone, ""), NULLIF(s.father_contact_number, ""), s.emergency_contact_number, "") AS student_phone,
+                        COALESCE(NULLIF(s.batch_name, ""), b.batch_name, "Unassigned") AS batch_name,
+                        COALESCE(NULLIF(s.coach_name, ""), c.coach_name, cb.coach_name, "Unassigned") AS coach_name
+                    FROM vsa_students s
+                    LEFT JOIN vsa_batches b ON s.batch_id = b.batch_id
+                    LEFT JOIN vsa_coaches c ON s.coach_id = c.coach_id
+                    LEFT JOIN vsa_coaches cb ON b.batch_id = cb.batch_id
+                    WHERE s.student_id = ?
+                    LIMIT 1
+                ');
+                $checkStmt->execute([$student_id]);
+                $student = $checkStmt->fetch(PDO::FETCH_ASSOC);
 
-            if (!$student) {
-                http_response_code(403);
-                echo json_encode(['error' => 'Access denied or student not found in your assigned batch.']);
-                exit;
+                if (!$student) {
+                    http_response_code(404);
+                    echo json_encode(['error' => 'Student not found.']);
+                    exit;
+                }
+
+                $histStmt = $pdo->prepare('
+                    SELECT 
+                        attendance_date, 
+                        status 
+                    FROM vsa_attendance 
+                    WHERE student_id = ? 
+                    ORDER BY attendance_date DESC
+                ');
+                $histStmt->execute([$student_id]);
+                $history = $histStmt->fetchAll(PDO::FETCH_ASSOC);
+            } else {
+                // Verify student belongs to coach\'s batch
+                $checkStmt = $pdo->prepare('
+                    SELECT 
+                        s.student_id, 
+                        s.student_name, 
+                        s.city, 
+                        s.student_photo,
+                        COALESCE(NULLIF(s.student_phone, ""), NULLIF(s.father_contact_number, ""), s.emergency_contact_number, "") AS student_phone,
+                        COALESCE(NULLIF(s.batch_name, ""), b.batch_name, "Unassigned") AS batch_name
+                    FROM vsa_students s
+                    CROSS JOIN vsa_batches b ON b.batch_id = ?
+                    WHERE s.student_id = ? AND (s.batch_id = b.batch_id OR LOWER(TRIM(s.batch_name)) = LOWER(TRIM(b.batch_name)))
+                    LIMIT 1
+                ');
+                $checkStmt->execute([$coach_batch_id, $student_id]);
+                $student = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$student) {
+                    http_response_code(403);
+                    echo json_encode(['error' => 'Access denied or student not found in your assigned batch.']);
+                    exit;
+                }
+
+                // Fetch records sorted Latest -> Oldest
+                $histStmt = $pdo->prepare('
+                    SELECT 
+                        attendance_date, 
+                        status 
+                    FROM vsa_attendance 
+                    WHERE student_id = ? AND batch_id = ? 
+                    ORDER BY attendance_date DESC
+                ');
+                $histStmt->execute([$student_id, $coach_batch_id]);
+                $history = $histStmt->fetchAll(PDO::FETCH_ASSOC);
             }
-
-            // Fetch records sorted Latest -> Oldest
-            $histStmt = $pdo->prepare('
-                SELECT 
-                    attendance_date, 
-                    status 
-                FROM vsa_attendance 
-                WHERE student_id = ? AND batch_id = ? 
-                ORDER BY attendance_date DESC
-            ');
-            $histStmt->execute([$student_id, $coach_batch_id]);
-            $history = $histStmt->fetchAll(PDO::FETCH_ASSOC);
 
             $presentCount = 0;
             $totalCount = count($history);
@@ -257,42 +380,76 @@ if ($method === 'GET') {
         exit;
     }
 
-    // Default GET: Fetch Attendance sheets ONLY for coach's assigned batch_id
+    // Default GET: Fetch Attendance sheets
     try {
-        $stmt = $pdo->prepare('
-            SELECT 
-                a.batch_id,
-                a.attendance_date,
-                b.batch_name,
-                COALESCE(c.coach_name, "Unassigned") AS coach_name,
-                a.coach_id,
-                (
-                    SELECT COUNT(*) 
-                    FROM vsa_students s 
-                    WHERE s.batch_id = b.batch_id OR LOWER(TRIM(s.batch_name)) = LOWER(TRIM(b.batch_name))
-                ) AS total_batch_students,
-                COUNT(a.attendance_id) AS sheet_records_count,
-                SUM(CASE WHEN a.status = "Present" THEN 1 ELSE 0 END) AS present_count
-            FROM vsa_attendance a
-            INNER JOIN vsa_batches b ON a.batch_id = b.batch_id
-            LEFT JOIN vsa_coaches c ON a.coach_id = c.coach_id
-            WHERE a.batch_id = ?
-            GROUP BY a.batch_id, a.attendance_date, b.batch_name, coach_name, a.coach_id
-            ORDER BY a.attendance_date DESC, b.batch_name ASC
-        ');
-        $stmt->execute([$coach_batch_id]);
-        $sheets = $stmt->fetchAll();
+        if ($isSuperadmin) {
+            // Superadmin sees attendance sheets from ALL batches
+            $stmt = $pdo->query('
+                SELECT 
+                    a.batch_id,
+                    a.attendance_date,
+                    b.batch_name,
+                    COALESCE(c.coach_name, cb.coach_name, "Unassigned") AS coach_name,
+                    a.coach_id,
+                    (
+                        SELECT COUNT(*) 
+                        FROM vsa_students s 
+                        WHERE s.batch_id = b.batch_id OR LOWER(TRIM(s.batch_name)) = LOWER(TRIM(b.batch_name))
+                    ) AS total_batch_students,
+                    COUNT(a.attendance_id) AS sheet_records_count,
+                    SUM(CASE WHEN a.status = "Present" THEN 1 ELSE 0 END) AS present_count
+                FROM vsa_attendance a
+                INNER JOIN vsa_batches b ON a.batch_id = b.batch_id
+                LEFT JOIN vsa_coaches c ON a.coach_id = c.coach_id
+                LEFT JOIN vsa_coaches cb ON b.batch_id = cb.batch_id
+                GROUP BY a.batch_id, a.attendance_date, b.batch_name, coach_name, a.coach_id
+                ORDER BY a.attendance_date DESC, b.batch_name ASC
+            ');
+            $sheets = $stmt->fetchAll();
 
-        echo json_encode([
-            'success' => true,
-            'coach_info' => [
-                'coach_id' => intval($coach['coach_id']),
-                'coach_name' => $coach['coach_name'],
-                'batch_id' => intval($coach['batch_id']),
-                'batch_name' => $coach['batch_name']
-            ],
-            'sheets' => $sheets
-        ]);
+            echo json_encode([
+                'success' => true,
+                'is_superadmin' => true,
+                'sheets' => $sheets
+            ]);
+        } else {
+            // Coach sees sheets ONLY for assigned batch_id
+            $stmt = $pdo->prepare('
+                SELECT 
+                    a.batch_id,
+                    a.attendance_date,
+                    b.batch_name,
+                    COALESCE(c.coach_name, "Unassigned") AS coach_name,
+                    a.coach_id,
+                    (
+                        SELECT COUNT(*) 
+                        FROM vsa_students s 
+                        WHERE s.batch_id = b.batch_id OR LOWER(TRIM(s.batch_name)) = LOWER(TRIM(b.batch_name))
+                    ) AS total_batch_students,
+                    COUNT(a.attendance_id) AS sheet_records_count,
+                    SUM(CASE WHEN a.status = "Present" THEN 1 ELSE 0 END) AS present_count
+                FROM vsa_attendance a
+                INNER JOIN vsa_batches b ON a.batch_id = b.batch_id
+                LEFT JOIN vsa_coaches c ON a.coach_id = c.coach_id
+                WHERE a.batch_id = ?
+                GROUP BY a.batch_id, a.attendance_date, b.batch_name, coach_name, a.coach_id
+                ORDER BY a.attendance_date DESC, b.batch_name ASC
+            ');
+            $stmt->execute([$coach_batch_id]);
+            $sheets = $stmt->fetchAll();
+
+            echo json_encode([
+                'success' => true,
+                'is_superadmin' => false,
+                'coach_info' => [
+                    'coach_id' => intval($coach['coach_id']),
+                    'coach_name' => $coach['coach_name'],
+                    'batch_id' => intval($coach['batch_id']),
+                    'batch_name' => $coach['batch_name']
+                ],
+                'sheets' => $sheets
+            ]);
+        }
     } catch (PDOException $e) {
         http_response_code(500);
         echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
@@ -303,14 +460,22 @@ if ($method === 'GET') {
 // ── POST REQUESTS ────────────────────────────────────────────────────────────
 if ($method === 'POST') {
     $input = json_decode(file_get_contents('php://input'), true) ?? [];
-    $coach = resolveAuthenticatedCoach($pdo, $input);
+    $auth = resolveAuthenticatedUser($pdo, $input);
+    $isSuperadmin = ($auth['role'] === 'superadmin');
+    $coach = $auth['coach'] ?? null;
     $coach_batch_id = intval($coach['batch_id'] ?? 0);
     $coach_id = intval($coach['coach_id'] ?? 0);
     $action = $input['action'] ?? '';
 
     // Action: Create a new attendance sheet
     if ($action === 'create_sheet') {
-        // Automatically enforce coach's assigned batch_id
+        if ($isSuperadmin) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Permission denied. Superadmin has read-only access for creating attendance sheets.']);
+            exit;
+        }
+
+        // Automatically enforce coach\'s assigned batch_id
         $batch_id = $coach_batch_id;
         $attendance_date = trim($input['attendance_date'] ?? '');
 
@@ -379,6 +544,12 @@ if ($method === 'POST') {
 
     // Action: Save / Update attendance for students in an open sheet
     if ($action === 'save_attendance') {
+        if ($isSuperadmin) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Permission denied. Superadmin has read-only access for marking attendance.']);
+            exit;
+        }
+
         $batch_id = intval($input['batch_id'] ?? 0);
         if (!$batch_id) {
             $batch_id = $coach_batch_id;
@@ -429,12 +600,12 @@ if ($method === 'POST') {
     // Action: Delete an entire attendance sheet
     if ($action === 'delete_sheet') {
         $batch_id = intval($input['batch_id'] ?? 0);
-        if (!$batch_id) {
+        if (!$batch_id && !$isSuperadmin) {
             $batch_id = $coach_batch_id;
         }
         $attendance_date = trim($input['attendance_date'] ?? '');
 
-        if ($batch_id !== $coach_batch_id) {
+        if (!$isSuperadmin && $batch_id !== $coach_batch_id) {
             http_response_code(403);
             echo json_encode(['error' => 'Access denied. You can only delete attendance for your assigned batch.']);
             exit;

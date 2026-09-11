@@ -20,6 +20,12 @@ function getAuthParams() {
   return { role, email, coach_id };
 }
 
+// Helper to check if current user is Superadmin
+function isSuperAdminUser() {
+  const role = (localStorage.getItem('vava_role') || '').toLowerCase();
+  return role === 'admin' || role === 'superadmin';
+}
+
 // Update Live Sheet Count Pill
 function updateAttendanceLiveCount(count) {
   const el = document.getElementById('attendanceLiveCount');
@@ -404,16 +410,69 @@ async function fetchAttendanceSheets() {
   if (cardsContainer) cardsContainer.innerHTML = '';
   if (dateEmptyState) dateEmptyState.style.display = 'none';
 
-  const { role, email, coach_id } = getAuthParams();
+  const isSuper = isSuperAdminUser();
+
+  // Show / hide Coach Header Card and New Sheet button based on role
+  const coachHeader = document.getElementById('coachAttendanceHeader');
+  const btnNewSheet = document.getElementById('btnNewAttendanceSheet');
+  const attendanceSec = document.getElementById('attendanceSection');
+  if (isSuper) {
+    if (coachHeader) {
+      coachHeader.style.setProperty('display', 'none', 'important');
+      coachHeader.classList.add('superadmin-hidden');
+    }
+    if (btnNewSheet) btnNewSheet.style.setProperty('display', 'none', 'important');
+    if (attendanceSec) attendanceSec.classList.add('is-superadmin');
+  } else {
+    if (coachHeader) {
+      coachHeader.style.removeProperty('display');
+      coachHeader.classList.remove('superadmin-hidden');
+    }
+    if (btnNewSheet) btnNewSheet.style.removeProperty('display');
+    if (attendanceSec) attendanceSec.classList.remove('is-superadmin');
+  }
+
+  // Adjust Desktop Table header columns
+  const tableHead = document.querySelector('#attendanceSectionTable thead');
+  if (tableHead) {
+    if (isSuper) {
+      tableHead.innerHTML = `
+        <tr>
+          <th style="width: 20%;">Batch</th>
+          <th style="width: 20%;">Date</th>
+          <th style="width: 20%;">Coach</th>
+          <th style="width: 15%;">Attendance</th>
+          <th style="width: 15%;">Present Percentage</th>
+          <th style="width: 10%; text-align: right;">Actions</th>
+        </tr>
+      `;
+    } else {
+      tableHead.innerHTML = `
+        <tr>
+          <th style="width: 25%;">Date</th>
+          <th style="width: 25%;">Attendance</th>
+          <th style="width: 25%;">Present Percentage</th>
+          <th style="width: 25%; text-align: right;">Actions</th>
+        </tr>
+      `;
+    }
+  }
 
   try {
+    const { role, email, coach_id } = getAuthParams();
     const url = `${ATTENDANCE_API}?role=${encodeURIComponent(role)}&email=${encodeURIComponent(email)}&coach_id=${coach_id}`;
-    const res  = await fetch(url);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const data = await res.json();
-    if (requestId !== fetchAttendanceRequestId) return;
-    if (!data.success) throw new Error(data.error || 'Fetch failed.');
 
-    if (data.coach_info) {
+    // Guard against stale responses
+    if (requestId !== fetchAttendanceRequestId) return;
+
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to load attendance sheets.');
+    }
+
+    if (!isSuper && data.coach_info) {
       updateCoachHeader(data.coach_info);
     }
 
@@ -434,10 +493,11 @@ async function fetchAttendanceSheets() {
       if (cardsContainer) cardsContainer.innerHTML = '';
 
       sheets.forEach(sheet => {
-        const safeBatchName = escapeHtml(sheet.batch_name);
-        const safeCoachName = escapeHtml(sheet.coach_name);
+        const safeBatchName = escapeHtml(sheet.batch_name || 'General');
+        const safeCoachName = escapeHtml(sheet.coach_name || 'Unassigned');
         const formattedDate = formatDateDisplay(sheet.attendance_date);
         const { fullDate, dayOfWeek } = formatAttendanceDateParts(sheet.attendance_date);
+        const dateDDMMYYYY = formatAttendanceDateDDMMYYYY(sheet.attendance_date);
 
         // Calculate Attendance (Present/Total) and Present Percentage
         const presentCount = parseInt(sheet.present_count || 0, 10);
@@ -450,7 +510,7 @@ async function fetchAttendanceSheets() {
         }
         const pctDisplay = `${pct}%`;
 
-        const menuKey = `${sheet.batch_id}_${sheet.attendance_date.replace(/-/g, '')}`;
+        const menuKey = `${sheet.batch_id}-${sheet.attendance_date}`;
 
         // 1. Desktop Table Row
         const tr = document.createElement('tr');
@@ -458,84 +518,22 @@ async function fetchAttendanceSheets() {
         tr.dataset.batchName = sheet.batch_name || '';
         tr.dataset.date = sheet.attendance_date;
 
-        tr.innerHTML = `
-          <td><span class="text-secondary" style="font-size:0.9rem; font-weight: 500;">${formattedDate}</span></td>
-          <td><span style="font-weight: 600; font-size:0.875rem; color: var(--text-primary);">${attendanceDisplay}</span></td>
-          <td><span class="badge-status badge-success" style="font-weight: 600; font-size: 0.825rem;">${pctDisplay}</span></td>
-          <td style="text-align: right;">
-            <div class="batch-actions-wrap">
-              <button class="batch-actions-btn" data-id="${menuKey}" type="button">
-                Actions
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
-              </button>
-              <div class="batch-actions-menu" id="attendanceMenu-${menuKey}">
-                <button class="batch-action-item btn-open-attendance" type="button"
-                  onclick="openAttendanceSheet(${sheet.batch_id}, '${sheet.attendance_date}', '${safeBatchName.replace(/'/g, "\\'")}', '${safeCoachName.replace(/'/g, "\\'")}')">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                  </svg>
-                  Open Attendance
-                </button>
-                <button class="batch-action-item danger btn-delete-attendance" type="button"
-                  onclick="promptDeleteAttendanceSheet(${sheet.batch_id}, '${sheet.attendance_date}', '${safeBatchName.replace(/'/g, "\\'")}')">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                  </svg>
-                  Delete Attendance
-                </button>
-              </div>
-            </div>
-          </td>
-        `;
-        tableBody.appendChild(tr);
-
-        // 2. Mobile Attendance Card (Matches IMAGE 1 Target Design)
-        if (cardsContainer) {
-          const card = document.createElement('div');
-          card.className = 'attendance-card-mobile';
-          card.dataset.batchId = sheet.batch_id;
-          card.dataset.date = sheet.attendance_date;
-          card.dataset.batchName = sheet.batch_name || '';
-          card.dataset.coachName = sheet.coach_name || '';
-          card.dataset.fullDate = fullDate;
-          card.dataset.day = dayOfWeek;
-
-          card.innerHTML = `
-            <!-- Top Row: Calendar Icon, Date & Day, 3-dots Actions Menu -->
-            <div class="attendance-card-top">
-              <div class="attendance-date-block">
-                <div class="attendance-calendar-icon">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                    <circle cx="8" cy="14" r="1" fill="currentColor"></circle>
-                    <circle cx="12" cy="14" r="1" fill="currentColor"></circle>
-                    <circle cx="16" cy="14" r="1" fill="currentColor"></circle>
-                    <circle cx="8" cy="18" r="1" fill="currentColor"></circle>
-                    <circle cx="12" cy="18" r="1" fill="currentColor"></circle>
-                    <circle cx="16" cy="18" r="1" fill="currentColor"></circle>
-                  </svg>
-                </div>
-                <div class="attendance-date-text">
-                  <div class="attendance-date-val">${fullDate}</div>
-                  <div class="attendance-day-val">${dayOfWeek}</div>
-                </div>
-              </div>
+        if (isSuper) {
+          tr.innerHTML = `
+            <td><span style="font-weight: 600; font-size:0.9rem; color: #fff;">${safeBatchName}</span></td>
+            <td><span class="text-secondary" style="font-size:0.875rem; font-weight: 500;">${dateDDMMYYYY}</span></td>
+            <td><span style="font-size:0.875rem; color: var(--text-secondary);">${safeCoachName}</span></td>
+            <td><span style="font-weight: 600; font-size:0.875rem; color: var(--text-primary);">${attendanceDisplay}</span></td>
+            <td><span class="badge-status badge-success" style="font-weight: 600; font-size: 0.825rem;">${pctDisplay}</span></td>
+            <td style="text-align: right;">
               <div class="batch-actions-wrap">
-                <button class="batch-actions-btn attendance-three-dots-btn" data-id="mobile-${menuKey}" type="button" aria-label="Attendance Actions">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                    <circle cx="12" cy="5" r="2"/>
-                    <circle cx="12" cy="12" r="2"/>
-                    <circle cx="12" cy="19" r="2"/>
+                <button class="batch-actions-btn" data-id="${menuKey}" type="button">
+                  Actions
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="6 9 12 15 18 9"/>
                   </svg>
                 </button>
-                <div class="batch-actions-menu" id="attendanceMenu-mobile-${menuKey}">
+                <div class="batch-actions-menu" id="attendanceMenu-${menuKey}">
                   <button class="batch-action-item btn-open-attendance" type="button"
                     onclick="openAttendanceSheet(${sheet.batch_id}, '${sheet.attendance_date}', '${safeBatchName.replace(/'/g, "\\'")}', '${safeCoachName.replace(/'/g, "\\'")}')">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -554,51 +552,273 @@ async function fetchAttendanceSheets() {
                   </button>
                 </div>
               </div>
-            </div>
-
-            <!-- Divider -->
-            <div class="attendance-card-divider"></div>
-
-            <!-- Bottom Row: Users Icon, Attendance Count, Circular Progress Ring & Percentage -->
-            <div class="attendance-card-bottom">
-              <div class="attendance-count-block">
-                <div class="attendance-group-icon">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                  </svg>
-                </div>
-                <div class="attendance-count-text">
-                  <span class="attendance-stat-label">Attendance</span>
-                  <span class="attendance-stat-val">${presentCount} / ${totalStudents}</span>
-                </div>
-              </div>
-
-              <div class="attendance-pct-block">
-                <div class="attendance-circle-wrap">
-                  <svg viewBox="0 0 36 36" class="attendance-circle-chart">
-                    <path class="circle-bg"
-                      d="M18 2.0845
-                        a 15.9155 15.9155 0 0 1 0 31.831
-                        a 15.9155 15.9155 0 0 1 0 -31.831"
-                    />
-                    <path class="circle-fg"
-                      stroke-dasharray="${pct}, 100"
-                      d="M18 2.0845
-                        a 15.9155 15.9155 0 0 1 0 31.831
-                        a 15.9155 15.9155 0 0 1 0 -31.831"
-                    />
-                  </svg>
-                </div>
-                <div class="attendance-pct-text">
-                  <span class="attendance-pct-val">${pctDisplay}</span>
-                  <span class="attendance-pct-label">Present</span>
-                </div>
-              </div>
-            </div>
+            </td>
           `;
+        } else {
+          tr.innerHTML = `
+            <td><span class="text-secondary" style="font-size:0.9rem; font-weight: 500;">${formattedDate}</span></td>
+            <td><span style="font-weight: 600; font-size:0.875rem; color: var(--text-primary);">${attendanceDisplay}</span></td>
+            <td><span class="badge-status badge-success" style="font-weight: 600; font-size: 0.825rem;">${pctDisplay}</span></td>
+            <td style="text-align: right;">
+              <div class="batch-actions-wrap">
+                <button class="batch-actions-btn" data-id="${menuKey}" type="button">
+                  Actions
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
+                <div class="batch-actions-menu" id="attendanceMenu-${menuKey}">
+                  <button class="batch-action-item btn-open-attendance" type="button"
+                    onclick="openAttendanceSheet(${sheet.batch_id}, '${sheet.attendance_date}', '${safeBatchName.replace(/'/g, "\\'")}', '${safeCoachName.replace(/'/g, "\\'")}')">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    Open Attendance
+                  </button>
+                  <button class="batch-action-item danger btn-delete-attendance" type="button"
+                    onclick="promptDeleteAttendanceSheet(${sheet.batch_id}, '${sheet.attendance_date}', '${safeBatchName.replace(/'/g, "\\'")}')">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                    </svg>
+                    Delete Attendance
+                  </button>
+                </div>
+              </div>
+            </td>
+          `;
+        }
+        tableBody.appendChild(tr);
+
+        // 2. Mobile Attendance Card
+        if (cardsContainer) {
+          const card = document.createElement('div');
+          card.className = isSuper ? 'attendance-card-mobile superadmin-attendance-card' : 'attendance-card-mobile';
+          card.dataset.batchId = sheet.batch_id;
+          card.dataset.date = sheet.attendance_date;
+          card.dataset.batchName = sheet.batch_name || '';
+          card.dataset.coachName = sheet.coach_name || '';
+          card.dataset.fullDate = fullDate;
+          card.dataset.day = dayOfWeek;
+
+          if (isSuper) {
+            // Superadmin Attendance Card (Clean, compact, consistent with Coach visual system)
+            card.innerHTML = `
+              <!-- Top Row: Batch Name (Left), Calendar Date & Actions Menu (Right) -->
+              <div class="attendance-card-top superadmin-card-top">
+                <div class="attendance-batch-block">
+                  <div class="attendance-batch-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9" cy="7" r="4"></circle>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                  </div>
+                  <div class="attendance-batch-val" title="${safeBatchName}">${safeBatchName}</div>
+                </div>
+
+                <div class="attendance-date-actions-block">
+                  <div class="attendance-date-block">
+                    <div class="attendance-calendar-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                    </div>
+                    <div class="attendance-date-text">
+                      <div class="attendance-date-val">${dateDDMMYYYY}</div>
+                      <div class="attendance-day-val">${dayOfWeek}</div>
+                    </div>
+                  </div>
+
+                  <div class="batch-actions-wrap">
+                    <button class="batch-actions-btn attendance-three-dots-btn" data-id="mobile-${menuKey}" type="button" aria-label="Attendance Actions">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="5" r="2"/>
+                        <circle cx="12" cy="12" r="2"/>
+                        <circle cx="12" cy="19" r="2"/>
+                      </svg>
+                    </button>
+                    <div class="batch-actions-menu" id="attendanceMenu-mobile-${menuKey}">
+                      <button class="batch-action-item btn-open-attendance" type="button"
+                        onclick="openAttendanceSheet(${sheet.batch_id}, '${sheet.attendance_date}', '${safeBatchName.replace(/'/g, "\\'")}', '${safeCoachName.replace(/'/g, "\\'")}')">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        Open Attendance
+                      </button>
+                      <button class="batch-action-item danger btn-delete-attendance" type="button"
+                        onclick="promptDeleteAttendanceSheet(${sheet.batch_id}, '${sheet.attendance_date}', '${safeBatchName.replace(/'/g, "\\'")}')">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                        </svg>
+                        Delete Attendance
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Divider -->
+              <div class="attendance-card-divider"></div>
+
+              <!-- Bottom Row: Coach (Left), Attendance Count (Middle), Percentage (Right) -->
+              <div class="attendance-card-bottom superadmin-card-bottom">
+                <div class="attendance-coach-block">
+                  <div class="attendance-user-icon">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                  </div>
+                  <div class="attendance-coach-text">
+                    <span class="attendance-stat-label">Coach</span>
+                    <span class="attendance-coach-name" title="${safeCoachName}">${safeCoachName}</span>
+                  </div>
+                </div>
+
+                <div class="attendance-count-block">
+                  <div class="attendance-group-icon">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9" cy="7" r="4"></circle>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                  </div>
+                  <div class="attendance-count-text">
+                    <span class="attendance-stat-label">Attendance</span>
+                    <span class="attendance-count-val">${presentCount} / ${totalStudents}</span>
+                  </div>
+                </div>
+
+                <div class="attendance-pct-block">
+                  <div class="attendance-circle-wrap">
+                    <svg viewBox="0 0 36 36" class="attendance-circle-chart">
+                      <path class="circle-bg"
+                        d="M18 2.0845
+                          a 15.9155 15.9155 0 0 1 0 31.831
+                          a 15.9155 15.9155 0 0 1 0 -31.831"
+                      />
+                      <path class="circle-fg"
+                        stroke-dasharray="${pct}, 100"
+                        d="M18 2.0845
+                          a 15.9155 15.9155 0 0 1 0 31.831
+                          a 15.9155 15.9155 0 0 1 0 -31.831"
+                      />
+                    </svg>
+                  </div>
+                  <div class="attendance-pct-text">
+                    <span class="attendance-pct-val">${pctDisplay}</span>
+                    <span class="attendance-pct-label">Present</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          } else {
+            // Coach Attendance Card (Original Implementation)
+            card.innerHTML = `
+              <!-- Top Row: Calendar Icon, Date & Day, 3-dots Actions Menu -->
+              <div class="attendance-card-top">
+                <div class="attendance-date-block">
+                  <div class="attendance-calendar-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                      <circle cx="8" cy="14" r="1" fill="currentColor"></circle>
+                      <circle cx="12" cy="14" r="1" fill="currentColor"></circle>
+                      <circle cx="16" cy="14" r="1" fill="currentColor"></circle>
+                      <circle cx="8" cy="18" r="1" fill="currentColor"></circle>
+                      <circle cx="12" cy="18" r="1" fill="currentColor"></circle>
+                      <circle cx="16" cy="18" r="1" fill="currentColor"></circle>
+                    </svg>
+                  </div>
+                  <div class="attendance-date-text">
+                    <div class="attendance-date-val">${fullDate}</div>
+                    <div class="attendance-day-val">${dayOfWeek}</div>
+                  </div>
+                </div>
+                <div class="batch-actions-wrap">
+                  <button class="batch-actions-btn attendance-three-dots-btn" data-id="mobile-${menuKey}" type="button" aria-label="Attendance Actions">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                      <circle cx="12" cy="5" r="2"/>
+                      <circle cx="12" cy="12" r="2"/>
+                      <circle cx="12" cy="19" r="2"/>
+                    </svg>
+                  </button>
+                  <div class="batch-actions-menu" id="attendanceMenu-mobile-${menuKey}">
+                    <button class="batch-action-item btn-open-attendance" type="button"
+                      onclick="openAttendanceSheet(${sheet.batch_id}, '${sheet.attendance_date}', '${safeBatchName.replace(/'/g, "\\'")}', '${safeCoachName.replace(/'/g, "\\'")}')">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                      Open Attendance
+                    </button>
+                    <button class="batch-action-item danger btn-delete-attendance" type="button"
+                      onclick="promptDeleteAttendanceSheet(${sheet.batch_id}, '${sheet.attendance_date}', '${safeBatchName.replace(/'/g, "\\'")}')">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                      </svg>
+                      Delete Attendance
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Divider -->
+              <div class="attendance-card-divider"></div>
+
+              <!-- Bottom Row: Users Icon, Attendance Count, Circular Progress Ring & Percentage -->
+              <div class="attendance-card-bottom">
+                <div class="attendance-count-block">
+                  <div class="attendance-group-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9" cy="7" r="4"></circle>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                  </div>
+                  <div class="attendance-count-text">
+                    <span class="attendance-stat-label">Attendance</span>
+                    <span class="attendance-stat-val">${presentCount} / ${totalStudents}</span>
+                  </div>
+                </div>
+
+                <div class="attendance-pct-block">
+                  <div class="attendance-circle-wrap">
+                    <svg viewBox="0 0 36 36" class="attendance-circle-chart">
+                      <path class="circle-bg"
+                        d="M18 2.0845
+                          a 15.9155 15.9155 0 0 1 0 31.831
+                          a 15.9155 15.9155 0 0 1 0 -31.831"
+                      />
+                      <path class="circle-fg"
+                        stroke-dasharray="${pct}, 100"
+                        d="M18 2.0845
+                          a 15.9155 15.9155 0 0 1 0 31.831
+                          a 15.9155 15.9155 0 0 1 0 -31.831"
+                      />
+                    </svg>
+                  </div>
+                  <div class="attendance-pct-text">
+                    <span class="attendance-pct-val">${pctDisplay}</span>
+                    <span class="attendance-pct-label">Present</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          }
           cardsContainer.appendChild(card);
         }
       });
@@ -688,14 +908,25 @@ async function openAttendanceSheet(batchId, attendanceDate, batchName, coachName
   const tbody      = document.getElementById('openAttendanceStudentTableBody');
   const batchIdInp = document.getElementById('openAttendanceBatchId');
   const dateInp    = document.getElementById('openAttendanceDate');
+  const saveBtn    = document.getElementById('btnSaveOpenAttendance');
+  const isSuper    = isSuperAdminUser();
 
-  const coachHeaderBatch = document.getElementById('coachHeaderBatch')?.textContent || batchName;
+  const titlePrefix = (isSuper && batchName) ? batchName : (document.getElementById('coachHeaderBatch')?.textContent || batchName || 'Batch');
 
-  if (modalTitle) modalTitle.textContent = `${coachHeaderBatch} - Attendance`;
-  if (modalSub) modalSub.textContent = `Date: ${formatDateDisplay(attendanceDate)}`;
+  if (modalTitle) modalTitle.textContent = `${titlePrefix} - Attendance`;
+  if (modalSub) {
+    modalSub.textContent = isSuper 
+      ? `Date: ${formatDateDisplay(attendanceDate)} • Coach: ${coachName || 'Assigned Coach'} (Read-Only)`
+      : `Date: ${formatDateDisplay(attendanceDate)}`;
+  }
   if (batchIdInp) batchIdInp.value = batchId;
   if (dateInp) dateInp.value = attendanceDate;
   if (tbody) tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; padding:1.5rem;">Loading students...</td></tr>';
+
+  // Toggle Save button visibility based on role (Superadmin is Read-Only)
+  if (saveBtn) {
+    saveBtn.style.display = isSuper ? 'none' : '';
+  }
 
   openModal('openAttendanceModal');
 
@@ -724,24 +955,44 @@ async function openAttendanceSheet(batchId, attendanceDate, batchName, coachName
       const isPresent = student.status === 'Present';
       const safeName = escapeHtml(student.student_name);
 
-      tr.innerHTML = `
-        <td class="roster-td-name">
-          <div class="student-cell roster-student-cell">
-            <div class="student-avatar roster-student-avatar">
-              ${getInitials(safeName)}
+      if (isSuper) {
+        // Superadmin: Read-Only status badge (NO checkboxes, cannot mark/edit)
+        tr.innerHTML = `
+          <td class="roster-td-name">
+            <div class="student-cell roster-student-cell">
+              <div class="student-avatar roster-student-avatar">
+                ${getInitials(safeName)}
+              </div>
+              <span class="student-name roster-student-name" title="${safeName}">${safeName}</span>
             </div>
-            <span class="student-name roster-student-name" title="${safeName}">${safeName}</span>
-          </div>
-        </td>
-        <td class="roster-td-status">
-          <label class="status-checkbox-label roster-status-label">
-            <input type="checkbox" class="student-status-checkbox" 
-              data-student-id="${student.student_id}" 
-              ${isPresent ? 'checked' : ''} 
-              aria-label="Mark attendance for ${safeName}">
-          </label>
-        </td>
-      `;
+          </td>
+          <td class="roster-td-status" style="text-align: center;">
+            <span class="roster-status-badge ${isPresent ? 'badge-present' : 'badge-absent'}">
+              ${isPresent ? 'Present ✓' : 'Absent ○'}
+            </span>
+          </td>
+        `;
+      } else {
+        // Coach: Interactive checkbox for marking attendance
+        tr.innerHTML = `
+          <td class="roster-td-name">
+            <div class="student-cell roster-student-cell">
+              <div class="student-avatar roster-student-avatar">
+                ${getInitials(safeName)}
+              </div>
+              <span class="student-name roster-student-name" title="${safeName}">${safeName}</span>
+            </div>
+          </td>
+          <td class="roster-td-status">
+            <label class="status-checkbox-label roster-status-label">
+              <input type="checkbox" class="student-status-checkbox" 
+                data-student-id="${student.student_id}" 
+                ${isPresent ? 'checked' : ''} 
+                aria-label="Mark attendance for ${safeName}">
+            </label>
+          </td>
+        `;
+      }
       tbody.appendChild(tr);
     });
   } catch (err) {
@@ -1152,7 +1403,8 @@ async function fetchCoachStudentsAttendance(forceRefresh = false) {
       throw new Error(data.error || 'Failed to load students attendance.');
     }
 
-    if (data.coach_info) {
+    const isSuper = isSuperAdminUser();
+    if (!isSuper && data.coach_info) {
       updateCoachHeader(data.coach_info);
     }
 
@@ -1184,18 +1436,21 @@ function applyStudentFiltersAndRender() {
   if (!container) return;
 
   const query = (studentSearchQuery || '').trim().toLowerCase();
+  const isSuper = isSuperAdminUser();
 
   if (clearBtn) {
     clearBtn.style.display = query.length > 0 ? 'inline-block' : 'none';
   }
 
-  // Filter students client-side by Name, ID, or City
+  // Filter students client-side by Name, ID, City, Batch, or Coach
   filteredStudentsData = coachStudentsData.filter(st => {
     if (!query) return true;
     const nameMatch = (st.student_name || '').toLowerCase().includes(query);
     const idMatch = String(st.student_id || '').includes(query);
     const cityMatch = (st.city || '').toLowerCase().includes(query);
-    return nameMatch || idMatch || cityMatch;
+    const batchMatch = (st.batch_name || '').toLowerCase().includes(query);
+    const coachMatch = (st.coach_name || '').toLowerCase().includes(query);
+    return nameMatch || idMatch || cityMatch || batchMatch || coachMatch;
   });
 
   // Sort students by Name, Attendance, or City
@@ -1236,8 +1491,10 @@ function applyStudentFiltersAndRender() {
           emptyTitle.textContent = 'No students found';
           emptyMsg.textContent = `No students match "${escapeHtml(studentSearchQuery)}".`;
         } else {
-          emptyTitle.textContent = 'No Students Assigned';
-          emptyMsg.textContent = 'No students are currently assigned to your batch.';
+          emptyTitle.textContent = isSuper ? 'No Students Found' : 'No Students Assigned';
+          emptyMsg.textContent = isSuper 
+            ? 'No student records are currently available.'
+            : 'No students are currently assigned to your batch.';
         }
       }
     }
@@ -1249,6 +1506,8 @@ function applyStudentFiltersAndRender() {
   filteredStudentsData.forEach(st => {
     const safeName = escapeHtml(st.student_name);
     const safeCity = escapeHtml(st.city || 'Vasai');
+    const safeBatch = escapeHtml(st.batch_name || 'Batch');
+    const safeCoach = escapeHtml(st.coach_name || 'Coach');
     const present = parseInt(st.present_count || 0, 10);
     const total = parseInt(st.total_records || 0, 10);
     const pct = total > 0 ? Math.round((present / total) * 100) : 0;
@@ -1256,66 +1515,116 @@ function applyStudentFiltersAndRender() {
     const initials = getInitials(st.student_name);
 
     const card = document.createElement('div');
-    card.className = 'attendance-student-card';
+    card.className = isSuper ? 'attendance-student-card superadmin-student-card' : 'attendance-student-card';
     card.dataset.studentId = st.student_id;
     card.setAttribute('role', 'button');
     card.setAttribute('tabindex', '0');
     card.setAttribute('aria-label', `View attendance details for ${safeName}`);
-
-    card.innerHTML = `
-      <!-- Left: Avatar, Name & City -->
-      <div class="student-card-left">
-        <div class="student-card-avatar">
-          ${photoUrl 
-            ? `<img src="${photoUrl}" alt="${safeName}" onerror="this.parentElement.textContent='${initials}'">` 
-            : `<span>${initials}</span>`
-          }
+    if (isSuper) {
+      // Superadmin student card: [Avatar] Name \n • Batch Name • Coach Name | [Percentage Ring] [Arrow]
+      card.innerHTML = `
+        <!-- Left: Avatar, Name & Secondary Info (• Batch • Coach) -->
+        <div class="student-card-left superadmin-student-left">
+          <div class="student-card-avatar">
+            ${photoUrl 
+              ? `<img src="${photoUrl}" alt="${safeName}" onerror="this.parentElement.textContent='${initials}'">` 
+              : `<span>${initials}</span>`
+            }
+          </div>
+          <div class="student-card-info">
+            <span class="student-card-name" title="${safeName}">${safeName}</span>
+            <div class="student-card-meta-row">
+              <span class="meta-dot">•</span>
+              <span class="student-card-meta-item student-card-batch-name" title="Batch">${safeBatch}</span>
+              <span class="meta-dot">•</span>
+              <span class="student-card-meta-item student-card-coach-name" title="Coach">${safeCoach}</span>
+            </div>
+          </div>
         </div>
-        <div class="student-card-info">
-          <span class="student-card-name" title="${safeName}">${safeName}</span>
-          <span class="student-card-city">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-              <circle cx="12" cy="10" r="3"></circle>
+
+        <!-- Right: Circular Attendance Percentage & Clickable Arrow -->
+        <div class="student-card-right superadmin-student-right">
+          <div class="student-card-pct-ring">
+            <svg viewBox="0 0 36 36" class="attendance-circle-chart">
+              <path class="circle-bg"
+                d="M18 2.0845
+                  a 15.9155 15.9155 0 0 1 0 31.831
+                  a 15.9155 15.9155 0 0 1 0 -31.831"
+              />
+              <path class="circle-fg"
+                stroke-dasharray="${pct}, 100"
+                d="M18 2.0845
+                  a 15.9155 15.9155 0 0 1 0 31.831
+                  a 15.9155 15.9155 0 0 1 0 -31.831"
+              />
             </svg>
-            ${safeCity}
-          </span>
+            <span class="student-card-pct-text">${pct}%</span>
+          </div>
+
+          <button type="button" class="student-card-arrow-btn" aria-label="Open ${safeName} attendance details">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
         </div>
-      </div>
-
-      <!-- Middle: Attendance Fraction & Progress Bar -->
-      <div class="student-card-middle">
-        <span class="student-card-stat-label">Attendance</span>
-        <span class="student-card-stat-fraction">${present} / ${total}</span>
-        <div class="student-card-progress-track">
-          <div class="student-card-progress-fill" style="width: ${pct}%;"></div>
+      `;
+    } else {
+      // Coach student card with horizontal progress bar
+      card.innerHTML = `
+        <!-- Left: Avatar, Name & City -->
+        <div class="student-card-left">
+          <div class="student-card-avatar">
+            ${photoUrl 
+              ? `<img src="${photoUrl}" alt="${safeName}" onerror="this.parentElement.textContent='${initials}'">` 
+              : `<span>${initials}</span>`
+            }
+          </div>
+          <div class="student-card-info">
+            <span class="student-card-name" title="${safeName}">${safeName}</span>
+            <span class="student-card-city">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+              ${safeCity}
+            </span>
+          </div>
         </div>
-      </div>
 
-      <!-- Right: Circular Indicator & Clickable Arrow -->
-      <div class="student-card-pct-ring">
-        <svg viewBox="0 0 36 36" class="attendance-circle-chart">
-          <path class="circle-bg"
-            d="M18 2.0845
-              a 15.9155 15.9155 0 0 1 0 31.831
-              a 15.9155 15.9155 0 0 1 0 -31.831"
-          />
-          <path class="circle-fg"
-            stroke-dasharray="${pct}, 100"
-            d="M18 2.0845
-              a 15.9155 15.9155 0 0 1 0 31.831
-              a 15.9155 15.9155 0 0 1 0 -31.831"
-          />
-        </svg>
-        <span class="student-card-pct-text">${pct}%</span>
-      </div>
+        <!-- Middle: Attendance Fraction & Progress Bar -->
+        <div class="student-card-middle">
+          <span class="student-card-stat-label">Attendance</span>
+          <span class="student-card-stat-fraction">${present} / ${total}</span>
+          <div class="student-card-progress-track">
+            <div class="student-card-progress-fill" style="width: ${pct}%;"></div>
+          </div>
+        </div>
 
-      <button type="button" class="student-card-arrow-btn" aria-label="Open ${safeName} attendance details">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="9 18 15 12 9 6"></polyline>
-        </svg>
-      </button>
-    `;
+        <!-- Right: Circular Indicator & Clickable Arrow -->
+        <div class="student-card-pct-ring">
+          <svg viewBox="0 0 36 36" class="attendance-circle-chart">
+            <path class="circle-bg"
+              d="M18 2.0845
+                a 15.9155 15.9155 0 0 1 0 31.831
+                a 15.9155 15.9155 0 0 1 0 -31.831"
+            />
+            <path class="circle-fg"
+              stroke-dasharray="${pct}, 100"
+              d="M18 2.0845
+                a 15.9155 15.9155 0 0 1 0 31.831
+                a 15.9155 15.9155 0 0 1 0 -31.831"
+            />
+          </svg>
+          <span class="student-card-pct-text">${pct}%</span>
+        </div>
+
+        <button type="button" class="student-card-arrow-btn" aria-label="Open ${safeName} attendance details">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      `;
+    }
 
     // Click on card or arrow opens details popup
     card.addEventListener('click', () => {
