@@ -30,8 +30,7 @@
 
     <!-- Sidebar Navigation -->
     <aside class="app-sidebar" id="appSidebar">
-      <div>
-        <div class="sidebar-header">
+      <div class="sidebar-header">
           <a href="dashboard.html" class="brand-logo">
             <div class="brand-icon">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -153,7 +152,6 @@
             <span>Reports & Analytics</span>
           </a>
         </nav>
-      </div>
 
       <!-- Profile Chip in Sidebar -->
       <div class="sidebar-footer">
@@ -939,6 +937,33 @@
                     &times;
                   </button>
                 </div>
+
+                <!-- Superadmin Batch Filter (compact filter beside Select Date) -->
+                <div class="attendance-batch-filter-wrap" id="superadminBatchFilterWrap" style="display:none;">
+                  <button type="button" class="btn-attendance-batch-select" id="btnAttendanceSelectBatch" aria-haspopup="true" aria-expanded="false" title="Filter attendance by batch">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9" cy="7" r="4"></circle>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    <span id="attendanceSelectedBatchLabel">Select Batch</span>
+                    <svg class="batch-dropdown-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </button>
+                  <button type="button" class="btn-attendance-batch-clear" id="btnAttendanceClearBatch" style="display:none;" title="Reset Batch Filter" aria-label="Reset Batch Filter">
+                    &times;
+                  </button>
+
+                  <!-- Batch Dropdown Popover -->
+                  <div class="attendance-batch-dropdown" id="attendanceBatchDropdown" style="display:none;">
+                    <div class="batch-dropdown-items" id="attendanceBatchDropdownItems">
+                      <!-- Dynamically rendered options via Batches API -->
+                    </div>
+                  </div>
+                </div>
+
                 <button type="button" class="btn-sb-primary btn-attendance-new-sheet" id="btnNewAttendanceSheet">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>

@@ -92,6 +92,10 @@ let activeAttendanceDateFilter = {
   endDate: ''
 };
 
+// Active Attendance Batch Filter State (Superadmin)
+let activeAttendanceBatchFilter = null; // null = all batches, or number/string batch_id
+let activeAttendanceBatchName = '';
+
 // Format short date for button display (e.g., 'Sep 8, 2026' or 'Sep 8')
 function formatShortDateDisplay(dateStr, includeYear = true) {
   if (!dateStr) return '';
@@ -108,29 +112,39 @@ function formatShortDateDisplay(dateStr, includeYear = true) {
   return dateStr;
 }
 
-// Apply date filter to both mobile cards and desktop table rows
-function applyAttendanceDateFilter() {
+// Unified filter for mobile cards and desktop table rows (Date + Batch)
+function applyAttendanceSheetFilters() {
   const cards = document.querySelectorAll('#attendanceCardsContainer .attendance-card-mobile');
   const rows = document.querySelectorAll('#attendanceSectionTableBody tr');
   const emptyState = document.getElementById('attendanceDateEmptyState');
   const emptyMsg = document.getElementById('attendanceDateEmptyMsg');
-  const labelEl = document.getElementById('attendanceSelectedDateLabel');
-  const clearBtn = document.getElementById('btnAttendanceClearDate');
+  const dateLabelEl = document.getElementById('attendanceSelectedDateLabel');
+  const dateClearBtn = document.getElementById('btnAttendanceClearDate');
+  const batchLabelEl = document.getElementById('attendanceSelectedBatchLabel');
+  const batchClearBtn = document.getElementById('btnAttendanceClearBatch');
+  const batchBtn = document.getElementById('btnAttendanceSelectBatch');
 
   let visibleCount = 0;
-  const filter = activeAttendanceDateFilter;
+  const dateFilter = activeAttendanceDateFilter;
+  const batchId = activeAttendanceBatchFilter;
 
   cards.forEach(card => {
     const cardDate = card.dataset.date || '';
-    let match = true;
+    const cardBatchId = card.dataset.batchId || '';
 
-    if (filter.type === 'single') {
-      match = (cardDate === filter.singleDate);
-    } else if (filter.type === 'range') {
-      match = (cardDate >= filter.startDate && cardDate <= filter.endDate);
+    let dateMatch = true;
+    if (dateFilter.type === 'single') {
+      dateMatch = (cardDate === dateFilter.singleDate);
+    } else if (dateFilter.type === 'range') {
+      dateMatch = (cardDate >= dateFilter.startDate && cardDate <= dateFilter.endDate);
     }
 
-    if (match) {
+    let batchMatch = true;
+    if (batchId !== null && batchId !== undefined && batchId !== '') {
+      batchMatch = (String(cardBatchId) === String(batchId));
+    }
+
+    if (dateMatch && batchMatch) {
       card.style.display = '';
       visibleCount++;
     } else {
@@ -140,33 +154,51 @@ function applyAttendanceDateFilter() {
 
   rows.forEach(row => {
     const rowDate = row.dataset.date || '';
-    let match = true;
+    const rowBatchId = row.dataset.batchId || '';
 
-    if (filter.type === 'single') {
-      match = (rowDate === filter.singleDate);
-    } else if (filter.type === 'range') {
-      match = (rowDate >= filter.startDate && rowDate <= filter.endDate);
+    let dateMatch = true;
+    if (dateFilter.type === 'single') {
+      dateMatch = (rowDate === dateFilter.singleDate);
+    } else if (dateFilter.type === 'range') {
+      dateMatch = (rowDate >= dateFilter.startDate && rowDate <= dateFilter.endDate);
     }
 
-    row.style.display = match ? '' : 'none';
+    let batchMatch = true;
+    if (batchId !== null && batchId !== undefined && batchId !== '') {
+      batchMatch = (String(rowBatchId) === String(batchId));
+    }
+
+    row.style.display = (dateMatch && batchMatch) ? '' : 'none';
   });
 
-  // Update button label & clear button visibility
-  if (filter.type === 'single') {
-    if (labelEl) labelEl.textContent = formatShortDateDisplay(filter.singleDate);
-    if (clearBtn) clearBtn.style.display = 'inline-flex';
-  } else if (filter.type === 'range') {
-    const startTxt = formatShortDateDisplay(filter.startDate, false);
-    const endTxt = formatShortDateDisplay(filter.endDate, false);
-    if (labelEl) labelEl.textContent = `${startTxt} – ${endTxt}`;
-    if (clearBtn) clearBtn.style.display = 'inline-flex';
+  // Update date filter button label & clear button visibility
+  if (dateFilter.type === 'single') {
+    if (dateLabelEl) dateLabelEl.textContent = formatShortDateDisplay(dateFilter.singleDate);
+    if (dateClearBtn) dateClearBtn.style.display = 'inline-flex';
+  } else if (dateFilter.type === 'range') {
+    const startTxt = formatShortDateDisplay(dateFilter.startDate, false);
+    const endTxt = formatShortDateDisplay(dateFilter.endDate, false);
+    if (dateLabelEl) dateLabelEl.textContent = `${startTxt} – ${endTxt}`;
+    if (dateClearBtn) dateClearBtn.style.display = 'inline-flex';
   } else {
-    if (labelEl) labelEl.textContent = 'Select Date';
-    if (clearBtn) clearBtn.style.display = 'none';
+    if (dateLabelEl) dateLabelEl.textContent = 'Select Date';
+    if (dateClearBtn) dateClearBtn.style.display = 'none';
+  }
+
+  // Update batch filter button label & clear button visibility
+  if (batchId !== null && batchId !== undefined && batchId !== '') {
+    if (batchLabelEl) batchLabelEl.textContent = activeAttendanceBatchName || `Batch ${batchId}`;
+    if (batchClearBtn) batchClearBtn.style.display = 'inline-flex';
+    if (batchBtn) batchBtn.classList.add('has-filter');
+  } else {
+    if (batchLabelEl) batchLabelEl.textContent = 'Select Batch';
+    if (batchClearBtn) batchClearBtn.style.display = 'none';
+    if (batchBtn) batchBtn.classList.remove('has-filter');
   }
 
   // Update Live Count pill to reflect visible filtered sheets
-  if (filter.type !== 'all') {
+  const hasFilterActive = (dateFilter.type !== 'all') || (batchId !== null && batchId !== undefined && batchId !== '');
+  if (hasFilterActive) {
     updateAttendanceLiveCount(visibleCount);
   } else {
     updateAttendanceLiveCount(cards.length);
@@ -174,17 +206,113 @@ function applyAttendanceDateFilter() {
 
   // Handle empty state
   if (emptyState) {
-    if (filter.type !== 'all' && visibleCount === 0 && cards.length > 0) {
+    if (hasFilterActive && visibleCount === 0 && cards.length > 0) {
       emptyState.style.display = 'flex';
       if (emptyMsg) {
-        emptyMsg.textContent = filter.type === 'single'
-          ? 'No attendance sheets found for this date.'
-          : 'No attendance sheets found for this date range.';
+        if (dateFilter.type !== 'all' && batchId) {
+          emptyMsg.textContent = `No attendance sheets found for ${activeAttendanceBatchName || 'this batch'} on the selected date.`;
+        } else if (batchId) {
+          emptyMsg.textContent = `No attendance sheets found for ${activeAttendanceBatchName || 'this batch'}.`;
+        } else {
+          emptyMsg.textContent = dateFilter.type === 'single'
+            ? 'No attendance sheets found for this date.'
+            : 'No attendance sheets found for this date range.';
+        }
       }
     } else {
       emptyState.style.display = 'none';
     }
   }
+}
+
+// Preserve existing function name for backward compatibility
+function applyAttendanceDateFilter() {
+  applyAttendanceSheetFilters();
+}
+
+// Populate Superadmin Batch Filter Dropdown dynamically from Batches API
+async function populateSuperadminBatchFilterDropdown() {
+  const dropdownItems = document.getElementById('attendanceBatchDropdownItems');
+  if (!dropdownItems) return;
+
+  try {
+    let batches = [];
+    if (typeof cachedBatchesList !== 'undefined' && Array.isArray(cachedBatchesList) && cachedBatchesList.length > 0) {
+      batches = cachedBatchesList;
+    } else {
+      const res = await fetch(BATCHES_API);
+      const data = await res.json();
+      if (data.success && Array.isArray(data.batches)) {
+        batches = data.batches;
+        if (typeof cachedBatchesList !== 'undefined') {
+          cachedBatchesList = batches;
+        }
+      }
+    }
+
+    const isAllSelected = (activeAttendanceBatchFilter === null || activeAttendanceBatchFilter === '');
+
+    let html = `
+      <button type="button" class="batch-dropdown-item ${isAllSelected ? 'active' : ''}" data-batch-id="" data-batch-name="">
+        <span>All Batches (Reset)</span>
+        ${isAllSelected ? '<span class="check-icon">✓</span>' : ''}
+      </button>
+    `;
+
+    batches.forEach(b => {
+      const isSelected = (String(activeAttendanceBatchFilter) === String(b.batch_id));
+      const safeName = escapeHtml(b.batch_name);
+      html += `
+        <button type="button" class="batch-dropdown-item ${isSelected ? 'active' : ''}" data-batch-id="${b.batch_id}" data-batch-name="${safeName}">
+          <span>${safeName}</span>
+          ${isSelected ? '<span class="check-icon">✓</span>' : ''}
+        </button>
+      `;
+    });
+
+    dropdownItems.innerHTML = html;
+
+    // Attach click listeners to batch dropdown items
+    dropdownItems.querySelectorAll('.batch-dropdown-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = item.dataset.batchId;
+        const name = item.dataset.batchName;
+
+        if (!id) {
+          activeAttendanceBatchFilter = null;
+          activeAttendanceBatchName = '';
+        } else {
+          activeAttendanceBatchFilter = id;
+          activeAttendanceBatchName = name;
+        }
+
+        closeSuperadminBatchDropdown();
+        populateSuperadminBatchFilterDropdown();
+        applyAttendanceSheetFilters();
+      });
+    });
+  } catch (err) {
+    console.error('Error populating batch filter dropdown:', err);
+  }
+}
+
+function closeSuperadminBatchDropdown() {
+  const dropdown = document.getElementById('attendanceBatchDropdown');
+  const btn = document.getElementById('btnAttendanceSelectBatch');
+  if (dropdown) dropdown.style.display = 'none';
+  if (btn) {
+    btn.classList.remove('is-open');
+    btn.setAttribute('aria-expanded', 'false');
+  }
+}
+
+function resetSuperadminBatchFilter() {
+  activeAttendanceBatchFilter = null;
+  activeAttendanceBatchName = '';
+  closeSuperadminBatchDropdown();
+  populateSuperadminBatchFilterDropdown();
+  applyAttendanceSheetFilters();
 }
 
 // ── Dedicated Attendance Calendar State & Logic ─────────────────────────────
@@ -416,6 +544,8 @@ async function fetchAttendanceSheets() {
   const coachHeader = document.getElementById('coachAttendanceHeader');
   const btnNewSheet = document.getElementById('btnNewAttendanceSheet');
   const attendanceSec = document.getElementById('attendanceSection');
+  const batchFilterWrap = document.getElementById('superadminBatchFilterWrap');
+
   if (isSuper) {
     if (coachHeader) {
       coachHeader.style.setProperty('display', 'none', 'important');
@@ -423,6 +553,8 @@ async function fetchAttendanceSheets() {
     }
     if (btnNewSheet) btnNewSheet.style.setProperty('display', 'none', 'important');
     if (attendanceSec) attendanceSec.classList.add('is-superadmin');
+    if (batchFilterWrap) batchFilterWrap.style.display = 'flex';
+    populateSuperadminBatchFilterDropdown();
   } else {
     if (coachHeader) {
       coachHeader.style.removeProperty('display');
@@ -430,6 +562,7 @@ async function fetchAttendanceSheets() {
     }
     if (btnNewSheet) btnNewSheet.style.removeProperty('display');
     if (attendanceSec) attendanceSec.classList.remove('is-superadmin');
+    if (batchFilterWrap) batchFilterWrap.style.display = 'none';
   }
 
   // Adjust Desktop Table header columns
@@ -823,9 +956,9 @@ async function fetchAttendanceSheets() {
         }
       });
 
-      // Maintain active date filter if set
-      if (activeAttendanceDateFilter.type !== 'all') {
-        applyAttendanceDateFilter();
+      // Maintain active date or batch filter if set
+      if (activeAttendanceDateFilter.type !== 'all' || activeAttendanceBatchFilter !== null) {
+        applyAttendanceSheetFilters();
       }
     }
   } catch (err) {
@@ -1197,6 +1330,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const btnResetEmpty = document.getElementById('btnResetDateFilterEmptyState');
   if (btnResetEmpty) btnResetEmpty.addEventListener('click', resetAttendanceCalendarFilter);
+
+  // Superadmin Batch Filter Controls
+  const btnSelectBatch = document.getElementById('btnAttendanceSelectBatch');
+  const batchDropdown = document.getElementById('attendanceBatchDropdown');
+  const btnClearBatch = document.getElementById('btnAttendanceClearBatch');
+  const btnResetBatchLink = document.getElementById('btnBatchResetLink');
+
+  if (btnSelectBatch && batchDropdown) {
+    btnSelectBatch.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isVisible = (batchDropdown.style.display === 'block');
+      if (isVisible) {
+        closeSuperadminBatchDropdown();
+      } else {
+        batchDropdown.style.display = 'block';
+        btnSelectBatch.classList.add('is-open');
+        btnSelectBatch.setAttribute('aria-expanded', 'true');
+        populateSuperadminBatchFilterDropdown();
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      const wrap = document.getElementById('superadminBatchFilterWrap');
+      if (wrap && !wrap.contains(e.target)) {
+        closeSuperadminBatchDropdown();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeSuperadminBatchDropdown();
+      }
+    });
+  }
+
+  if (btnClearBatch) {
+    btnClearBatch.addEventListener('click', (e) => {
+      e.stopPropagation();
+      resetSuperadminBatchFilter();
+    });
+  }
+
+  if (btnResetBatchLink) {
+    btnResetBatchLink.addEventListener('click', (e) => {
+      e.stopPropagation();
+      resetSuperadminBatchFilter();
+    });
+  }
 
   // Dedicated Calendar Modal Controls
   const btnResetCal = document.getElementById('btnResetAttendanceFilter');

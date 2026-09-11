@@ -97,6 +97,7 @@ function navigateToSection(targetHref, showToastNotice = true) {
     if (attendanceSection) {
       attendanceSection.style.display = '';
       const coachHeader = document.getElementById('coachAttendanceHeader');
+      const batchFilterWrap = document.getElementById('superadminBatchFilterWrap');
       if (isSuperAdmin) {
         attendanceSection.classList.add('is-superadmin');
         if (mainContent) mainContent.classList.add('is-superadmin-attendance');
@@ -104,6 +105,7 @@ function navigateToSection(targetHref, showToastNotice = true) {
           coachHeader.style.setProperty('display', 'none', 'important');
           coachHeader.classList.add('superadmin-hidden');
         }
+        if (batchFilterWrap) batchFilterWrap.style.display = 'flex';
       } else {
         attendanceSection.classList.remove('is-superadmin');
         if (mainContent) mainContent.classList.remove('is-superadmin-attendance');
@@ -111,6 +113,7 @@ function navigateToSection(targetHref, showToastNotice = true) {
           coachHeader.style.removeProperty('display');
           coachHeader.classList.remove('superadmin-hidden');
         }
+        if (batchFilterWrap) batchFilterWrap.style.display = 'none';
       }
       if (typeof fetchAttendanceSheets === 'function') fetchAttendanceSheets();
     }
