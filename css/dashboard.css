@@ -4427,6 +4427,155 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   background: rgba(239, 68, 68, 0.25);
 }
 
+/* ==========================================================================
+   Superadmin Attendance Filter Controls Redesign
+   - Sleek, compact filter control appearance distinct from content cards
+   - Recessed dark background with subtle teal accent border
+   - Guaranteed zero impact on Coach Attendance
+   ========================================================================== */
+
+.date-dropdown-chevron {
+  display: none;
+}
+
+#attendanceSection.is-superadmin .date-dropdown-chevron {
+  display: inline-block;
+}
+
+#attendanceSection.is-superadmin .attendance-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+#attendanceSection.is-superadmin .attendance-date-filter-wrap,
+#attendanceSection.is-superadmin .attendance-batch-filter-wrap {
+  flex: 1 1 175px;
+  min-width: 0;
+  max-width: 220px;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+#attendanceSection.is-superadmin .btn-attendance-date-select,
+#attendanceSection.is-superadmin .btn-attendance-batch-select {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  height: 36px;
+  background: rgba(8, 14, 26, 0.75);
+  border: 1px solid rgba(0, 230, 118, 0.22);
+  border-radius: 8px;
+  color: #e2e8f0;
+  padding: 0 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+#attendanceSection.is-superadmin .btn-attendance-date-select > svg:first-child,
+#attendanceSection.is-superadmin .btn-attendance-batch-select > svg:first-child {
+  color: #00e676;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 5px rgba(0, 230, 118, 0.25));
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+#attendanceSection.is-superadmin .btn-attendance-date-select span,
+#attendanceSection.is-superadmin .btn-attendance-batch-select span {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: left;
+  line-height: 1;
+}
+
+#attendanceSection.is-superadmin .date-dropdown-chevron,
+#attendanceSection.is-superadmin .batch-dropdown-chevron {
+  margin-left: auto;
+  color: #64748b;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+#attendanceSection.is-superadmin .btn-attendance-date-select:hover,
+#attendanceSection.is-superadmin .btn-attendance-batch-select:hover {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(0, 230, 118, 0.5);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), 0 0 10px rgba(0, 230, 118, 0.12);
+}
+
+#attendanceSection.is-superadmin .btn-attendance-date-select:hover .date-dropdown-chevron,
+#attendanceSection.is-superadmin .btn-attendance-batch-select:hover .batch-dropdown-chevron {
+  color: #94a3b8;
+}
+
+#attendanceSection.is-superadmin .btn-attendance-date-select:focus-visible,
+#attendanceSection.is-superadmin .btn-attendance-batch-select:focus-visible,
+#attendanceSection.is-superadmin .btn-attendance-batch-select.is-open {
+  outline: none;
+  background: rgba(16, 185, 129, 0.1);
+  border-color: #00e676;
+  color: #ffffff;
+  box-shadow: 0 0 0 2px rgba(0, 230, 118, 0.2), 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+#attendanceSection.is-superadmin .btn-attendance-batch-select.is-open .batch-dropdown-chevron {
+  transform: rotate(180deg);
+  color: #00e676;
+}
+
+#attendanceSection.is-superadmin .btn-attendance-date-select.has-filter,
+#attendanceSection.is-superadmin .btn-attendance-batch-select.has-filter {
+  background: rgba(0, 230, 118, 0.12);
+  border-color: #00e676;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(0, 230, 118, 0.18), inset 0 1px 0 rgba(0, 230, 118, 0.2);
+}
+
+#attendanceSection.is-superadmin .btn-attendance-date-select.has-filter .date-dropdown-chevron,
+#attendanceSection.is-superadmin .btn-attendance-batch-select.has-filter .batch-dropdown-chevron {
+  color: #00e676;
+}
+
+#attendanceSection.is-superadmin .btn-attendance-date-clear,
+#attendanceSection.is-superadmin .btn-attendance-batch-clear {
+  width: 26px;
+  height: 36px;
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  color: #f87171;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+#attendanceSection.is-superadmin .btn-attendance-date-clear:hover,
+#attendanceSection.is-superadmin .btn-attendance-batch-clear:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.6);
+  color: #ffffff;
+}
+
 /* Dropdown Popover */
 .attendance-batch-dropdown {
   position: absolute;
@@ -5074,6 +5223,54 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     border-radius: var(--radius-sm) !important;
     font-size: 0.8rem !important;
     gap: 0.35rem !important;
+  }
+
+  /* Superadmin Filter Controls on Mobile (Side-by-side, compact, distinct from cards) */
+  #attendanceSection.is-superadmin .attendance-controls-row {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+  }
+
+  #attendanceSection.is-superadmin .attendance-date-filter-wrap,
+  #attendanceSection.is-superadmin .attendance-batch-filter-wrap {
+    flex: 1 1 50% !important;
+    max-width: 50% !important;
+    min-width: 0 !important;
+  }
+
+  #attendanceSection.is-superadmin .btn-attendance-date-select,
+  #attendanceSection.is-superadmin .btn-attendance-batch-select {
+    width: 100% !important;
+    height: 36px !important;
+    padding: 0 0.65rem !important;
+    gap: 0.35rem !important;
+    font-size: 0.775rem !important;
+    border-radius: 8px !important;
+  }
+
+  #attendanceSection.is-superadmin .btn-attendance-date-select > svg:first-child,
+  #attendanceSection.is-superadmin .btn-attendance-batch-select > svg:first-child {
+    width: 14px !important;
+    height: 14px !important;
+    flex-shrink: 0 !important;
+  }
+
+  #attendanceSection.is-superadmin .date-dropdown-chevron,
+  #attendanceSection.is-superadmin .batch-dropdown-chevron {
+    width: 11px !important;
+    height: 11px !important;
+    flex-shrink: 0 !important;
+  }
+
+  #attendanceSection.is-superadmin .btn-attendance-date-clear,
+  #attendanceSection.is-superadmin .btn-attendance-batch-clear {
+    width: 24px !important;
+    height: 36px !important;
+    font-size: 0.9rem !important;
+    border-radius: 6px !important;
   }
 
   .btn-attendance-new-sheet {

@@ -172,17 +172,21 @@ function applyAttendanceSheetFilters() {
   });
 
   // Update date filter button label & clear button visibility
+  const dateBtn = document.getElementById('btnAttendanceSelectDate');
   if (dateFilter.type === 'single') {
     if (dateLabelEl) dateLabelEl.textContent = formatShortDateDisplay(dateFilter.singleDate);
     if (dateClearBtn) dateClearBtn.style.display = 'inline-flex';
+    if (dateBtn) dateBtn.classList.add('has-filter');
   } else if (dateFilter.type === 'range') {
     const startTxt = formatShortDateDisplay(dateFilter.startDate, false);
     const endTxt = formatShortDateDisplay(dateFilter.endDate, false);
     if (dateLabelEl) dateLabelEl.textContent = `${startTxt} – ${endTxt}`;
     if (dateClearBtn) dateClearBtn.style.display = 'inline-flex';
+    if (dateBtn) dateBtn.classList.add('has-filter');
   } else {
     if (dateLabelEl) dateLabelEl.textContent = 'Select Date';
     if (dateClearBtn) dateClearBtn.style.display = 'none';
+    if (dateBtn) dateBtn.classList.remove('has-filter');
   }
 
   // Update batch filter button label & clear button visibility
