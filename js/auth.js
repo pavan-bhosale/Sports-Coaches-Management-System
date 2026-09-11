@@ -111,6 +111,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  function renderGoogleSignInButton() {
+    const btnContainer = document.getElementById("googleSignInBtn");
+    if (!btnContainer || !window.google) return;
+
+    // Calculate responsive width so the button never overflows the card on small screens
+    // Google GSI button width accepts an integer/string between 200 and 400 pixels
+    const card = document.getElementById("loginCard") || btnContainer.closest('.auth-card');
+    const cardWidth = card ? card.clientWidth : window.innerWidth;
+    const maxFittingWidth = Math.floor(cardWidth - 36);
+    const targetWidth = Math.min(280, Math.max(200, maxFittingWidth));
+
+    btnContainer.innerHTML = '';
+    google.accounts.id.renderButton(
+      btnContainer,
+      { theme: "outline", size: "large", shape: "pill", text: "signin_with", width: String(targetWidth) }
+    );
+  }
+
   // Ensure google is available (script loads async)
   const initGoogleAuth = setInterval(() => {
     if (window.google) {
@@ -121,15 +139,16 @@ document.addEventListener('DOMContentLoaded', () => {
         callback: window.handleCredentialResponse
       });
       
-      const btnContainer = document.getElementById("googleSignInBtn");
-      if (btnContainer) {
-        google.accounts.id.renderButton(
-          btnContainer,
-          { theme: "outline", size: "large", shape: "pill", text: "signin_with", width: "280" }
-        );
-      }
+      renderGoogleSignInButton();
     }
   }, 100); // Check every 100ms until loaded
+
+  // Dynamically re-render button if viewport or card resizes
+  let resizeTimeout;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(renderGoogleSignInButton, 200);
+  });
 
   // 3. Toast Notification Helper
   function showToast(message, type = 'info') {
