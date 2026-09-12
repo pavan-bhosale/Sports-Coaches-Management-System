@@ -7248,6 +7248,983 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 }
 
+/* ==========================================================================
+   FEES & COLLECTIONS MODULE (FRONTEND ONLY)
+   ========================================================================== */
 
+.fees-section {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
 
+/* 1. Top Compact Summary Dashboard */
+.fees-summary-dashboard {
+  background: #111a2e;
+  border: 1px solid var(--border-glass);
+  border-radius: 10px;
+  padding: 0.65rem 0.5rem;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr;
+  align-items: center;
+  margin-bottom: 0.65rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.fees-summary-divider {
+  width: 1px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.fees-summary-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0.15rem 0.25rem;
+  box-sizing: border-box;
+  user-select: none;
+}
+
+.fees-summary-interactive {
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.fees-summary-interactive:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.fees-summary-interactive:active {
+  transform: scale(0.97);
+}
+
+.fees-summary-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.15rem;
+  height: 20px;
+}
+
+.fees-icon-total svg {
+  stroke: #94a3b8;
+  width: 18px;
+  height: 18px;
+}
+
+.fees-icon-paid svg {
+  width: 18px;
+  height: 18px;
+}
+
+.fees-summary-col.state-paid .fees-icon-paid svg {
+  stroke: #00e676;
+}
+
+.fees-summary-col.state-unpaid .fees-icon-paid svg {
+  stroke: #ef4444;
+}
+
+.fees-summary-number {
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #fff;
+  transition: color 0.2s ease;
+}
+
+.fees-summary-col.state-paid .fees-summary-number {
+  color: #00e676;
+}
+
+.fees-summary-col.state-unpaid .fees-summary-number {
+  color: #ef4444;
+}
+
+.fees-summary-label {
+  font-size: 0.66rem;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+  white-space: nowrap;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+/* Circular Percentage Ring in Summary */
+.fees-circular-ring-wrap {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.1rem;
+}
+
+.fees-circular-chart {
+  width: 100%;
+  height: 100%;
+  transform: rotate(0deg);
+}
+
+.fees-circular-chart .circle-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 3.5;
+}
+
+.fees-circular-chart .circle-fg {
+  fill: none;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.4s ease, stroke 0.3s ease;
+}
+
+.fees-summary-col.state-paid .fees-circular-chart .circle-fg {
+  stroke: #00e676;
+}
+
+.fees-summary-col.state-unpaid .fees-circular-chart .circle-fg {
+  stroke: #ef4444;
+}
+
+.fees-circular-pct-text {
+  position: absolute;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fff;
+  font-family: var(--font-heading);
+}
+
+/* 2. Filter Row: Batch & Month Dropdowns */
+.fees-filter-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fees-dropdown-wrap {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.fees-filter-btn {
+  width: 100%;
+  height: 36px;
+  background: #111a2e;
+  border: 1px solid var(--border-glass);
+  border-radius: 6px;
+  padding: 0 0.55rem;
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.fees-filter-btn:hover {
+  border-color: rgba(0, 230, 118, 0.35);
+  background: #142038;
+}
+
+.fees-filter-btn svg:not(.fees-chevron) {
+  stroke: #00e676;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.fees-filter-btn span {
+  flex: 1 1 auto;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #f8fafc;
+  font-size: 0.76rem;
+  min-width: 0;
+}
+
+.fees-chevron {
+  stroke: var(--text-secondary);
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.fees-filter-btn[aria-expanded="true"] .fees-chevron {
+  transform: rotate(180deg);
+}
+
+.fees-popover-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #111a2e;
+  border: 1px solid var(--border-glass);
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.65);
+  z-index: 100;
+  overflow: hidden;
+  padding: 0.25rem 0;
+}
+
+.fees-dropdown-item {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  padding: 0.45rem 0.75rem;
+  text-align: left;
+  cursor: pointer;
+  display: block;
+  transition: background 0.12s, color 0.12s;
+}
+
+.fees-dropdown-item:hover,
+.fees-dropdown-item.active {
+  background: rgba(0, 230, 118, 0.12);
+  color: #00e676;
+  font-weight: 600;
+}
+
+/* 3. Search Bar */
+.fees-search-wrap {
+  width: 100%;
+  margin-bottom: 0.55rem;
+  box-sizing: border-box;
+}
+
+.fees-search-box {
+  width: 100%;
+  height: 36px;
+  background: #111a2e;
+  border: 1px solid var(--border-glass);
+  border-radius: 6px;
+  padding: 0 0.65rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  box-sizing: border-box;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.fees-search-box:focus-within {
+  border-color: rgba(0, 230, 118, 0.45);
+  background: #142038;
+}
+
+.fees-search-box svg {
+  stroke: var(--text-secondary);
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.fees-search-box input {
+  flex: 1 1 auto;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 0.8rem;
+  font-family: var(--font-body);
+  line-height: 36px;
+  min-width: 0;
+}
+
+.fees-search-box input::placeholder {
+  color: var(--text-secondary);
+}
+
+.fees-search-clear {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fees-search-clear:hover {
+  color: #fff;
+}
+
+/* 4. Action Bar (Status Filter Tabs, Count Pill, Sort Dropdown) */
+.fees-action-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: 0.55rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fees-status-filter-group {
+  display: flex;
+  width: 100%;
+  background: #111a2e;
+  border: 1px solid var(--border-glass);
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+  box-sizing: border-box;
+}
+
+.fees-status-filter-btn {
+  flex: 1 1 0;
+  text-align: center;
+  height: 28px;
+  line-height: 28px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.fees-status-filter-btn:hover {
+  color: #fff;
+}
+
+.fees-status-filter-btn.active {
+  background: rgba(0, 230, 118, 0.15);
+  color: #00e676;
+}
+
+.fees-count-sort-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fees-count-pill {
+  height: 28px;
+  display: inline-flex !important;
+  align-items: center !important;
+  font-size: 0.7rem !important;
+  padding: 0 0.65rem !important;
+  letter-spacing: 0.04em !important;
+  font-weight: 700 !important;
+  margin: 0 !important;
+  box-sizing: border-box;
+}
+
+.fees-sort-wrap {
+  position: relative;
+}
+
+.btn-fees-sort {
+  height: 28px;
+  background: #111a2e;
+  border: 1px solid var(--border-glass);
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.6rem;
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+
+.btn-fees-sort:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.18);
+  background: #142038;
+}
+
+.btn-fees-sort svg:not(.sort-chevron) {
+  stroke: var(--text-secondary);
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.fees-sort-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: #111a2e;
+  border: 1px solid var(--border-glass);
+  border-radius: 7px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.65);
+  z-index: 100;
+  min-width: 130px;
+  overflow: hidden;
+  padding: 0.2rem 0;
+}
+
+.fees-sort-item {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  padding: 0.45rem 0.75rem;
+  text-align: left;
+  cursor: pointer;
+  display: block;
+  transition: background 0.12s, color 0.12s;
+}
+
+.fees-sort-item:hover,
+.fees-sort-item.active {
+  background: rgba(0, 230, 118, 0.12);
+  color: #00e676;
+  font-weight: 600;
+}
+
+/* 5. Student Payment Cards List */
+.fees-students-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fees-student-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #111a2e;
+  border: 1px solid var(--border-glass);
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+  gap: 0.45rem;
+  cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.fees-student-card:hover {
+  border-color: rgba(0, 230, 118, 0.35);
+  background: #142038;
+}
+
+.fees-student-card:focus-visible {
+  outline: 2px solid #00e676;
+  outline-offset: 1px;
+}
+
+.fees-student-card-left {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.fees-student-avatar {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1e293b, #334155);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: #fff;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.fees-student-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fees-student-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.08rem;
+  min-width: 0;
+}
+
+.fees-student-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.fees-student-batch {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  line-height: 1.2;
+}
+
+.fees-student-due-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  line-height: 1.2;
+  margin-top: 1px;
+}
+
+.fees-student-due-row svg {
+  stroke: var(--text-secondary);
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+}
+
+.fees-meta-separator {
+  margin: 0 0.15rem;
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.fees-student-amount {
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.fees-student-card-right {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.fees-status-pill {
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  text-align: center;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.fees-status-pill.badge-paid {
+  background: rgba(0, 230, 118, 0.12);
+  color: #00e676;
+  border: 1px solid rgba(0, 230, 118, 0.35);
+}
+
+.fees-status-pill.badge-unpaid {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.fees-card-arrow-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.fees-student-card:hover .fees-card-arrow-btn {
+  color: #00e676;
+}
+
+/* 6. Payment Detail Modal Styling */
+.fees-payment-modal {
+  max-width: 460px !important;
+}
+
+.fees-modal-body {
+  padding: 0.85rem 1rem !important;
+}
+
+.fees-modal-card {
+  background: #142036;
+  border: 1px solid var(--border-glass);
+  border-radius: 8px;
+  padding: 0.8rem;
+  margin-top: 0.4rem;
+}
+
+.fees-modal-card-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin-bottom: 0.65rem;
+}
+
+.fees-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem 0.85rem;
+}
+
+.fees-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.fees-detail-item-full {
+  grid-column: 1 / -1;
+}
+
+.fees-detail-label {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+}
+
+.fees-detail-val {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #fff;
+  word-break: break-word;
+}
+
+.fees-detail-val.highlight-val {
+  color: #00e676;
+  font-weight: 700;
+}
+
+.fees-detail-val.code-val {
+  font-family: monospace;
+  font-size: 0.74rem;
+  color: var(--color-accent);
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  display: inline-block;
+  width: fit-content;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN BREAKPOINTS: Mobile S, M, L, Tablet, Desktop
+   ========================================================================== */
+
+/* Mobile S (< 360px, e.g. 320px) */
+@media (max-width: 359px) {
+  .fees-summary-dashboard {
+    padding: 0.5rem 0.35rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .fees-summary-divider {
+    height: 26px;
+  }
+
+  .fees-summary-icon-wrap {
+    height: 16px;
+    margin-bottom: 0.1rem;
+  }
+
+  .fees-summary-icon-wrap svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .fees-summary-number {
+    font-size: 1.15rem;
+  }
+
+  .fees-summary-label {
+    font-size: 0.58rem;
+  }
+
+  .fees-circular-ring-wrap {
+    width: 32px;
+    height: 32px;
+  }
+
+  .fees-circular-pct-text {
+    font-size: 0.64rem;
+  }
+
+  .fees-filter-row {
+    gap: 0.35rem;
+    margin-bottom: 0.45rem;
+  }
+
+  .fees-filter-btn {
+    height: 32px;
+    padding: 0 0.4rem;
+    font-size: 0.7rem;
+  }
+
+  .fees-filter-btn span {
+    font-size: 0.7rem;
+  }
+
+  .fees-search-wrap {
+    margin-bottom: 0.45rem;
+  }
+
+  .fees-search-box {
+    height: 32px;
+    padding: 0 0.5rem;
+  }
+
+  .fees-search-box input {
+    font-size: 0.74rem;
+    line-height: 32px;
+  }
+
+  .fees-status-filter-btn {
+    height: 25px;
+    line-height: 25px;
+    font-size: 0.66rem;
+  }
+
+  .fees-count-pill {
+    height: 25px;
+    font-size: 0.64rem !important;
+    padding: 0 0.5rem !important;
+  }
+
+  .btn-fees-sort {
+    height: 25px;
+    font-size: 0.68rem;
+    padding: 0 0.45rem;
+  }
+
+  .fees-student-card {
+    padding: 0.4rem 0.5rem;
+    gap: 0.35rem;
+  }
+
+  .fees-student-avatar {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    font-size: 0.72rem;
+  }
+
+  .fees-student-name {
+    font-size: 0.78rem;
+  }
+
+  .fees-student-due-row {
+    font-size: 0.64rem;
+  }
+
+  .fees-status-pill {
+    padding: 0.16rem 0.4rem;
+    font-size: 0.58rem;
+  }
+}
+
+/* Mobile M (360px - 410px) */
+@media (min-width: 360px) and (max-width: 410px) {
+  .fees-summary-dashboard {
+    padding: 0.6rem 0.45rem;
+    margin-bottom: 0.55rem;
+  }
+
+  .fees-summary-number {
+    font-size: 1.25rem;
+  }
+
+  .fees-summary-label {
+    font-size: 0.64rem;
+  }
+
+  .fees-circular-ring-wrap {
+    width: 36px;
+    height: 36px;
+  }
+
+  .fees-circular-pct-text {
+    font-size: 0.7rem;
+  }
+
+  .fees-filter-btn {
+    height: 34px;
+    padding: 0 0.5rem;
+    font-size: 0.74rem;
+  }
+
+  .fees-search-box {
+    height: 34px;
+  }
+
+  .fees-status-filter-btn {
+    height: 26px;
+    line-height: 26px;
+  }
+
+  .fees-count-pill {
+    height: 26px;
+  }
+
+  .btn-fees-sort {
+    height: 26px;
+  }
+}
+
+/* Mobile L (411px - 639px) */
+@media (min-width: 411px) and (max-width: 639px) {
+  .fees-summary-dashboard {
+    padding: 0.75rem 0.6rem;
+  }
+
+  .fees-summary-number {
+    font-size: 1.4rem;
+  }
+
+  .fees-circular-ring-wrap {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* Tablet & Desktop (>= 640px) */
+@media (min-width: 640px) {
+  .fees-action-bar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .fees-status-filter-group {
+    width: auto;
+    order: 2;
+  }
+
+  .fees-status-filter-btn {
+    flex: initial;
+    padding: 0 0.65rem;
+  }
+
+  .fees-count-sort-row {
+    width: auto;
+    display: contents;
+  }
+
+  .fees-count-pill {
+    order: 1;
+  }
+
+  .fees-sort-wrap {
+    order: 3;
+  }
+}
+
+/* Tablet (768px+) */
+@media (min-width: 768px) {
+  .fees-summary-dashboard {
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .fees-summary-number {
+    font-size: 1.65rem;
+  }
+
+  .fees-summary-label {
+    font-size: 0.74rem;
+  }
+
+  .fees-circular-ring-wrap {
+    width: 44px;
+    height: 44px;
+  }
+
+  .fees-circular-pct-text {
+    font-size: 0.8rem;
+  }
+
+  .fees-filter-row {
+    grid-template-columns: 220px 220px;
+    margin-bottom: 0.75rem;
+  }
+
+  .fees-filter-btn {
+    height: 38px;
+    font-size: 0.8rem;
+  }
+
+  .fees-search-box {
+    height: 38px;
+  }
+
+  .fees-student-card {
+    padding: 0.65rem 0.95rem;
+  }
+
+  .fees-student-name {
+    font-size: 0.9rem;
+  }
+}
+
+/* Laptop & Large Desktop (1024px+) */
+@media (min-width: 1024px) {
+  .fees-section {
+    max-width: 960px;
+  }
+}
+
+/* Mobile Header / Breadcrumb Wrap Protection */
+@media (max-width: 480px) {
+  .breadcrumb {
+    font-size: 0.74rem;
+    gap: 0.35rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .page-title {
+    font-size: 1.45rem;
+  }
+}
 

@@ -62,6 +62,7 @@ function navigateToSection(targetHref, showToastNotice = true) {
   const batchesSection = document.getElementById('batchesSection');
   const coachesSection = document.getElementById('coachesSection');
   const attendanceSection = document.getElementById('attendanceSection');
+  const feesSection = document.getElementById('feesSection');
   const globalStatusPill = document.querySelector('.content-header .status-indicator-pill');
   const mainContent = document.getElementById('mainDashboardView');
   if (mainContent) mainContent.classList.remove('is-superadmin-attendance');
@@ -74,6 +75,7 @@ function navigateToSection(targetHref, showToastNotice = true) {
   if (batchesSection) batchesSection.style.display = 'none';
   if (coachesSection) coachesSection.style.display = 'none';
   if (attendanceSection) attendanceSection.style.display = 'none';
+  if (feesSection) feesSection.style.display = 'none';
 
   const storedRole = localStorage.getItem('vava_role') || 'admin';
   const isSuperAdmin = (storedRole === 'admin' || storedRole === 'superadmin');
@@ -137,6 +139,14 @@ function navigateToSection(targetHref, showToastNotice = true) {
       coachesSection.style.display = '';
       if (typeof fetchCoaches === 'function') fetchCoaches();
     }
+    if (globalStatusPill) globalStatusPill.style.display = 'none';
+  } else if (targetHref === '#fees') {
+    if (feesSection) {
+      feesSection.style.display = '';
+      if (typeof initFeesModule === 'function') initFeesModule();
+    }
+    if (pageTitle) pageTitle.textContent = 'Fee & Payments';
+    if (currentSectionName) currentSectionName.textContent = 'Fees & Collections';
     if (globalStatusPill) globalStatusPill.style.display = 'none';
   }
 

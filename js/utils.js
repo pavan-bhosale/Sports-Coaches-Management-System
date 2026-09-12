@@ -7,6 +7,11 @@ const STUDENTS_API   = 'http://localhost/VAVA_sports/server/students.php';
 const COACHES_API    = 'http://localhost/VAVA_sports/server/coaches.php';
 const BATCHES_API    = 'http://localhost/VAVA_sports/server/batches.php';
 const ATTENDANCE_API = 'http://localhost/VAVA_sports/server/attendance.php';
+const FEES_API       = (typeof window !== 'undefined' && window.location.port === '5500')
+  ? 'http://localhost/VAVA_sports/server/fees.php'
+  : (typeof window !== 'undefined' && window.location.origin && window.location.origin.startsWith('http')
+      ? `${window.location.origin}/VAVA_sports/server/fees.php`
+      : 'http://localhost/VAVA_sports/server/fees.php');
 
 // Modal Open / Close Helpers
 function openModal(id) {
