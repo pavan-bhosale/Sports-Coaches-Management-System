@@ -115,6 +115,11 @@
       });
 
       if (!response.ok) {
+        if (response.status === 403) {
+          let errData = null;
+          try { errData = await response.json(); } catch(e) {}
+          throw new Error(errData?.error || 'Access Denied: Fees & Collections is restricted to Super Admin only.');
+        }
         throw new Error(`Server returned HTTP ${response.status}`);
       }
 
@@ -701,6 +706,12 @@
   // 7. PUBLIC INIT FUNCTION
   // ==========================================================================
   window.initFeesModule = function () {
+    const role = (localStorage.getItem('vava_role') || '').toLowerCase();
+    const isSuperAdmin = (role === 'admin' || role === 'superadmin');
+    if (!isSuperAdmin) {
+      console.warn('Access denied: Fees & Collections is accessible to Super Admin only.');
+      return;
+    }
     if (!state.initialized) {
       renderBatchDropdownOptions();
       renderMonthDropdownOptions();

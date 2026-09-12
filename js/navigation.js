@@ -90,6 +90,15 @@ function navigateToSection(targetHref, showToastNotice = true) {
     return;
   }
 
+  // 2. Role-based Fees & Collections Access Protection (Super Admin Only)
+  if (targetHref === '#fees' && !isSuperAdmin) {
+    if (showToastNotice && typeof showToast === 'function') {
+      showToast('Access denied. Fees & Collections is accessible to Super Admin only.', 'error');
+    }
+    navigateToSection('#overview', false);
+    return;
+  }
+
   if (targetHref === '#overview') {
     if (welcomeBanner) welcomeBanner.style.display = '';
     if (kpiGrid) kpiGrid.style.display = '';
@@ -166,6 +175,11 @@ function handleHashRoute() {
   const isSuperAdmin = (storedRole === 'admin' || storedRole === 'superadmin');
   const isCoach = (storedRole === 'coach');
   if (currentHash === '#attendance' && !isCoach && !isSuperAdmin) {
+    window.location.hash = '#overview';
+    navigateToSection('#overview', false);
+    return;
+  }
+  if (currentHash === '#fees' && !isSuperAdmin) {
     window.location.hash = '#overview';
     navigateToSection('#overview', false);
     return;
@@ -309,12 +323,20 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const navAttendanceEl = document.getElementById('nav-attendance');
+  const navFeesEl = document.getElementById('nav-fees');
   const isSuperAdminUser = (storedRole === 'admin' || storedRole === 'superadmin');
   if (navAttendanceEl) {
     if (storedRole !== 'coach' && !isSuperAdminUser) {
       navAttendanceEl.style.display = 'none';
     } else {
       navAttendanceEl.style.display = '';
+    }
+  }
+  if (navFeesEl) {
+    if (!isSuperAdminUser) {
+      navFeesEl.style.display = 'none';
+    } else {
+      navFeesEl.style.display = '';
     }
   }
 

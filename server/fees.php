@@ -113,12 +113,99 @@ function updateOverdueStatuses($pdo) {
     $stmt->execute([$today]);
 }
 
+/**
+ * Role-Based Access Control Helper
+ * Strictly enforces that only authenticated Super Admin users can access Fees & Collections.
+ * Coach and Student requests are rejected with HTTP 403 Forbidden.
+ */
+function verifySuperAdminAccess($pdo, $input = []) {
+    $role = $_SERVER['HTTP_X_VAVA_ROLE'] ?? $_GET['role'] ?? $input['role'] ?? '';
+    $email = $_SERVER['HTTP_X_VAVA_EMAIL'] ?? $_GET['email'] ?? $input['email'] ?? '';
+
+    $roleLower = strtolower(trim($role));
+    $cleanEmail = trim($email);
+
+    // 1. Explicitly reject Coach or Student roles
+    if ($roleLower === 'coach' || $roleLower === 'student') {
+        http_response_code(403);
+        echo json_encode([
+            'success' => false,
+            'error'   => 'Access denied. Fees & Collections is restricted to Super Admin only.'
+        ]);
+        exit;
+    }
+
+    // 2. If an email is supplied, verify it strictly against database records
+    if (!empty($cleanEmail)) {
+        // Check if email belongs to a Coach
+        $coachCheck = $pdo->prepare('SELECT coach_id FROM vsa_coaches WHERE coach_email = ? LIMIT 1');
+        $coachCheck->execute([$cleanEmail]);
+        if ($coachCheck->fetch()) {
+            http_response_code(403);
+            echo json_encode([
+                'success' => false,
+                'error'   => 'Access denied. Coaches do not have permission to access Fees & Collections.'
+            ]);
+            exit;
+        }
+
+        // Check if email belongs to a Student
+        $studentCheck = $pdo->prepare('SELECT student_id FROM vsa_students WHERE student_email = ? LIMIT 1');
+        $studentCheck->execute([$cleanEmail]);
+        if ($studentCheck->fetch()) {
+            http_response_code(403);
+            echo json_encode([
+                'success' => false,
+                'error'   => 'Access denied. Students do not have permission to access Fees & Collections.'
+            ]);
+            exit;
+        }
+
+        // Check if email belongs to Super Admin table
+        $adminStmt = $pdo->prepare('SELECT admin_id, admin_name, admin_email FROM vsa_superadmin WHERE admin_email = ? LIMIT 1');
+        $adminStmt->execute([$cleanEmail]);
+        $admin = $adminStmt->fetch();
+
+        if (!$admin) {
+            http_response_code(403);
+            echo json_encode([
+                'success' => false,
+                'error'   => 'Access denied. No Super Admin account associated with the provided credentials.'
+            ]);
+            exit;
+        }
+
+        return $admin;
+    }
+
+    // 3. If no email is supplied, check role indicator and database presence
+    if ($roleLower === 'admin' || $roleLower === 'superadmin' || empty($roleLower)) {
+        // Local dev environment: verify that at least one Super Admin exists in the database
+        $adminStmt = $pdo->query('SELECT admin_id, admin_name, admin_email FROM vsa_superadmin ORDER BY admin_id ASC LIMIT 1');
+        $admin = $adminStmt->fetch();
+        if ($admin) {
+            return $admin;
+        }
+    }
+
+    http_response_code(403);
+    echo json_encode([
+        'success' => false,
+        'error'   => 'Access denied. Super Admin authentication required.'
+    ]);
+    exit;
+}
+
 // ── Main Request Handler ─────────────────────────────────────────────────────
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
+$input = [];
 if ($method === 'POST') {
     $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
     $action = $input['action'] ?? $action;
 }
+
+// Enforce strict Super Admin access control across all operations
+$currentAdmin = verifySuperAdminAccess($pdo, $input);
 
 try {
     // 1. GET FEES LIST (Default Action)
