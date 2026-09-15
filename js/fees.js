@@ -787,21 +787,36 @@
   }
 
   /**
-   * FRONTEND-ONLY DUPLICATE PAYMENT CHECK (MOCK/HOOK)
-   * In future backend integration, replace this with a real API call:
-   *   const res = await fetch(`${FEES_API_URL}?action=check_cycle&month=${encodeURIComponent(monthName)}&year=${encodeURIComponent(year)}`, { headers: getAuthHeaders() });
-   *   const data = await res.json();
-   *   return data.exists;
+   * Duplicate Payment Cycle Checker (Connected to backend API)
+   * GET /server/fees.php?action=check_cycle&month=...&year=...
    */
   async function checkPaymentCycleExists(monthName, year) {
-    // Isolated mock / demo switches for testing
     if (window.__TEST_DUPLICATE_PAYMENT_CYCLE__ === true) {
       return true;
     }
     if (window.__TEST_DUPLICATE_PAYMENT_CYCLE__ === false) {
       return false;
     }
-    // Check against available months already returned by existing API
+
+    try {
+      const params = new URLSearchParams({
+        action: 'check_cycle',
+        month: monthName,
+        year: year
+      });
+      const res = await fetch(`${FEES_API_URL}?${params.toString()}`, {
+        method: 'GET',
+        headers: getAuthHeaders()
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return !!data.exists;
+      }
+    } catch (e) {
+      console.warn('Network error checking payment cycle, falling back to local store check:', e);
+    }
+
+    // Fallback: check against available months already returned by API
     const targetLabel = `${monthName} ${year}`.trim().toLowerCase();
     if (state.monthsData && state.monthsData.length > 0) {
       return state.monthsData.some(m => (m.label || '').trim().toLowerCase() === targetLabel);
@@ -812,8 +827,15 @@
   async function handleContinueToConfirmation() {
     const monthSelect = document.getElementById('feesNewPaymentMonthSelect');
     const yearSelect = document.getElementById('feesNewPaymentYearSelect');
+    const btnContinue = document.getElementById('btnContinueNewPayment');
+
     newPaymentSelectedMonth = monthSelect ? monthSelect.value : '';
     newPaymentSelectedYear = yearSelect ? yearSelect.value : '';
+
+    if (btnContinue) {
+      btnContinue.disabled = true;
+      btnContinue.style.opacity = '0.7';
+    }
 
     const title = document.getElementById('feesNewPaymentTitle');
     const subtitle = document.getElementById('feesNewPaymentSubtitle');
@@ -823,44 +845,56 @@
     const stepSuccess = document.getElementById('feesNewPaymentStepSuccess');
     const stepError = document.getElementById('feesNewPaymentStepError');
 
-    const isDuplicate = await checkPaymentCycleExists(newPaymentSelectedMonth, newPaymentSelectedYear);
+    try {
+      const isDuplicate = await checkPaymentCycleExists(newPaymentSelectedMonth, newPaymentSelectedYear);
 
-    if (isDuplicate) {
-      // Show Duplicate Warning UI
-      if (stepSelect) stepSelect.style.display = 'none';
-      if (stepConfirm) stepConfirm.style.display = 'none';
-      if (stepSuccess) stepSuccess.style.display = 'none';
-      if (stepError) stepError.style.display = 'none';
-      if (stepDuplicate) stepDuplicate.style.display = 'block';
+      if (isDuplicate) {
+        // Show Duplicate Warning UI
+        if (stepSelect) stepSelect.style.display = 'none';
+        if (stepConfirm) stepConfirm.style.display = 'none';
+        if (stepSuccess) stepSuccess.style.display = 'none';
+        if (stepError) stepError.style.display = 'none';
+        if (stepDuplicate) stepDuplicate.style.display = 'block';
 
-      if (title) title.textContent = 'Payment Already Started';
-      if (subtitle) subtitle.textContent = 'This payment cycle already exists in the system.';
-      setModalBadge('danger', 'Existing Cycle');
+        if (title) title.textContent = 'Payment Already Started';
+        if (subtitle) subtitle.textContent = 'This payment cycle already exists in the system.';
+        setModalBadge('danger', 'Existing Cycle');
 
-      const dupWarningText = document.getElementById('feesDuplicateWarningText');
-      if (dupWarningText) {
-        dupWarningText.innerHTML = `Payment for <strong>${safeEscape(newPaymentSelectedMonth)} ${safeEscape(newPaymentSelectedYear)}</strong> has already been started. You cannot start the same payment cycle again.`;
+        const dupWarningText = document.getElementById('feesDuplicateWarningText');
+        if (dupWarningText) {
+          dupWarningText.innerHTML = `Payment for <strong>${safeEscape(newPaymentSelectedMonth)} ${safeEscape(newPaymentSelectedYear)}</strong> has already been started. You cannot start the same payment cycle again.`;
+        }
+      } else {
+        // Show Confirmation Warning (Step 2)
+        if (stepSelect) stepSelect.style.display = 'none';
+        if (stepDuplicate) stepDuplicate.style.display = 'none';
+        if (stepSuccess) stepSuccess.style.display = 'none';
+        if (stepError) stepError.style.display = 'none';
+        if (stepConfirm) stepConfirm.style.display = 'block';
+
+        if (title) title.textContent = `Start ${newPaymentSelectedMonth} ${newPaymentSelectedYear} Payment?`;
+        if (subtitle) subtitle.textContent = 'Confirmation required before starting payment cycle.';
+        setModalBadge('warning', 'Action Required');
+
+        const confirmWarningText = document.getElementById('feesConfirmWarningText');
+        if (confirmWarningText) {
+          confirmWarningText.innerHTML = `Starting a new payment for <strong>${safeEscape(newPaymentSelectedMonth)} ${safeEscape(newPaymentSelectedYear)}</strong> will send notifications to all students. Do you still want to continue?`;
+        }
       }
-    } else {
-      // Show Confirmation Warning (Step 2)
-      if (stepSelect) stepSelect.style.display = 'none';
-      if (stepDuplicate) stepDuplicate.style.display = 'none';
-      if (stepSuccess) stepSuccess.style.display = 'none';
-      if (stepError) stepError.style.display = 'none';
-      if (stepConfirm) stepConfirm.style.display = 'block';
-
-      if (title) title.textContent = `Start ${newPaymentSelectedMonth} ${newPaymentSelectedYear} Payment?`;
-      if (subtitle) subtitle.textContent = 'Confirmation required before starting payment cycle.';
-      setModalBadge('warning', 'Action Required');
-
-      const confirmWarningText = document.getElementById('feesConfirmWarningText');
-      if (confirmWarningText) {
-        confirmWarningText.innerHTML = `Starting a new payment for <strong>${safeEscape(newPaymentSelectedMonth)} ${safeEscape(newPaymentSelectedYear)}</strong> will send notifications to all students. Do you still want to continue?`;
+    } finally {
+      if (btnContinue) {
+        btnContinue.disabled = false;
+        btnContinue.style.opacity = '1';
       }
     }
   }
 
+  let isPaymentCycleProcessing = false;
+
   async function handleStartPayment() {
+    if (isPaymentCycleProcessing) return;
+    isPaymentCycleProcessing = true;
+
     const confirmBtn = document.getElementById('btnConfirmStartPayment');
     const spinner = document.getElementById('btnStartPaymentSpinner');
     const btnText = document.getElementById('btnStartPaymentText');
@@ -872,44 +906,119 @@
     if (spinner) spinner.style.display = 'inline-block';
     if (btnText) btnText.textContent = 'Starting Payment...';
 
-    // Simulate async network request
-    await new Promise(resolve => setTimeout(resolve, 750));
-
     const stepConfirm = document.getElementById('feesNewPaymentStepConfirm');
     const stepSuccess = document.getElementById('feesNewPaymentStepSuccess');
     const stepError = document.getElementById('feesNewPaymentStepError');
+    const stepDuplicate = document.getElementById('feesNewPaymentStepDuplicate');
     const title = document.getElementById('feesNewPaymentTitle');
     const subtitle = document.getElementById('feesNewPaymentSubtitle');
 
-    if (window.__TEST_ERROR_PAYMENT_CYCLE__ === true) {
-      // Show Error State
-      if (stepConfirm) stepConfirm.style.display = 'none';
-      if (stepSuccess) stepSuccess.style.display = 'none';
-      if (stepError) stepError.style.display = 'block';
+    try {
+      const response = await fetch(FEES_API_URL, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          action: 'start_payment_cycle',
+          month: newPaymentSelectedMonth,
+          year: newPaymentSelectedYear
+        })
+      });
 
-      if (title) title.textContent = 'Unable to start payment';
-      if (subtitle) subtitle.textContent = 'Payment cycle initialization failed.';
-      setModalBadge('danger', 'Error');
-    } else {
-      // Show Success State
+      const data = await response.json().catch(() => ({}));
+
+      if (response.status === 409 || data.error === 'PAYMENT_ALREADY_STARTED') {
+        // Payment cycle already started
+        if (stepConfirm) stepConfirm.style.display = 'none';
+        if (stepSuccess) stepSuccess.style.display = 'none';
+        if (stepError) stepError.style.display = 'none';
+        if (stepDuplicate) stepDuplicate.style.display = 'block';
+
+        if (title) title.textContent = 'Payment Already Started';
+        if (subtitle) subtitle.textContent = 'This payment cycle already exists in the system.';
+        setModalBadge('danger', 'Existing Cycle');
+
+        const dupWarningText = document.getElementById('feesDuplicateWarningText');
+        if (dupWarningText) {
+          dupWarningText.innerHTML = `Payment for <strong>${safeEscape(newPaymentSelectedMonth)} ${safeEscape(newPaymentSelectedYear)}</strong> has already been started. You cannot start the same payment cycle again.`;
+        }
+        return;
+      }
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Something went wrong while starting the payment cycle. Please try again.');
+      }
+
+      // Success State
       if (stepConfirm) stepConfirm.style.display = 'none';
       if (stepError) stepError.style.display = 'none';
+      if (stepDuplicate) stepDuplicate.style.display = 'none';
       if (stepSuccess) stepSuccess.style.display = 'block';
 
-      if (title) title.textContent = `${newPaymentSelectedMonth} ${newPaymentSelectedYear} Payment Started`;
+      const monthLabel = data.month_label || `${newPaymentSelectedMonth} ${newPaymentSelectedYear}`;
+      if (title) title.textContent = `${monthLabel} Payment Started`;
       if (subtitle) subtitle.textContent = 'Payment cycle created successfully.';
       setModalBadge('default', 'Cycle Initialized');
 
       const successTitle = document.getElementById('feesSuccessTitle');
       if (successTitle) {
-        successTitle.textContent = `${newPaymentSelectedMonth} ${newPaymentSelectedYear} Payment Started`;
+        successTitle.textContent = `${monthLabel} Payment Started`;
       }
-    }
 
-    if (confirmBtn) confirmBtn.disabled = false;
-    if (tryAgainBtn) tryAgainBtn.disabled = false;
-    if (spinner) spinner.style.display = 'none';
-    if (btnText) btnText.textContent = 'Start Payment';
+      const recordsCountEl = document.getElementById('feesSuccessRecordsCount');
+      if (recordsCountEl) {
+        recordsCountEl.textContent = `${data.payment_records_created || 0} students`;
+      }
+
+      const sentCountEl = document.getElementById('feesSuccessWhatsAppSentCount');
+      if (sentCountEl) {
+        sentCountEl.textContent = `${data.whatsapp_sent || 0} sent`;
+      }
+
+      const failedRow = document.getElementById('feesSuccessFailedRow');
+      const failedCountEl = document.getElementById('feesSuccessWhatsAppFailedCount');
+      const noticeEl = document.getElementById('feesSuccessNotice');
+      if (data.whatsapp_failed > 0) {
+        if (failedRow) failedRow.style.display = 'flex';
+        if (failedCountEl) failedCountEl.textContent = `${data.whatsapp_failed} failed`;
+        if (noticeEl) {
+          const firstFailure = (data.whatsapp_failures && data.whatsapp_failures[0]) ? data.whatsapp_failures[0].reason : '';
+          noticeEl.textContent = firstFailure
+            ? `WhatsApp note: ${firstFailure}`
+            : 'Note: In Twilio Sandbox mode, only phone numbers that joined the sandbox receive messages.';
+        }
+      } else {
+        if (failedRow) failedRow.style.display = 'none';
+        if (noticeEl) {
+          noticeEl.textContent = 'All WhatsApp notifications were accepted by Twilio.';
+        }
+      }
+
+      // Refresh dashboard with the newly created month
+      state.selectedMonth = data.fee_month || '';
+      fetchFeesData();
+
+    } catch (err) {
+      console.error('Error starting payment cycle:', err);
+      if (stepConfirm) stepConfirm.style.display = 'none';
+      if (stepSuccess) stepSuccess.style.display = 'none';
+      if (stepDuplicate) stepDuplicate.style.display = 'none';
+      if (stepError) stepError.style.display = 'block';
+
+      if (title) title.textContent = 'Unable to start payment';
+      if (subtitle) subtitle.textContent = 'Payment cycle initialization failed.';
+      setModalBadge('danger', 'Error');
+
+      const errorDesc = document.querySelector('#feesNewPaymentStepError .fees-error-desc');
+      if (errorDesc) {
+        errorDesc.textContent = err.message || 'Something went wrong while starting the payment cycle. Please try again.';
+      }
+    } finally {
+      isPaymentCycleProcessing = false;
+      if (confirmBtn) confirmBtn.disabled = false;
+      if (tryAgainBtn) tryAgainBtn.disabled = false;
+      if (spinner) spinner.style.display = 'none';
+      if (btnText) btnText.textContent = 'Start Payment';
+    }
   }
 
   function setupNewPaymentEventListeners() {
