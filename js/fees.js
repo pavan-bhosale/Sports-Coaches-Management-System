@@ -34,11 +34,16 @@
       unpaid: 0,
       paid_percentage: 0,
       unpaid_percentage: 0,
-      selected_month: ''
+      selected_month: '',
+      scheduled_notifications: 0
     },
     studentsData: [],
     batchesData: [],
     monthsData: [],
+    contextTargetMonth: null,         // { date: '2026-09-01', label: 'September 2026' }
+    pendingSchedules: [],             // [{ date: 'YYYY-MM-DD', time: 'HH:MM' }]
+    tempSchedules: [],                // Working copy for modal
+    isDeletingCycle: false,
     isLoading: false,
     initialized: false,
     searchDebounceTimer: null
@@ -233,6 +238,19 @@
         pctRingFg.setAttribute('stroke-dasharray', `${summary.unpaid_percentage}, 100`);
       }
     }
+
+    // 4. Scheduled Reminders Pill in Action Bar
+    const schedPill = document.getElementById('feesSchedulePill');
+    const schedPillText = document.getElementById('feesSchedulePillText');
+    if (schedPill && schedPillText) {
+      const count = parseInt(summary.scheduled_notifications || 0, 10);
+      if (count > 0) {
+        schedPillText.textContent = `${count} Scheduled`;
+        schedPill.style.display = 'inline-flex';
+      } else {
+        schedPill.style.display = 'none';
+      }
+    }
   }
 
   function renderBatchDropdownOptions() {
@@ -287,9 +305,16 @@
     const monthLabel = document.getElementById('feesMonthFilterLabel');
     if (!monthDropdown) return;
 
-    if (state.monthsData.length === 0) {
-      const currentMonthDate = state.selectedMonth || new Date().toISOString().slice(0, 7) + '-01';
-      state.monthsData = [{ date: currentMonthDate, label: state.selectedMonthLabel || 'Current Month' }];
+    if (!state.monthsData || state.monthsData.length === 0) {
+      monthDropdown.innerHTML = `
+        <div class="fees-dropdown-item" style="color: var(--text-secondary); opacity: 0.65; cursor: default; user-select: none;">
+          No payment cycles found
+        </div>
+      `;
+      if (monthLabel) {
+        monthLabel.textContent = 'No payment cycles';
+      }
+      return;
     }
 
     monthDropdown.innerHTML = state.monthsData.map(m => `
@@ -301,13 +326,15 @@
     // Update label text
     if (monthLabel) {
       const match = state.monthsData.find(m => m.date === state.selectedMonth);
-      monthLabel.textContent = match ? match.label : (state.selectedMonthLabel || 'Select Month');
+      monthLabel.textContent = match ? match.label : (state.selectedMonthLabel || (state.monthsData[0] ? state.monthsData[0].label : 'Select Month'));
     }
 
-    // Attach click listeners to month items
+    // Attach click and right-click (contextmenu) listeners to month items
     monthDropdown.querySelectorAll('.fees-dropdown-item').forEach(item => {
+      // Normal Left-Click: Select Month
       item.addEventListener('click', (e) => {
         e.stopPropagation();
+        closeMonthActionPopup();
         state.selectedMonth = item.dataset.monthDate;
         state.selectedMonthLabel = item.dataset.monthLabel;
         monthDropdown.style.display = 'none';
@@ -315,7 +342,187 @@
         if (monthBtn) monthBtn.setAttribute('aria-expanded', 'false');
         fetchFeesData();
       });
+
+      // Desktop Right-Click: Context Action Popup
+      item.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const monthDate = item.dataset.monthDate;
+        const monthLabelText = item.dataset.monthLabel;
+        openMonthActionPopup(e.clientX, e.clientY, { date: monthDate, label: monthLabelText });
+      });
+
+      // Mobile Touch Long-Press Support (500ms)
+      let touchTimer = null;
+      let startX = 0;
+      let startY = 0;
+
+      item.addEventListener('touchstart', (e) => {
+        if (e.touches && e.touches.length === 1) {
+          startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
+          touchTimer = setTimeout(() => {
+            touchTimer = null;
+            openMonthActionPopup(startX, startY, { date: item.dataset.monthDate, label: item.dataset.monthLabel });
+          }, 500);
+        }
+      }, { passive: true });
+
+      item.addEventListener('touchmove', (e) => {
+        if (touchTimer && e.touches && e.touches.length === 1) {
+          const moveX = Math.abs(e.touches[0].clientX - startX);
+          const moveY = Math.abs(e.touches[0].clientY - startY);
+          if (moveX > 10 || moveY > 10) {
+            clearTimeout(touchTimer);
+            touchTimer = null;
+          }
+        }
+      }, { passive: true });
+
+      item.addEventListener('touchend', () => {
+        if (touchTimer) {
+          clearTimeout(touchTimer);
+          touchTimer = null;
+        }
+      });
     });
+  }
+
+  // ==========================================================================
+  // 4.1 MONTH CONTEXT MENU & DELETION CONTROLLER
+  // ==========================================================================
+  function openMonthActionPopup(x, y, monthObj) {
+    const popup = document.getElementById('feesMonthActionPopup');
+    if (!popup) return;
+
+    state.contextTargetMonth = monthObj;
+    popup.style.display = 'flex';
+
+    // Position carefully within viewport bounds
+    const popupWidth = 135;
+    const popupHeight = 85;
+    const pad = 12;
+
+    let left = x;
+    let top = y;
+
+    if (left + popupWidth > window.innerWidth - pad) {
+      left = window.innerWidth - popupWidth - pad;
+    }
+    if (top + popupHeight > window.innerHeight - pad) {
+      top = window.innerHeight - popupHeight - pad;
+    }
+    if (left < pad) left = pad;
+    if (top < pad) top = pad;
+
+    popup.style.left = `${left}px`;
+    popup.style.top = `${top}px`;
+  }
+
+  function closeMonthActionPopup() {
+    const popup = document.getElementById('feesMonthActionPopup');
+    if (!popup) return;
+    popup.style.display = 'none';
+  }
+
+  function openDeleteCycleConfirmationModal() {
+    closeMonthActionPopup();
+    if (!state.contextTargetMonth) return;
+
+    const modal = document.getElementById('feesDeleteCycleModal');
+    const title = document.getElementById('feesDeleteCycleTitle');
+    const warningText = document.getElementById('feesDeleteCycleWarningText');
+    const confirmBtn = document.getElementById('btnConfirmDeleteCycle');
+    const spinner = document.getElementById('btnDeleteCycleSpinner');
+    const btnText = document.getElementById('btnDeleteCycleText');
+
+    if (!modal) return;
+
+    if (title) {
+      title.textContent = `Delete ${state.contextTargetMonth.label}?`;
+    }
+    if (warningText) {
+      warningText.innerHTML = `Are you sure you want to delete this payment cycle?<br><br><strong>This will delete all payment data for this payment cycle.</strong>`;
+    }
+
+    if (confirmBtn) confirmBtn.disabled = false;
+    if (spinner) spinner.style.display = 'none';
+    if (btnText) btnText.textContent = 'Delete';
+
+    modal.style.display = 'flex';
+    document.body.classList.add('modal-open');
+  }
+
+  function closeDeleteCycleConfirmationModal() {
+    const modal = document.getElementById('feesDeleteCycleModal');
+    if (!modal) return;
+    modal.style.display = 'none';
+    document.body.classList.remove('modal-open');
+  }
+
+  async function handleDeletePaymentCycle() {
+    if (state.isDeletingCycle || !state.contextTargetMonth) return;
+    state.isDeletingCycle = true;
+
+    const confirmBtn = document.getElementById('btnConfirmDeleteCycle');
+    const cancelBtn = document.getElementById('btnCancelDeleteCycle');
+    const spinner = document.getElementById('btnDeleteCycleSpinner');
+    const btnText = document.getElementById('btnDeleteCycleText');
+
+    if (confirmBtn) confirmBtn.disabled = true;
+    if (cancelBtn) cancelBtn.disabled = true;
+    if (spinner) spinner.style.display = 'inline-block';
+    if (btnText) btnText.textContent = 'Deleting...';
+
+    const targetMonth = state.contextTargetMonth;
+
+    try {
+      const response = await fetch(FEES_API_URL, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          action: 'delete_cycle',
+          fee_month: targetMonth.date
+        })
+      });
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('Access denied: Only Super Admin can delete payment cycles.');
+        }
+        throw new Error(`Server returned HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to delete payment cycle.');
+      }
+
+      closeDeleteCycleConfirmationModal();
+
+      // If the deleted month was currently selected, reset selectedMonth so next available or empty state loads
+      if (state.selectedMonth === targetMonth.date) {
+        state.selectedMonth = '';
+        state.selectedMonthLabel = '';
+      }
+
+      // Close dropdown if open
+      const monthDropdown = document.getElementById('feesMonthDropdown');
+      if (monthDropdown) monthDropdown.style.display = 'none';
+
+      // Immediately refresh dashboard and dropdown dynamically from backend without page reload
+      await fetchFeesData();
+
+    } catch (err) {
+      console.error('Error deleting payment cycle:', err);
+      alert('Unable to delete payment cycle: ' + (err.message || 'Unknown error'));
+    } finally {
+      state.isDeletingCycle = false;
+      if (confirmBtn) confirmBtn.disabled = false;
+      if (cancelBtn) cancelBtn.disabled = false;
+      if (spinner) spinner.style.display = 'none';
+      if (btnText) btnText.textContent = 'Delete';
+    }
   }
 
   function renderStudentCards() {
@@ -652,6 +859,7 @@
     // Close all open dropdowns on outside document click
     document.addEventListener('click', () => {
       closeAllDropdowns();
+      closeMonthActionPopup();
     });
 
     // Modal Close Triggers
@@ -674,6 +882,8 @@
       if (e.key === 'Escape') {
         closeStudentPaymentDetailModal();
         closeNewPaymentModal();
+        closeDeleteCycleConfirmationModal();
+        closeMonthActionPopup();
         closeAllDropdowns();
       }
     });
@@ -692,8 +902,9 @@
 
   function populateNewPaymentDateSelectors() {
     const monthSelect = document.getElementById('feesNewPaymentMonthSelect');
-    const yearSelect = document.getElementById('feesNewPaymentYearSelect');
-    if (!monthSelect || !yearSelect) return;
+    const yearInput = document.getElementById('feesNewPaymentYearInput');
+    const yearError = document.getElementById('feesYearInputError');
+    if (!monthSelect || !yearInput) return;
 
     const now = new Date();
     const currentMonthIdx = now.getMonth();
@@ -704,14 +915,12 @@
       <option value="${m}" ${idx === currentMonthIdx ? 'selected' : ''}>${m}</option>
     `).join('');
 
-    // Populate Years (Current Year - 1 to Current Year + 4)
-    const years = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2, currentYear + 3, currentYear + 4];
-    yearSelect.innerHTML = years.map(y => `
-      <option value="${y}" ${y === currentYear ? 'selected' : ''}>${y}</option>
-    `).join('');
+    // Pre-fill Year input with current year (e.g. 2026), allow user to type ANY valid 4-digit year
+    yearInput.value = String(currentYear);
+    if (yearError) yearError.style.display = 'none';
 
     newPaymentSelectedMonth = monthSelect.value || MONTH_NAMES[currentMonthIdx];
-    newPaymentSelectedYear = yearSelect.value || String(currentYear);
+    newPaymentSelectedYear = String(currentYear);
   }
 
   function setModalBadge(type, labelText) {
@@ -736,8 +945,277 @@
     }
   }
 
+  // ==========================================================================
+  // SCHEDULED NOTIFICATIONS HELPERS & MODAL MANAGEMENT
+  // ==========================================================================
+
+  function getDefaultSchedule() {
+    // Current IST date + 1 day at 09:00 AM
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istNow = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + istOffset);
+    istNow.setDate(istNow.getDate() + 1);
+    const yyyy = istNow.getFullYear();
+    const mm = String(istNow.getMonth() + 1).padStart(2, '0');
+    const dd = String(istNow.getDate()).padStart(2, '0');
+    return { date: `${yyyy}-${mm}-${dd}`, time: '09:00' };
+  }
+
+  function getMinScheduleDate() {
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istNow = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + istOffset);
+    const yyyy = istNow.getFullYear();
+    const mm = String(istNow.getMonth() + 1).padStart(2, '0');
+    const dd = String(istNow.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  function formatDisplayDateTime(dateStr, timeStr) {
+    if (!dateStr || !timeStr) return '';
+    try {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const [h, min] = timeStr.split(':').map(Number);
+      const dt = new Date(y, m - 1, d, h, min);
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const monthName = months[dt.getMonth()] || '';
+      const hour12 = (h % 12) || 12;
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const minPadded = String(min).padStart(2, '0');
+      return `${d} ${monthName} ${y} at ${hour12}:${minPadded} ${ampm}`;
+    } catch(e) {
+      return `${dateStr} ${timeStr}`;
+    }
+  }
+
+  function updateScheduleBannerSummary() {
+    const summaryText = document.getElementById('feesScheduleSummaryText');
+    const valError = document.getElementById('feesScheduleValidationError');
+    if (summaryText) {
+      const count = state.pendingSchedules ? state.pendingSchedules.length : 0;
+      if (count === 0) {
+        summaryText.textContent = '0 Notifications Scheduled';
+      } else if (count === 1) {
+        summaryText.textContent = `1 Notification Scheduled (${formatDisplayDateTime(state.pendingSchedules[0].date, state.pendingSchedules[0].time)})`;
+      } else {
+        summaryText.textContent = `${count} Notifications Scheduled (Next: ${formatDisplayDateTime(state.pendingSchedules[0].date, state.pendingSchedules[0].time)})`;
+      }
+    }
+    if (valError && state.pendingSchedules && state.pendingSchedules.length > 0) {
+      valError.style.display = 'none';
+    }
+  }
+
+  function openScheduleModal() {
+    const modal = document.getElementById('feesScheduleModal');
+    if (!modal) return;
+
+    // Clone pendingSchedules to tempSchedules
+    if (state.pendingSchedules && state.pendingSchedules.length > 0) {
+      state.tempSchedules = state.pendingSchedules.map(s => ({ ...s }));
+    } else {
+      state.tempSchedules = [getDefaultSchedule()];
+    }
+
+    const errBox = document.getElementById('feesScheduleModalError');
+    if (errBox) errBox.style.display = 'none';
+
+    renderScheduleRows();
+    modal.style.display = 'flex';
+  }
+
+  function closeScheduleModal() {
+    const modal = document.getElementById('feesScheduleModal');
+    if (!modal) return;
+    modal.style.display = 'none';
+  }
+
+  function renderScheduleRows() {
+    const container = document.getElementById('feesScheduleListContainer');
+    if (!container) return;
+
+    if (!state.tempSchedules || state.tempSchedules.length === 0) {
+      container.innerHTML = `
+        <div style="text-align:center; padding: 1.5rem 1rem; color: var(--text-secondary); font-size: 0.8rem; background: rgba(0,0,0,0.2); border-radius: 6px;">
+          No notification schedules configured. Click &quot;Add Notification&quot; below.
+        </div>
+      `;
+      return;
+    }
+
+    const minDate = getMinScheduleDate();
+
+    container.innerHTML = state.tempSchedules.map((sched, idx) => `
+      <div class="fees-schedule-row" data-index="${idx}">
+        <span class="fees-schedule-row-num">#${idx + 1}</span>
+        <div class="fees-schedule-row-inputs">
+          <input type="date" class="fees-schedule-input fees-schedule-date" value="${safeEscape(sched.date)}" min="${minDate}" data-index="${idx}" aria-label="Notification date">
+          <input type="time" class="fees-schedule-input fees-schedule-time" value="${safeEscape(sched.time)}" data-index="${idx}" aria-label="Notification time">
+        </div>
+        <button type="button" class="btn-remove-schedule-row" data-index="${idx}" title="Remove schedule" aria-label="Remove schedule #${idx + 1}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+      </div>
+    `).join('');
+
+    // Attach row events
+    container.querySelectorAll('.fees-schedule-date').forEach(input => {
+      input.addEventListener('change', (e) => {
+        const i = parseInt(e.target.dataset.index, 10);
+        if (state.tempSchedules[i]) {
+          state.tempSchedules[i].date = e.target.value;
+        }
+      });
+    });
+
+    container.querySelectorAll('.fees-schedule-time').forEach(input => {
+      input.addEventListener('change', (e) => {
+        const i = parseInt(e.target.dataset.index, 10);
+        if (state.tempSchedules[i]) {
+          state.tempSchedules[i].time = e.target.value;
+        }
+      });
+    });
+
+    container.querySelectorAll('.btn-remove-schedule-row').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const i = parseInt(btn.dataset.index, 10);
+        state.tempSchedules.splice(i, 1);
+        renderScheduleRows();
+      });
+    });
+  }
+
+  function addScheduleRow() {
+    let nextDate = '';
+    let nextTime = '09:00';
+
+    if (state.tempSchedules && state.tempSchedules.length > 0) {
+      const last = state.tempSchedules[state.tempSchedules.length - 1];
+      if (last.date) {
+        try {
+          const [y, m, d] = last.date.split('-').map(Number);
+          const dt = new Date(y, m - 1, d + 7);
+          const yyyy = dt.getFullYear();
+          const mm = String(dt.getMonth() + 1).padStart(2, '0');
+          const dd = String(dt.getDate()).padStart(2, '0');
+          nextDate = `${yyyy}-${mm}-${dd}`;
+        } catch(e) {
+          nextDate = getDefaultSchedule().date;
+        }
+      }
+    } else {
+      const def = getDefaultSchedule();
+      nextDate = def.date;
+      nextTime = def.time;
+    }
+
+    if (!nextDate) nextDate = getDefaultSchedule().date;
+
+    state.tempSchedules.push({ date: nextDate, time: nextTime });
+    renderScheduleRows();
+  }
+
+  function showScheduleError(msg) {
+    const errBox = document.getElementById('feesScheduleModalError');
+    if (errBox) {
+      errBox.textContent = msg;
+      errBox.style.display = 'block';
+    }
+  }
+
+  function saveScheduleModal() {
+    const errBox = document.getElementById('feesScheduleModalError');
+    if (errBox) errBox.style.display = 'none';
+
+    // Synchronize inputs from DOM to tempSchedules
+    const container = document.getElementById('feesScheduleListContainer');
+    if (container) {
+      const dateInputs = container.querySelectorAll('.fees-schedule-date');
+      const timeInputs = container.querySelectorAll('.fees-schedule-time');
+      dateInputs.forEach((dInput, idx) => {
+        if (state.tempSchedules[idx]) {
+          state.tempSchedules[idx].date = dInput.value.trim();
+        }
+      });
+      timeInputs.forEach((tInput, idx) => {
+        if (state.tempSchedules[idx]) {
+          state.tempSchedules[idx].time = tInput.value.trim();
+        }
+      });
+    }
+
+    // Validation 1: At least one schedule
+    if (!state.tempSchedules || state.tempSchedules.length === 0) {
+      showScheduleError('Please add at least one notification schedule.');
+      return;
+    }
+
+    // Calculate current time in IST (Asia/Kolkata)
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istNow = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + istOffset);
+
+    const seen = new Set();
+
+    for (let i = 0; i < state.tempSchedules.length; i++) {
+      const item = state.tempSchedules[i];
+      if (!item.date || !/^\d{4}-\d{2}-\d{2}$/.test(item.date)) {
+        showScheduleError(`Schedule #${i + 1} has an invalid or missing date.`);
+        return;
+      }
+      if (!item.time || !/^\d{2}:\d{2}(:\d{2})?$/.test(item.time)) {
+        showScheduleError(`Schedule #${i + 1} has an invalid or missing time.`);
+        return;
+      }
+
+      // Format time to HH:MM
+      const timeClean = item.time.substring(0, 5);
+      item.time = timeClean;
+
+      // Duplicate check
+      const key = `${item.date} ${timeClean}`;
+      if (seen.has(key)) {
+        showScheduleError(`Duplicate notification found for ${key}. Each schedule must be unique.`);
+        return;
+      }
+      seen.add(key);
+
+      // Future check in IST
+      const [y, m, d] = item.date.split('-').map(Number);
+      const [h, min] = timeClean.split(':').map(Number);
+      const schedDt = new Date(y, m - 1, d, h, min);
+
+      if (schedDt <= istNow) {
+        showScheduleError(`Schedule #${i + 1} (${item.date} ${timeClean}) must be in the future (Asia/Kolkata IST).`);
+        return;
+      }
+    }
+
+    // Sort chronologically
+    state.tempSchedules.sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+
+    // Commit to pendingSchedules
+    state.pendingSchedules = state.tempSchedules.map(s => ({ ...s }));
+
+    // Update banner summary text
+    updateScheduleBannerSummary();
+
+    closeScheduleModal();
+  }
+
   function resetNewPaymentModal() {
     populateNewPaymentDateSelectors();
+
+    // Reset pending schedules to 1 default future schedule
+    state.pendingSchedules = [getDefaultSchedule()];
+    updateScheduleBannerSummary();
+
+    const schedValError = document.getElementById('feesScheduleValidationError');
+    if (schedValError) schedValError.style.display = 'none';
 
     const title = document.getElementById('feesNewPaymentTitle');
     const subtitle = document.getElementById('feesNewPaymentSubtitle');
@@ -764,7 +1242,7 @@
     const btnText = document.getElementById('btnStartPaymentText');
     if (confirmBtn) confirmBtn.disabled = false;
     if (spinner) spinner.style.display = 'none';
-    if (btnText) btnText.textContent = 'Start Payment';
+    if (btnText) btnText.textContent = 'Create Payment';
   }
 
   function openNewPaymentModal() {
@@ -826,11 +1304,38 @@
 
   async function handleContinueToConfirmation() {
     const monthSelect = document.getElementById('feesNewPaymentMonthSelect');
-    const yearSelect = document.getElementById('feesNewPaymentYearSelect');
+    const yearInput = document.getElementById('feesNewPaymentYearInput');
+    const yearError = document.getElementById('feesYearInputError');
+    const scheduleValError = document.getElementById('feesScheduleValidationError');
     const btnContinue = document.getElementById('btnContinueNewPayment');
 
     newPaymentSelectedMonth = monthSelect ? monthSelect.value : '';
-    newPaymentSelectedYear = yearSelect ? yearSelect.value : '';
+    const rawYear = yearInput ? yearInput.value.trim() : '';
+
+    // Validate 4-digit year: must be exactly 4 digits, numeric, between 1900 and 2100
+    if (!/^\d{4}$/.test(rawYear) || parseInt(rawYear, 10) < 1900 || parseInt(rawYear, 10) > 2100) {
+      if (yearError) {
+        yearError.textContent = 'Please enter a valid 4-digit year (e.g. 2026).';
+        yearError.style.display = 'block';
+      }
+      if (yearInput) yearInput.focus();
+      return;
+    } else {
+      if (yearError) yearError.style.display = 'none';
+    }
+
+    // Validate notification schedules: at least 1 schedule required
+    if (!state.pendingSchedules || state.pendingSchedules.length === 0) {
+      if (scheduleValError) {
+        scheduleValError.textContent = 'Please add at least one valid notification schedule before continuing.';
+        scheduleValError.style.display = 'block';
+      }
+      return;
+    } else {
+      if (scheduleValError) scheduleValError.style.display = 'none';
+    }
+
+    newPaymentSelectedYear = rawYear;
 
     if (btnContinue) {
       btnContinue.disabled = true;
@@ -872,13 +1377,30 @@
         if (stepError) stepError.style.display = 'none';
         if (stepConfirm) stepConfirm.style.display = 'block';
 
-        if (title) title.textContent = `Start ${newPaymentSelectedMonth} ${newPaymentSelectedYear} Payment?`;
-        if (subtitle) subtitle.textContent = 'Confirmation required before starting payment cycle.';
+        if (title) title.textContent = `Create ${newPaymentSelectedMonth} ${newPaymentSelectedYear} Payment?`;
+        if (subtitle) subtitle.textContent = 'Confirmation required before creating payment cycle.';
         setModalBadge('warning', 'Action Required');
 
         const confirmWarningText = document.getElementById('feesConfirmWarningText');
         if (confirmWarningText) {
-          confirmWarningText.innerHTML = `Starting a new payment for <strong>${safeEscape(newPaymentSelectedMonth)} ${safeEscape(newPaymentSelectedYear)}</strong> will send notifications to all students. Do you still want to continue?`;
+          confirmWarningText.innerHTML = `Creating a new payment for <strong>${safeEscape(newPaymentSelectedMonth)} ${safeEscape(newPaymentSelectedYear)}</strong> will generate fee records for all active students. Reminders will be sent according to the schedule below.`;
+        }
+
+        // Render scheduled notifications list in Step 2
+        const schedulesListEl = document.getElementById('feesConfirmSchedulesList');
+        if (schedulesListEl) {
+          schedulesListEl.innerHTML = state.pendingSchedules.map((s, idx) => `
+            <div class="fees-confirm-schedule-item">
+              <span class="fees-confirm-schedule-datetime">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                ${formatDisplayDateTime(s.date, s.time)}
+              </span>
+              <span class="fees-confirm-schedule-badge">Scheduled (IST)</span>
+            </div>
+          `).join('');
         }
       }
     } finally {
@@ -904,7 +1426,7 @@
     if (confirmBtn) confirmBtn.disabled = true;
     if (tryAgainBtn) tryAgainBtn.disabled = true;
     if (spinner) spinner.style.display = 'inline-block';
-    if (btnText) btnText.textContent = 'Starting Payment...';
+    if (btnText) btnText.textContent = 'Creating Payment...';
 
     const stepConfirm = document.getElementById('feesNewPaymentStepConfirm');
     const stepSuccess = document.getElementById('feesNewPaymentStepSuccess');
@@ -920,7 +1442,8 @@
         body: JSON.stringify({
           action: 'start_payment_cycle',
           month: newPaymentSelectedMonth,
-          year: newPaymentSelectedYear
+          year: newPaymentSelectedYear,
+          schedules: state.pendingSchedules
         })
       });
 
@@ -945,7 +1468,7 @@
       }
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Something went wrong while starting the payment cycle. Please try again.');
+        throw new Error(data.error || 'Something went wrong while creating the payment cycle. Please try again.');
       }
 
       // Success State
@@ -955,13 +1478,13 @@
       if (stepSuccess) stepSuccess.style.display = 'block';
 
       const monthLabel = data.month_label || `${newPaymentSelectedMonth} ${newPaymentSelectedYear}`;
-      if (title) title.textContent = `${monthLabel} Payment Started`;
-      if (subtitle) subtitle.textContent = 'Payment cycle created successfully.';
+      if (title) title.textContent = `${monthLabel} Payment Created`;
+      if (subtitle) subtitle.textContent = 'Payment cycle created successfully with scheduled notifications.';
       setModalBadge('default', 'Cycle Initialized');
 
       const successTitle = document.getElementById('feesSuccessTitle');
       if (successTitle) {
-        successTitle.textContent = `${monthLabel} Payment Started`;
+        successTitle.textContent = `${monthLabel} Payment Created`;
       }
 
       const recordsCountEl = document.getElementById('feesSuccessRecordsCount');
@@ -969,28 +1492,9 @@
         recordsCountEl.textContent = `${data.payment_records_created || 0} students`;
       }
 
-      const sentCountEl = document.getElementById('feesSuccessWhatsAppSentCount');
-      if (sentCountEl) {
-        sentCountEl.textContent = `${data.whatsapp_sent || 0} sent`;
-      }
-
-      const failedRow = document.getElementById('feesSuccessFailedRow');
-      const failedCountEl = document.getElementById('feesSuccessWhatsAppFailedCount');
-      const noticeEl = document.getElementById('feesSuccessNotice');
-      if (data.whatsapp_failed > 0) {
-        if (failedRow) failedRow.style.display = 'flex';
-        if (failedCountEl) failedCountEl.textContent = `${data.whatsapp_failed} failed`;
-        if (noticeEl) {
-          const firstFailure = (data.whatsapp_failures && data.whatsapp_failures[0]) ? data.whatsapp_failures[0].reason : '';
-          noticeEl.textContent = firstFailure
-            ? `WhatsApp note: ${firstFailure}`
-            : 'Note: In Twilio Sandbox mode, only phone numbers that joined the sandbox receive messages.';
-        }
-      } else {
-        if (failedRow) failedRow.style.display = 'none';
-        if (noticeEl) {
-          noticeEl.textContent = 'All WhatsApp notifications were accepted by Twilio.';
-        }
+      const schedCountEl = document.getElementById('feesSuccessSchedulesCount');
+      if (schedCountEl) {
+        schedCountEl.textContent = `${data.schedules_count || (state.pendingSchedules ? state.pendingSchedules.length : 0)} scheduled`;
       }
 
       // Refresh dashboard with the newly created month
@@ -998,26 +1502,26 @@
       fetchFeesData();
 
     } catch (err) {
-      console.error('Error starting payment cycle:', err);
+      console.error('Error creating payment cycle:', err);
       if (stepConfirm) stepConfirm.style.display = 'none';
       if (stepSuccess) stepSuccess.style.display = 'none';
       if (stepDuplicate) stepDuplicate.style.display = 'none';
       if (stepError) stepError.style.display = 'block';
 
-      if (title) title.textContent = 'Unable to start payment';
+      if (title) title.textContent = 'Unable to create payment';
       if (subtitle) subtitle.textContent = 'Payment cycle initialization failed.';
       setModalBadge('danger', 'Error');
 
       const errorDesc = document.querySelector('#feesNewPaymentStepError .fees-error-desc');
       if (errorDesc) {
-        errorDesc.textContent = err.message || 'Something went wrong while starting the payment cycle. Please try again.';
+        errorDesc.textContent = err.message || 'Something went wrong while creating the payment cycle. Please try again.';
       }
     } finally {
       isPaymentCycleProcessing = false;
       if (confirmBtn) confirmBtn.disabled = false;
       if (tryAgainBtn) tryAgainBtn.disabled = false;
       if (spinner) spinner.style.display = 'none';
-      if (btnText) btnText.textContent = 'Start Payment';
+      if (btnText) btnText.textContent = 'Create Payment';
     }
   }
 
@@ -1033,6 +1537,19 @@
     const btnContinue = document.getElementById('btnContinueNewPayment');
     if (btnContinue) {
       btnContinue.addEventListener('click', handleContinueToConfirmation);
+    }
+
+    // Numeric Year Input Event: restrict to 4 digits and clear error on type
+    const yearInput = document.getElementById('feesNewPaymentYearInput');
+    const yearError = document.getElementById('feesYearInputError');
+    if (yearInput) {
+      yearInput.addEventListener('input', (e) => {
+        const cleaned = e.target.value.replace(/\D/g, '').slice(0, 4);
+        if (e.target.value !== cleaned) {
+          e.target.value = cleaned;
+        }
+        if (yearError) yearError.style.display = 'none';
+      });
     }
 
     const btnConfirmStart = document.getElementById('btnConfirmStartPayment');
@@ -1084,6 +1601,82 @@
         if (e.target === modalOverlay) closeNewPaymentModal();
       });
     }
+
+    // Context Action Popup triggers
+    const btnContextDelete = document.getElementById('btnFeesContextDelete');
+    if (btnContextDelete) {
+      btnContextDelete.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openDeleteCycleConfirmationModal();
+      });
+    }
+
+    const btnContextClose = document.getElementById('btnFeesContextClose');
+    if (btnContextClose) {
+      btnContextClose.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeMonthActionPopup();
+      });
+    }
+
+    // Delete Payment Cycle Confirmation Modal triggers
+    const btnCancelDelete = document.getElementById('btnCancelDeleteCycle');
+    if (btnCancelDelete) {
+      btnCancelDelete.addEventListener('click', closeDeleteCycleConfirmationModal);
+    }
+
+    const closeDeleteModalBtn = document.getElementById('closeFeesDeleteCycleModal');
+    if (closeDeleteModalBtn) {
+      closeDeleteModalBtn.addEventListener('click', closeDeleteCycleConfirmationModal);
+    }
+
+    const btnConfirmDelete = document.getElementById('btnConfirmDeleteCycle');
+    if (btnConfirmDelete) {
+      btnConfirmDelete.addEventListener('click', handleDeletePaymentCycle);
+    }
+
+    const deleteModalOverlay = document.getElementById('feesDeleteCycleModal');
+    if (deleteModalOverlay) {
+      deleteModalOverlay.addEventListener('click', (e) => {
+        if (e.target === deleteModalOverlay) closeDeleteCycleConfirmationModal();
+      });
+    }
+
+    // Schedule Notifications Configuration Modal triggers
+    const btnOpenSchedule = document.getElementById('btnOpenScheduleModal');
+    if (btnOpenSchedule) {
+      btnOpenSchedule.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openScheduleModal();
+      });
+    }
+
+    const closeScheduleModalBtn = document.getElementById('closeFeesScheduleModal');
+    if (closeScheduleModalBtn) {
+      closeScheduleModalBtn.addEventListener('click', closeScheduleModal);
+    }
+
+    const btnCancelSchedule = document.getElementById('btnCancelScheduleModal');
+    if (btnCancelSchedule) {
+      btnCancelSchedule.addEventListener('click', closeScheduleModal);
+    }
+
+    const btnSaveSchedule = document.getElementById('btnSaveScheduleModal');
+    if (btnSaveSchedule) {
+      btnSaveSchedule.addEventListener('click', saveScheduleModal);
+    }
+
+    const btnAddSchedule = document.getElementById('btnAddNotificationSchedule');
+    if (btnAddSchedule) {
+      btnAddSchedule.addEventListener('click', addScheduleRow);
+    }
+
+    const scheduleModalOverlay = document.getElementById('feesScheduleModal');
+    if (scheduleModalOverlay) {
+      scheduleModalOverlay.addEventListener('click', (e) => {
+        if (e.target === scheduleModalOverlay) closeScheduleModal();
+      });
+    }
   }
 
   function updateStatusPillButtons() {
@@ -1111,6 +1704,7 @@
     if (batchBtn) batchBtn.setAttribute('aria-expanded', 'false');
     if (monthBtn) monthBtn.setAttribute('aria-expanded', 'false');
     if (sortBtn) sortBtn.setAttribute('aria-expanded', 'false');
+    closeMonthActionPopup();
   }
 
   // ==========================================================================
@@ -1139,6 +1733,17 @@
     fetchFeesData,
     openNewPaymentModal,
     closeNewPaymentModal,
-    checkPaymentCycleExists
+    checkPaymentCycleExists,
+    openMonthActionPopup,
+    closeMonthActionPopup,
+    openDeleteCycleConfirmationModal,
+    closeDeleteCycleConfirmationModal,
+    handleDeletePaymentCycle,
+    openScheduleModal,
+    closeScheduleModal,
+    renderScheduleRows,
+    addScheduleRow,
+    saveScheduleModal,
+    handleStartPayment
   };
 })();

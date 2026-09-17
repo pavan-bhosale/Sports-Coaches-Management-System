@@ -3,8 +3,10 @@
  * VAVA Sports Academy - Fees & Collections API
  * 
  * Handles real dynamic queries, idempotent monthly fee generation,
- * payment recording, and summary metrics calculation.
+ * payment recording, scheduled notifications, and summary metrics calculation.
  */
+
+date_default_timezone_set('Asia/Kolkata');
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -21,6 +23,7 @@ if ($method === 'OPTIONS') {
 require_once 'db_connect.php';
 require_once 'razorpay_config.php';
 require_once 'twilio_config.php';
+require_once 'fees_scheduler_service.php';
 
 // Helper to normalize month string to YYYY-MM-01
 function parseMonthParam($monthParam) {
@@ -236,7 +239,7 @@ try {
         exit;
     }
 
-    // ── 0.2 START PAYMENT CYCLE & SEND WHATSAPP NOTIFICATIONS ────────────────
+    // ── 0.2 START PAYMENT CYCLE & SCHEDULE WHATSAPP NOTIFICATIONS ────────────
     if ($action === 'start_payment_cycle') {
         if ($method !== 'POST') {
             http_response_code(405);
@@ -269,7 +272,20 @@ try {
             exit;
         }
 
-        // 2. Fetch all active students and resolve batch & fee
+        // 2. Validate Notification Schedules (At least 1 required, valid future dates/times in IST, no duplicates)
+        $rawSchedules = $input['schedules'] ?? [];
+        $scheduleValidation = validateNotificationSchedules($rawSchedules);
+        if (!$scheduleValidation['valid']) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'error'   => $scheduleValidation['error']
+            ]);
+            exit;
+        }
+        $validatedSchedules = $scheduleValidation['schedules'];
+
+        // 3. Fetch all active students and resolve batch & fee
         $studentsStmt = $pdo->query("
             SELECT 
                 s.student_id,
@@ -300,7 +316,7 @@ try {
             exit;
         }
 
-        // 3. Database Transaction: Create fee records for all active students
+        // 4. Database Transaction: Create fee records & notification schedules atomically
         $dueDate = date('Y-m-10', strtotime($feeMonth));
         $defaultBatchId = 1;
         $firstBatchStmt = $pdo->query("SELECT batch_id FROM vsa_batches LIMIT 1");
@@ -308,11 +324,18 @@ try {
             $defaultBatchId = intval($fb['batch_id']);
         }
 
-        $insertStmt = $pdo->prepare("
+        $insertFeeStmt = $pdo->prepare("
             INSERT INTO vsa_student_fees 
                 (student_id, batch_id, fee_month, due_date, fee_amount, payment_status)
             VALUES 
                 (?, ?, ?, ?, ?, 'Unpaid')
+        ");
+
+        $insertNotifStmt = $pdo->prepare("
+            INSERT INTO vsa_payment_notifications 
+                (fee_month, scheduled_at, status, total_students, sent_count, failed_count)
+            VALUES 
+                (?, ?, 'Scheduled', ?, 0, 0)
         ");
 
         $recordsCreated = 0;
@@ -323,7 +346,6 @@ try {
                 $studentId = intval($st['student_id']);
                 $batchId = intval($st['student_batch_id'] ?: ($st['resolved_batch_id'] ?: $defaultBatchId));
 
-                // Fee priority: Student custom fee > Batch standard fee > Default ₹1500
                 $feeAmount = 1500.00;
                 if (!empty($st['student_custom_fee']) && floatval($st['student_custom_fee']) > 0) {
                     $feeAmount = floatval($st['student_custom_fee']);
@@ -331,8 +353,12 @@ try {
                     $feeAmount = floatval($st['batch_standard_fee']);
                 }
 
-                $insertStmt->execute([$studentId, $batchId, $feeMonth, $dueDate, $feeAmount]);
+                $insertFeeStmt->execute([$studentId, $batchId, $feeMonth, $dueDate, $feeAmount]);
                 $recordsCreated++;
+            }
+
+            foreach ($validatedSchedules as $sch) {
+                $insertNotifStmt->execute([$feeMonth, $sch['scheduled_at'], count($activeStudents)]);
             }
 
             $pdo->commit();
@@ -343,62 +369,12 @@ try {
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'error'   => 'Unable to start the payment cycle. Database error: ' . $dbEx->getMessage() . '. No WhatsApp notifications were sent.'
+                'error'   => 'Unable to create the payment cycle. Database error: ' . $dbEx->getMessage()
             ]);
             exit;
         }
 
-        // 4. WhatsApp Notification Sending (ONLY AFTER DATABASE COMMIT)
-        $whatsappAttempted = 0;
-        $whatsappSent = 0;
-        $whatsappFailed = 0;
-        $notificationFailures = [];
-
-        // Exact notification message specified for this testing phase
-        $messageBody = "This is a reminder to pay this months fees to VAVA Sports, kindly complete the process till the due date";
-
-        foreach ($activeStudents as $st) {
-            $studentId = intval($st['student_id']);
-            $whatsappAttempted++;
-
-            // Prefer whatsapp_number, fallback to student_phone
-            $phone = !empty($st['whatsapp_number']) ? $st['whatsapp_number'] : $st['student_phone'];
-            $formattedPhone = formatTwilioWhatsAppNumber($phone);
-
-            if (empty($formattedPhone)) {
-                $whatsappFailed++;
-                $notificationFailures[] = [
-                    'student_id'   => $studentId,
-                    'student_name' => $st['student_name'],
-                    'phone'        => maskPhoneNumber($phone),
-                    'reason'       => 'Missing or malformed phone number (valid 10-digit number required)'
-                ];
-                continue;
-            }
-
-            // Dispatch notification (passes student ID for secure audit logging)
-            $sendResult = sendTwilioWhatsAppNotification(
-                $formattedPhone,
-                $messageBody,
-                null,
-                ['1' => $st['student_name'], '2' => $monthLabel],
-                $studentId
-            );
-
-            if ($sendResult['success']) {
-                $whatsappSent++;
-            } else {
-                $whatsappFailed++;
-                $notificationFailures[] = [
-                    'student_id'   => $studentId,
-                    'student_name' => $st['student_name'],
-                    'phone'        => maskPhoneNumber($phone),
-                    'reason'       => $sendResult['error'],
-                    'error_code'   => $sendResult['error_code'] ?? null
-                ];
-            }
-        }
-
+        // Return clean success without calling Twilio immediately!
         echo json_encode([
             'success'                 => true,
             'month'                   => $month,
@@ -406,14 +382,120 @@ try {
             'fee_month'               => $feeMonth,
             'month_label'             => $monthLabel,
             'payment_records_created' => $recordsCreated,
-            'whatsapp_attempted'      => $whatsappAttempted,
-            'whatsapp_sent'           => $whatsappSent,
-            'whatsapp_failed'         => $whatsappFailed,
-            'whatsapp_failures'       => $notificationFailures,
-            'failures'                => $notificationFailures
+            'schedules_count'         => count($validatedSchedules),
+            'notifications_scheduled' => count($validatedSchedules),
+            'schedules'               => $validatedSchedules,
+            'whatsapp_dispatched'     => false,
+            'message'                 => "Payment for $monthLabel created with " . count($validatedSchedules) . " scheduled notification(s). WhatsApp notifications will be sent automatically when due."
         ]);
         exit;
     }
+
+    // ── 0.3 DELETE PAYMENT CYCLE (Super Admin Only) ──────────────────────────
+    if ($action === 'delete_cycle') {
+        if ($method !== 'POST' && $method !== 'DELETE') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Method not allowed. Use POST or DELETE.']);
+            exit;
+        }
+
+        $feeMonthParam = trim($input['fee_month'] ?? $_GET['fee_month'] ?? '');
+        $month = trim($input['month'] ?? $_GET['month'] ?? '');
+        $year  = trim($input['year'] ?? $_GET['year'] ?? '');
+
+        if (!empty($feeMonthParam) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $feeMonthParam)) {
+            $feeMonth = $feeMonthParam;
+        } elseif (!empty($month) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $month)) {
+            $feeMonth = $month;
+        } elseif (!empty($month) && !empty($year) && is_numeric($year)) {
+            $feeMonth = parseMonthParam("$month $year");
+        } else {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Valid payment cycle identification (fee_month or month and year) is required.']);
+            exit;
+        }
+
+        // Validate fee_month format YYYY-MM-01
+        if (!preg_match('/^\d{4}-\d{2}-01$/', $feeMonth)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Invalid fee_month format.']);
+            exit;
+        }
+
+        try {
+            $pdo->beginTransaction();
+
+            $delNotifStmt = $pdo->prepare("DELETE FROM vsa_payment_notifications WHERE fee_month = ?");
+            $delNotifStmt->execute([$feeMonth]);
+            $deletedNotifCount = $delNotifStmt->rowCount();
+
+            $deleteStmt = $pdo->prepare("DELETE FROM vsa_student_fees WHERE fee_month = ?");
+            $deleteStmt->execute([$feeMonth]);
+            $deletedCount = $deleteStmt->rowCount();
+
+            $pdo->commit();
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Database error deleting cycle: ' . $e->getMessage()]);
+            exit;
+        }
+
+        echo json_encode([
+            'success'                     => true,
+            'deleted_count'               => $deletedCount,
+            'deleted_notifications_count' => $deletedNotifCount,
+            'fee_month'                   => $feeMonth
+        ]);
+        exit;
+    }
+
+    // ── 0.4 GET CYCLE SCHEDULED NOTIFICATIONS ────────────────────────────────
+    if ($action === 'get_cycle_schedules') {
+        $monthParam = $_GET['month'] ?? ($input['month'] ?? '');
+        $feeMonthParam = $_GET['fee_month'] ?? ($input['fee_month'] ?? '');
+        if (!empty($feeMonthParam) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $feeMonthParam)) {
+            $feeMonth = $feeMonthParam;
+        } else {
+            $feeMonth = parseMonthParam($monthParam);
+        }
+
+        $stmt = $pdo->prepare("
+            SELECT 
+                notification_id,
+                fee_month,
+                DATE_FORMAT(scheduled_at, '%Y-%m-%d %H:%i:%s') as scheduled_at,
+                DATE_FORMAT(scheduled_at, '%d/%m/%Y %h:%i %p') as scheduled_at_formatted,
+                status,
+                total_students,
+                sent_count,
+                failed_count,
+                error_message,
+                DATE_FORMAT(sent_at, '%d/%m/%Y %h:%i %p') as sent_at_formatted
+            FROM vsa_payment_notifications
+            WHERE fee_month = ?
+            ORDER BY scheduled_at ASC
+        ");
+        $stmt->execute([$feeMonth]);
+        $schedules = $stmt->fetchAll();
+
+        echo json_encode([
+            'success'   => true,
+            'fee_month' => $feeMonth,
+            'schedules' => $schedules
+        ]);
+        exit;
+    }
+
+    // ── 0.5 PROCESS DUE SCHEDULED NOTIFICATIONS (Worker Endpoint) ────────────
+    if ($action === 'process_scheduled_notifications') {
+        $result = processDuePaymentNotifications($pdo);
+        echo json_encode($result);
+        exit;
+    }
+
 
     // 1. GET FEES LIST (Default Action)
     if ($action === 'get_fees' || empty($action)) {
@@ -423,12 +505,44 @@ try {
         $searchParam = trim($_GET['search'] ?? '');
         $sortParam = trim($_GET['sort'] ?? 'name');
 
-        $feeMonth = parseMonthParam($monthParam);
+        // Fetch running fee months from database (sorted newest first)
+        $monthsStmt = $pdo->query("SELECT DISTINCT fee_month FROM vsa_student_fees ORDER BY fee_month DESC");
+        $availableMonths = $monthsStmt->fetchAll(PDO::FETCH_COLUMN);
 
-        // Auto-generate initial records only if the fees table is completely uninitialized
-        $totalFeesCount = intval($pdo->query("SELECT COUNT(*) FROM vsa_student_fees")->fetchColumn());
-        if ($totalFeesCount === 0) {
-            generateMonthlyFeesForMonth($pdo, $feeMonth);
+        // Determine active fee month
+        $feeMonth = '';
+        if (!empty($monthParam)) {
+            $parsed = parseMonthParam($monthParam);
+            if (in_array($parsed, $availableMonths)) {
+                $feeMonth = $parsed;
+            }
+        }
+        if (empty($feeMonth) && !empty($availableMonths)) {
+            $feeMonth = $availableMonths[0];
+        }
+
+        // Fetch batches for filter dropdown
+        $batchesStmt = $pdo->query("SELECT batch_id, batch_name FROM vsa_batches ORDER BY batch_id ASC");
+        $batches = $batchesStmt->fetchAll();
+
+        if (empty($availableMonths) || empty($feeMonth)) {
+            // Graceful empty state when no payment cycles exist in database
+            echo json_encode([
+                'success' => true,
+                'summary' => [
+                    'total'             => 0,
+                    'paid'              => 0,
+                    'unpaid'            => 0,
+                    'paid_percentage'   => 0,
+                    'unpaid_percentage' => 0,
+                    'selected_month'    => '',
+                    'fee_month_date'    => ''
+                ],
+                'students'         => [],
+                'batches'          => $batches,
+                'available_months' => []
+            ]);
+            exit;
         }
 
         // Update overdue status
@@ -539,27 +653,22 @@ try {
         $listStmt->execute($listParams);
         $students = $listStmt->fetchAll();
 
-        // Fetch batches for filter dropdown
-        $batchesStmt = $pdo->query("SELECT batch_id, batch_name FROM vsa_batches ORDER BY batch_id ASC");
-        $batches = $batchesStmt->fetchAll();
-
-        // Fetch available fee months from database
-        $monthsStmt = $pdo->query("SELECT DISTINCT fee_month FROM vsa_student_fees ORDER BY fee_month DESC LIMIT 12");
-        $availableMonths = $monthsStmt->fetchAll(PDO::FETCH_COLUMN);
-        if (!in_array($feeMonth, $availableMonths)) {
-            array_unshift($availableMonths, $feeMonth);
-        }
+        // Fetch scheduled notifications count for this payment cycle
+        $schedCountStmt = $pdo->prepare("SELECT COUNT(*) FROM vsa_payment_notifications WHERE fee_month = ?");
+        $schedCountStmt->execute([$feeMonth]);
+        $scheduledCount = intval($schedCountStmt->fetchColumn() ?: 0);
 
         echo json_encode([
             'success' => true,
             'summary' => [
-                'total'             => $totalStudents,
-                'paid'              => $paidStudents,
-                'unpaid'            => $unpaidStudents,
-                'paid_percentage'   => $paidPercentage,
-                'unpaid_percentage' => $unpaidPercentage,
-                'selected_month'    => date('F Y', strtotime($feeMonth)),
-                'fee_month_date'    => $feeMonth
+                'total'                   => $totalStudents,
+                'paid'                    => $paidStudents,
+                'unpaid'                  => $unpaidStudents,
+                'paid_percentage'         => $paidPercentage,
+                'unpaid_percentage'       => $unpaidPercentage,
+                'selected_month'          => date('F Y', strtotime($feeMonth)),
+                'fee_month_date'          => $feeMonth,
+                'scheduled_notifications' => $scheduledCount
             ],
             'students'         => $students,
             'batches'          => $batches,
