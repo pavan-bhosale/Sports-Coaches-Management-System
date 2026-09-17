@@ -1851,9 +1851,10 @@ html, body {
   margin-bottom: 0.5rem;
 }
 .sb-batch-card {
-  background: var(--bg-surface);
+  background: var(--bg-surface-glass);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-md);
+  backdrop-filter: blur(16px);
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
@@ -3673,17 +3674,23 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 
   .student-card-mobile {
-    background: var(--bg-surface-elevated);
+    background: var(--bg-surface-glass);
     border: 1px solid var(--border-glass);
     border-radius: var(--radius-lg);
     padding: 0.75rem 0.85rem;
+    backdrop-filter: blur(16px);
     display: flex;
     flex-direction: column;
     gap: 0.55rem;
+    transition: transform var(--transition-fast), border-color var(--transition-fast);
     position: relative;
     width: 100%;
     box-sizing: border-box;
     overflow: visible !important;
+  }
+
+  .student-card-mobile:hover {
+    border-color: var(--border-glass-hover);
   }
 
   .student-card-header {
@@ -4048,17 +4055,23 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 
   .batch-card-mobile {
-    background: var(--bg-surface-elevated);
+    background: var(--bg-surface-glass);
     border: 1px solid var(--border-glass);
     border-radius: var(--radius-lg);
     padding: 0.75rem 0.85rem;
+    backdrop-filter: blur(16px);
     display: flex;
     flex-direction: column;
     gap: 0.55rem;
+    transition: transform var(--transition-fast), border-color var(--transition-fast);
     position: relative;
     width: 100%;
     box-sizing: border-box;
     overflow: visible !important;
+  }
+
+  .batch-card-mobile:hover {
+    border-color: var(--border-glass-hover);
   }
 
   /* Actions Dropdown Stacking Context Fix: Elevate card and wrapper when menu is open */
@@ -4216,9 +4229,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .coach-attendance-card {
   display: flex;
   align-items: center;
-  background: var(--bg-surface-elevated);
+  background: var(--bg-surface-glass);
   border: 1px solid var(--border-glass);
   border-radius: var(--radius-lg);
+  backdrop-filter: blur(16px);
   padding: 0.85rem 1.25rem;
   margin-bottom: 1rem;
   width: 100%;
@@ -5308,16 +5322,22 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 
   .attendance-card-mobile {
-    background: var(--bg-surface-elevated);
+    background: var(--bg-surface-glass);
     border: 1px solid var(--border-glass);
     border-radius: var(--radius-lg);
     padding: 0.75rem 0.85rem;
+    backdrop-filter: blur(16px);
     display: flex;
     flex-direction: column;
+    transition: transform var(--transition-fast), border-color var(--transition-fast);
     position: relative;
     width: 100%;
     box-sizing: border-box;
     overflow: visible;
+  }
+
+  .attendance-card-mobile:hover {
+    border-color: var(--border-glass-hover);
   }
 
   .attendance-card-top {
@@ -5825,11 +5845,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #111a2e;
+  background: var(--bg-surface-glass);
   border: 1px solid var(--border-glass);
   border-radius: 8px;
+  backdrop-filter: blur(16px);
   padding: 0.55rem 0.75rem;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
   gap: 0.5rem;
   cursor: pointer;
   width: 100%;
@@ -5838,8 +5859,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .attendance-student-card:hover {
-  border-color: rgba(0, 230, 118, 0.3);
-  background: #142038;
+  border-color: var(--border-glass-hover);
+  background: var(--bg-surface-glass);
 }
 
 .student-card-left {
@@ -6626,10 +6647,16 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .superadmin-attendance-card {
   padding: 0.65rem 0.8rem !important;
   border-radius: var(--radius-lg, 10px) !important;
-  background: var(--bg-surface-elevated, #111a2e);
-  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08));
+  background: var(--bg-surface-glass) !important;
+  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)) !important;
+  backdrop-filter: blur(16px);
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
   box-sizing: border-box;
   width: 100%;
+}
+
+.superadmin-attendance-card:hover {
+  border-color: var(--border-glass-hover) !important;
 }
 
 /* Top Row: Batch Name (Left) & Calendar Date + 3-dots (Right) */
