@@ -119,16 +119,6 @@
             <span>Coaches</span>
           </a>
 
-          <a href="#branches" class="nav-link" id="nav-branches">
-            <span class="nav-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                <polyline points="9 22 9 12 15 12 15 22"></polyline>
-              </svg>
-            </span>
-            <span>Branch Locations</span>
-          </a>
-
           <a href="#inventory" class="nav-link" id="nav-inventory">
             <span class="nav-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -138,7 +128,6 @@
               </svg>
             </span>
             <span>Inventory & Gear</span>
-            <span class="nav-badge badge-warning">3 Low</span>
           </a>
 
           <a href="#reports" class="nav-link" id="nav-reports">
@@ -254,606 +243,80 @@
               <h1 class="page-title" id="pageTitle">Super Admin Dashboard</h1>
             </div>
           </div>
-          <div class="status-indicator-pill">
-            <span class="live-dot"></span>
-            <span id="activeBranchCount">3 active branches</span>
-          </div>
         </div>
 
-        <!-- Welcome Banner -->
-        <section class="welcome-banner">
-          <div>
-            <div class="banner-pill">
-              <span class="live-dot"></span> Live Operations Center
-            </div>
-            <h2 class="banner-title">Welcome back, Nikita Singh</h2>
-            <p class="banner-subtitle">
-              Centralized multi-branch control for attendance tracking, real-time fee realization, and coach
-              coordination.
-            </p>
-          </div>
-          <div class="banner-actions">
-            <button type="button" class="btn-secondary" id="btnExportSummary">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-              </svg>
-              Export Summary
-            </button>
-            <button type="button" class="btn-primary" id="btnMarkBatchAttendance">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M9 11l3 3L22 4"></path>
-                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-              </svg>
-              Mark Live Batch
-            </button>
-          </div>
-        </section>
-
-        <!-- KPI Metrics Grid -->
-        <section class="kpi-grid" aria-label="Key Performance Indicators">
-          <!-- Total Active Students -->
-          <div class="kpi-card">
-            <div class="kpi-header">
-              <span class="kpi-label">Total Active Students</span>
-              <div class="kpi-icon-pill pill-primary">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="9" cy="7" r="4"></circle>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        <!-- ===== DASHBOARD OVERVIEW SECTION ===== -->
+        <section id="overviewSection">
+          <div class="under-dev-container">
+            <div class="under-dev-card">
+              <div class="under-dev-glow"></div>
+              <div class="under-dev-icon-badge">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="14" width="7" height="7"></rect>
+                  <rect x="3" y="14" width="7" height="7"></rect>
                 </svg>
               </div>
-            </div>
-            <div class="kpi-value-row">
-              <span class="kpi-value" id="kpiTotalStudents">355</span>
-              <span class="kpi-trend trend-up">↑ 12.4%</span>
-            </div>
-            <div class="kpi-footer">
-              <span class="kpi-subtext">Target: 400 across branches</span>
-              <span class="font-semibold text-primary">88.7% Capacity</span>
-            </div>
-          </div>
-
-          <!-- Today's Live Attendance -->
-          <div class="kpi-card">
-            <div class="kpi-header">
-              <span class="kpi-label">Today's Live Attendance</span>
-              <div class="kpi-icon-pill pill-accent">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                </svg>
+              <div class="under-dev-status-tag">
+                <span class="under-dev-pulse-dot"></span>
+                <span>Module in Progress</span>
               </div>
-            </div>
-            <div class="kpi-value-row">
-              <span class="kpi-value">88.4%</span>
-              <span class="kpi-sub-target">314 Marked Present</span>
-            </div>
-            <div class="kpi-progress-bar">
-              <div class="kpi-progress-fill" style="width: 88.4%;"></div>
-            </div>
-            <div class="kpi-footer">
-              <span class="kpi-subtext">41 Absent / Excused</span>
-              <span class="font-semibold text-primary">9 Batches Sync'd</span>
-            </div>
-          </div>
-
-          <!-- Monthly Fee Collections -->
-          <div class="kpi-card">
-            <div class="kpi-header">
-              <span class="kpi-label">Monthly Collections</span>
-              <div class="kpi-icon-pill pill-success">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="12" y1="1" x2="12" y2="23"></line>
-                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                </svg>
-              </div>
-            </div>
-            <div class="kpi-value-row">
-              <span class="kpi-value" id="kpiCollections">₹2,95,000</span>
-              <span class="kpi-trend trend-up">↑ 18.2%</span>
-            </div>
-            <div class="kpi-footer">
-              <span class="kpi-subtext">Target: ₹3,40,000</span>
-              <span class="font-semibold text-primary">86.8% Realized</span>
-            </div>
-          </div>
-
-          <!-- Overdue Fees Alert Card -->
-          <div class="kpi-card alert-card">
-            <div class="kpi-header">
-              <span class="kpi-label">Critical Fee Overdue</span>
-              <div class="kpi-icon-pill pill-danger">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="12" y1="8" x2="12" y2="12"></line>
-                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                </svg>
-              </div>
-            </div>
-            <div class="kpi-value-row">
-              <span class="kpi-value text-danger" id="kpiOverdueAmount">₹42,500</span>
-              <span class="kpi-badge-danger">14 Accounts</span>
-            </div>
-            <div class="kpi-footer">
-              <span class="kpi-subtext">Immediate Follow-Up</span>
-              <a href="#feesWidget" class="link-action">Send Reminders →</a>
+              <h2 class="under-dev-title">Under Development</h2>
+              <p class="under-dev-description">
+                The centralized dashboard overview with live operational analytics and performance metrics is currently under active development.
+              </p>
             </div>
           </div>
         </section>
 
-        <!-- Main Dashboard Split Grid -->
-        <div class="dashboard-grid-layout">
-          <!-- Main Content Column (Attendance & Fees) -->
-          <div class="grid-main-col">
-            <!-- Widget 1: Daily Live Batch Attendance Marking -->
-            <section class="dashboard-widget" id="attendanceWidget">
-              <div class="widget-header">
-                <div>
-                  <h3 class="widget-title">Daily Batch Attendance Marking</h3>
-                  <p class="widget-subtitle">Real-time presence tracking with instant coach & student sync</p>
-                </div>
-                <select class="batch-select" id="attendanceBatchSelector" aria-label="Select Training Batch">
-                  <option value="vasai-u14" selected>Vasai East - U-14 Football (07:00 AM - 08:30 AM)</option>
-                  <option value="virar-cricket">Virar West - Advanced Cricket (04:30 PM - 06:00 PM)</option>
-                  <option value="nallasopara-badminton">Nallasopara - Junior Badminton (05:00 PM - 06:30 PM)</option>
-                  <option value="vasai-evening-football">Vasai East - Senior Football (06:30 PM - 08:00 PM)</option>
-                </select>
+        <!-- ===== INVENTORY & GEAR SECTION ===== -->
+        <section id="inventorySection" style="display:none;">
+          <div class="under-dev-container">
+            <div class="under-dev-card">
+              <div class="under-dev-glow"></div>
+              <div class="under-dev-icon-badge">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="21 8 21 21 3 21 3 8"></polyline>
+                  <rect x="1" y="3" width="22" height="5"></rect>
+                  <line x1="10" y1="12" x2="14" y2="12"></line>
+                </svg>
               </div>
-
-              <div class="table-container">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>Student Details</th>
-                      <th>Batch Code</th>
-                      <th>Branch</th>
-                      <th>Status Marking</th>
-                      <th>Monthly Ratio</th>
-                    </tr>
-                  </thead>
-                  <tbody id="attendanceTableBody">
-                    <tr>
-                      <td>
-                        <div class="student-cell">
-                          <div class="student-avatar">AS</div>
-                          <div>
-                            <div class="student-name">Aarav Sharma</div>
-                            <div class="student-sub">Parent: Vikram Sharma (9820112233)</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td><span class="code-badge">U14-FB-01</span></td>
-                      <td><span class="branch-tag">Vasai East</span></td>
-                      <td>
-                        <div class="status-toggle-group">
-                          <button type="button" class="btn-status status-present active"
-                            data-status="present">Present</button>
-                          <button type="button" class="btn-status status-late" data-status="late">Late</button>
-                          <button type="button" class="btn-status status-absent" data-status="absent">Absent</button>
-                        </div>
-                      </td>
-                      <td>
-                        <div class="attendance-mini-stat">
-                          <div class="mini-bar">
-                            <div class="mini-fill" style="width: 95%;"></div>
-                          </div>
-                          <span>95%</span>
-                        </div>
-                      </td>
-                    </tr>
-
-                    <tr>
-                      <td>
-                        <div class="student-cell">
-                          <div class="student-avatar bg-avatar-amber">RM</div>
-                          <div>
-                            <div class="student-name">Rohan Mehta</div>
-                            <div class="student-sub">Parent: Sanjay Mehta (9819223344)</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td><span class="code-badge">U14-FB-02</span></td>
-                      <td><span class="branch-tag">Vasai East</span></td>
-                      <td>
-                        <div class="status-toggle-group">
-                          <button type="button" class="btn-status status-present active"
-                            data-status="present">Present</button>
-                          <button type="button" class="btn-status status-late" data-status="late">Late</button>
-                          <button type="button" class="btn-status status-absent" data-status="absent">Absent</button>
-                        </div>
-                      </td>
-                      <td>
-                        <div class="attendance-mini-stat">
-                          <div class="mini-bar">
-                            <div class="mini-fill" style="width: 88%;"></div>
-                          </div>
-                          <span>88%</span>
-                        </div>
-                      </td>
-                    </tr>
-
-                    <tr>
-                      <td>
-                        <div class="student-cell">
-                          <div class="student-avatar bg-avatar-red">AP</div>
-                          <div>
-                            <div class="student-name">Ananya Patil</div>
-                            <div class="student-sub">Parent: Rajesh Patil (9833445566)</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td><span class="code-badge">U14-FB-03</span></td>
-                      <td><span class="branch-tag">Vasai East</span></td>
-                      <td>
-                        <div class="status-toggle-group">
-                          <button type="button" class="btn-status status-present" data-status="present">Present</button>
-                          <button type="button" class="btn-status status-late active" data-status="late">Late</button>
-                          <button type="button" class="btn-status status-absent" data-status="absent">Absent</button>
-                        </div>
-                      </td>
-                      <td>
-                        <div class="attendance-mini-stat">
-                          <div class="mini-bar">
-                            <div class="mini-fill" style="width: 72%;"></div>
-                          </div>
-                          <span>72%</span>
-                        </div>
-                      </td>
-                    </tr>
-
-                    <tr>
-                      <td>
-                        <div class="student-cell">
-                          <div class="student-avatar">SK</div>
-                          <div>
-                            <div class="student-name">Sahil Kadam</div>
-                            <div class="student-sub">Parent: Deepak Kadam (9867554433)</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td><span class="code-badge">U14-FB-04</span></td>
-                      <td><span class="branch-tag">Vasai East</span></td>
-                      <td>
-                        <div class="status-toggle-group">
-                          <button type="button" class="btn-status status-present active"
-                            data-status="present">Present</button>
-                          <button type="button" class="btn-status status-late" data-status="late">Late</button>
-                          <button type="button" class="btn-status status-absent" data-status="absent">Absent</button>
-                        </div>
-                      </td>
-                      <td>
-                        <div class="attendance-mini-stat">
-                          <div class="mini-bar">
-                            <div class="mini-fill" style="width: 92%;"></div>
-                          </div>
-                          <span>92%</span>
-                        </div>
-                      </td>
-                    </tr>
-
-                    <tr>
-                      <td>
-                        <div class="student-cell">
-                          <div class="student-avatar bg-avatar-red">TD</div>
-                          <div>
-                            <div class="student-name">Tanvi Desai</div>
-                            <div class="student-sub">Parent: Manoj Desai (9892113355)</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td><span class="code-badge">U14-FB-05</span></td>
-                      <td><span class="branch-tag">Vasai East</span></td>
-                      <td>
-                        <div class="status-toggle-group">
-                          <button type="button" class="btn-status status-present" data-status="present">Present</button>
-                          <button type="button" class="btn-status status-late" data-status="late">Late</button>
-                          <button type="button" class="btn-status status-absent active"
-                            data-status="absent">Absent</button>
-                        </div>
-                      </td>
-                      <td>
-                        <div class="attendance-mini-stat">
-                          <div class="mini-bar">
-                            <div class="mini-fill" style="width: 60%; background: var(--color-danger);"></div>
-                          </div>
-                          <span>60%</span>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div class="under-dev-status-tag">
+                <span class="under-dev-pulse-dot"></span>
+                <span>Module in Progress</span>
               </div>
-
-              <div class="widget-footer">
-                <span class="footer-note">Coach Assigned: <strong>Rajesh Pawar (Senior Football Coach)</strong></span>
-                <button type="button" class="btn-save-attendance" id="btnSaveAttendance">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  Confirm Batch Roster
-                </button>
-              </div>
-            </section>
-
-            <!-- Widget 2: Fee Overdue & Instant WhatsApp Reminders -->
-            <section class="dashboard-widget" id="feesWidget">
-              <div class="widget-header">
-                <div>
-                  <div class="widget-badge-alert">
-                    <span>⚠️ 14 Critical Overdue Accounts</span>
-                  </div>
-                  <h3 class="widget-title">Fee Overdue & WhatsApp Reminders</h3>
-                  <p class="widget-subtitle">Direct 1-click WhatsApp follow-ups and fee receipt records</p>
-                </div>
-                <button type="button" class="btn-ghost-sm" id="btnSendAllReminders">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M22 2L11 13"></path>
-                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                  </svg>
-                  Broadcast Reminders
-                </button>
-              </div>
-
-              <div class="table-container">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>Student & Parent</th>
-                      <th>Branch</th>
-                      <th>Overdue Amount</th>
-                      <th>Overdue Days</th>
-                      <th>Status</th>
-                      <th>Instant Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr class="row-critical">
-                      <td>
-                        <div class="student-cell">
-                          <div class="student-avatar bg-avatar-red">KS</div>
-                          <div>
-                            <div class="student-name">Kabir Sawant</div>
-                            <div class="student-sub">Parent: Ajay (+91 9820123456)</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td><span class="branch-tag">Vasai East</span></td>
-                      <td><strong class="text-danger">₹3,500</strong></td>
-                      <td><span class="badge-status badge-critical">18 Days</span></td>
-                      <td><span class="badge-status badge-critical">Urgent</span></td>
-                      <td>
-                        <div class="action-btn-row">
-                          <button type="button" class="btn-whatsapp-action"
-                            onclick="triggerFollowup('Kabir Sawant', '9820123456', '₹3,500', 18)"
-                            title="Send WhatsApp Payment Link">
-                            WhatsApp
-                          </button>
-                          <button type="button" class="btn-icon-sm"
-                            onclick="recordPaymentModal('Kabir Sawant', '₹3,500')" title="Record Cash/UPI Payment">
-                            ₹
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    <tr class="row-critical">
-                      <td>
-                        <div class="student-cell">
-                          <div class="student-avatar bg-avatar-amber">PN</div>
-                          <div>
-                            <div class="student-name">Priya Nair</div>
-                            <div class="student-sub">Parent: Suresh (+91 9819988776)</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td><span class="branch-tag">Virar West</span></td>
-                      <td><strong class="text-danger">₹4,000</strong></td>
-                      <td><span class="badge-status badge-critical">14 Days</span></td>
-                      <td><span class="badge-status badge-warning">Second Notice</span></td>
-                      <td>
-                        <div class="action-btn-row">
-                          <button type="button" class="btn-whatsapp-action"
-                            onclick="triggerFollowup('Priya Nair', '9819988776', '₹4,000', 14)"
-                            title="Send WhatsApp Payment Link">
-                            WhatsApp
-                          </button>
-                          <button type="button" class="btn-icon-sm" onclick="recordPaymentModal('Priya Nair', '₹4,000')"
-                            title="Record Cash/UPI Payment">
-                            ₹
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    <tr>
-                      <td>
-                        <div class="student-cell">
-                          <div class="student-avatar">DS</div>
-                          <div>
-                            <div class="student-name">Devansh Shah</div>
-                            <div class="student-sub">Parent: Nitin (+91 9876543210)</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td><span class="branch-tag">Nallasopara</span></td>
-                      <td><strong class="text-danger">₹2,800</strong></td>
-                      <td><span class="badge-status badge-warning">8 Days</span></td>
-                      <td><span class="badge-status badge-warning">Pending</span></td>
-                      <td>
-                        <div class="action-btn-row">
-                          <button type="button" class="btn-whatsapp-action"
-                            onclick="triggerFollowup('Devansh Shah', '9876543210', '₹2,800', 8)"
-                            title="Send WhatsApp Payment Link">
-                            WhatsApp
-                          </button>
-                          <button type="button" class="btn-icon-sm"
-                            onclick="recordPaymentModal('Devansh Shah', '₹2,800')" title="Record Cash/UPI Payment">
-                            ₹
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    <tr>
-                      <td>
-                        <div class="student-cell">
-                          <div class="student-avatar">RG</div>
-                          <div>
-                            <div class="student-name">Rohit Gokhale</div>
-                            <div class="student-sub">Parent: Anand (+91 9822334455)</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td><span class="branch-tag">Vasai East</span></td>
-                      <td><strong class="text-danger">₹3,500</strong></td>
-                      <td><span class="badge-status badge-neutral">5 Days</span></td>
-                      <td><span class="badge-status badge-neutral">Due</span></td>
-                      <td>
-                        <div class="action-btn-row">
-                          <button type="button" class="btn-whatsapp-action"
-                            onclick="triggerFollowup('Rohit Gokhale', '9822334455', '₹3,500', 5)"
-                            title="Send WhatsApp Payment Link">
-                            WhatsApp
-                          </button>
-                          <button type="button" class="btn-icon-sm"
-                            onclick="recordPaymentModal('Rohit Gokhale', '₹3,500')" title="Record Cash/UPI Payment">
-                            ₹
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </section>
+              <h2 class="under-dev-title">Under Development</h2>
+              <p class="under-dev-description">
+                The academy equipment, kit allocations, and gear inventory tracking module is currently under active development.
+              </p>
+            </div>
           </div>
+        </section>
 
-          <!-- Side Column (Branch Operations, Gear & Coaches) -->
-          <div class="grid-side-col">
-            <!-- Side Widget 1: Multi-Branch Operations -->
-            <section class="side-widget-card">
-              <div class="side-widget-header">
-                <h4 class="side-widget-title">Branch Breakdown</h4>
-                <a href="#branches" class="side-widget-link">View All</a>
+        <!-- ===== REPORTS & ANALYTICS SECTION ===== -->
+        <section id="reportsSection" style="display:none;">
+          <div class="under-dev-container">
+            <div class="under-dev-card">
+              <div class="under-dev-glow"></div>
+              <div class="under-dev-icon-badge">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="20" x2="18" y2="10"></line>
+                  <line x1="12" y1="20" x2="12" y2="4"></line>
+                  <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
               </div>
-              <div class="branch-summary-list">
-                <div>
-                  <div class="branch-meta">
-                    <span>Vasai East Branch</span>
-                    <span class="branch-students">120 / 140 Students</span>
-                  </div>
-                  <div class="branch-progress-bar">
-                    <div class="branch-progress-fill" style="width: 85.7%;"></div>
-                  </div>
-                  <div class="branch-subinfo">
-                    <span>Collections: ₹1,15,000</span>
-                    <span class="text-danger">₹12,500 Overdue</span>
-                  </div>
-                </div>
-
-                <div>
-                  <div class="branch-meta">
-                    <span>Virar West Turf</span>
-                    <span class="branch-students">140 / 150 Students</span>
-                  </div>
-                  <div class="branch-progress-bar">
-                    <div class="branch-progress-fill" style="width: 93.3%;"></div>
-                  </div>
-                  <div class="branch-subinfo">
-                    <span>Collections: ₹1,05,000</span>
-                    <span class="text-danger">₹12,000 Overdue</span>
-                  </div>
-                </div>
-
-                <div>
-                  <div class="branch-meta">
-                    <span>Nallasopara East</span>
-                    <span class="branch-students">95 / 110 Students</span>
-                  </div>
-                  <div class="branch-progress-bar">
-                    <div class="branch-progress-fill" style="width: 86.3%;"></div>
-                  </div>
-                  <div class="branch-subinfo">
-                    <span>Collections: ₹75,000</span>
-                    <span class="text-danger">₹18,000 Overdue</span>
-                  </div>
-                </div>
+              <div class="under-dev-status-tag">
+                <span class="under-dev-pulse-dot"></span>
+                <span>Module in Progress</span>
               </div>
-            </section>
-
-            <!-- Side Widget 2: Low Inventory Alerts -->
-            <section class="side-widget-card">
-              <div class="side-widget-header">
-                <h4 class="side-widget-title">Equipment Alerts</h4>
-                <a href="#inventory" class="side-widget-link">Inventory</a>
-              </div>
-              <div class="inventory-alert-list">
-                <div class="inventory-item">
-                  <div class="inv-info">
-                    <span class="inv-title">Match Footballs (Size 5)</span>
-                    <span class="inv-branch">Vasai East Branch</span>
-                  </div>
-                  <span class="badge-status badge-critical inv-count">3 Left</span>
-                </div>
-
-                <div class="inventory-item">
-                  <div class="inv-info">
-                    <span class="inv-title">Cricket Leather Balls</span>
-                    <span class="inv-branch">Virar West Turf</span>
-                  </div>
-                  <span class="badge-status badge-warning inv-count">5 Left</span>
-                </div>
-
-                <div class="inventory-item">
-                  <div class="inv-info">
-                    <span class="inv-title">Agility Training Cones</span>
-                    <span class="inv-branch">Nallasopara Branch</span>
-                  </div>
-                  <span class="badge-status badge-warning inv-count">12 Left</span>
-                </div>
-              </div>
-            </section>
-
-            <!-- Side Widget 3: Head Coaches Shift Roster -->
-            <section class="side-widget-card">
-              <div class="side-widget-header">
-                <h4 class="side-widget-title">Active Head Coaches</h4>
-                <a href="#coaches" class="side-widget-link">Roster</a>
-              </div>
-              <div class="coach-roster-list">
-                <div class="coach-row">
-                  <div class="coach-avatar">RP</div>
-                  <div class="coach-details">
-                    <div class="coach-name">Rajesh Pawar</div>
-                    <div class="coach-branch">Football Head Coach • Vasai East</div>
-                  </div>
-                  <span class="badge-status badge-success">On Turf</span>
-                </div>
-
-                <div class="coach-row">
-                  <div class="coach-avatar" style="background: linear-gradient(135deg, #06b6d4, #3b82f6);">AV</div>
-                  <div class="coach-details">
-                    <div class="coach-name">Amit Verma</div>
-                    <div class="coach-branch">Cricket Head Coach • Virar West</div>
-                  </div>
-                  <span class="badge-status badge-success">On Turf</span>
-                </div>
-
-                <div class="coach-row">
-                  <div class="coach-avatar" style="background: linear-gradient(135deg, #f59e0b, #ec4899);">PS</div>
-                  <div class="coach-details">
-                    <div class="coach-name">Priya Sharma</div>
-                    <div class="coach-branch">Badminton Coach • Nallasopara</div>
-                  </div>
-                  <span class="badge-status badge-neutral">05:00 PM</span>
-                </div>
-              </div>
-            </section>
+              <h2 class="under-dev-title">Under Development</h2>
+              <p class="under-dev-description">
+                Comprehensive academy performance reports, attendance summaries, and financial analytics are currently under active development.
+              </p>
+            </div>
           </div>
-        </div>
+        </section>
 
         <!-- ===== ATTENDANCE SECTION ===== -->
         <section id="attendanceSection" style="display:none;">
