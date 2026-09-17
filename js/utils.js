@@ -2,7 +2,11 @@
  * VAVA Sports Academy - Utility Functions & Constants
  */
 
-// API Endpoints
+// ============================================================================
+// 1. LOCALHOST DEVELOPMENT ENDPOINTS (Commented out for Hostinger deployment)
+// Uncomment the block below and comment out the Hostinger block when working on localhost:
+// ============================================================================
+/*
 const STUDENTS_API   = 'http://localhost/VAVA_sports/server/students.php';
 const COACHES_API    = 'http://localhost/VAVA_sports/server/coaches.php';
 const BATCHES_API    = 'http://localhost/VAVA_sports/server/batches.php';
@@ -12,6 +16,17 @@ const FEES_API       = (typeof window !== 'undefined' && window.location.port ==
   : (typeof window !== 'undefined' && window.location.origin && window.location.origin.startsWith('http')
       ? `${window.location.origin}/VAVA_sports/server/fees.php`
       : 'http://localhost/VAVA_sports/server/fees.php');
+*/
+
+// ============================================================================
+// 2. HOSTINGER PRODUCTION ENDPOINTS
+// Relative paths work automatically from index.html & dashboard.html on Hostinger
+// ============================================================================
+const STUDENTS_API   = 'server/students.php';
+const COACHES_API    = 'server/coaches.php';
+const BATCHES_API    = 'server/batches.php';
+const ATTENDANCE_API = 'server/attendance.php';
+const FEES_API       = 'server/fees.php';
 
 // Modal Open / Close Helpers
 function openModal(id) {

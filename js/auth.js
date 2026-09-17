@@ -74,7 +74,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const config = roleConfig[currentRole];
     
     try {
-      const res = await fetch('http://localhost/VAVA_sports/server/verify_login.php', {
+      // Localhost Development Endpoint (Uncomment for local development):
+      // const res = await fetch('http://localhost/VAVA_sports/server/verify_login.php', {
+
+      // Hostinger Production Endpoint:
+      const res = await fetch('server/verify_login.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

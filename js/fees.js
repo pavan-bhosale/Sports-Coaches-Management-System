@@ -8,6 +8,11 @@
 (function () {
   'use strict';
 
+  // ============================================================================
+  // 1. LOCALHOST DEVELOPMENT ENDPOINT (Commented out for Hostinger deployment)
+  // Uncomment the block below and comment out the Hostinger line when working on localhost:
+  // ============================================================================
+  /*
   const FEES_API_URL = (typeof FEES_API !== 'undefined' && FEES_API)
     ? FEES_API
     : (typeof window !== 'undefined' && window.location.port === '5500'
@@ -15,6 +20,12 @@
         : (window.location.origin && window.location.origin.startsWith('http')
             ? `${window.location.origin}/VAVA_sports/server/fees.php`
             : 'http://localhost/VAVA_sports/server/fees.php'));
+  */
+
+  // ============================================================================
+  // 2. HOSTINGER PRODUCTION ENDPOINT
+  // ============================================================================
+  const FEES_API_URL = (typeof FEES_API !== 'undefined' && FEES_API) ? FEES_API : 'server/fees.php';
 
   // ==========================================================================
   // 1. COMPONENT STATE (Real API Data Store)
