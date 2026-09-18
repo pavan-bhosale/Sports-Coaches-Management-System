@@ -20,7 +20,7 @@
     rel="stylesheet">
 
   <!-- Stylesheets -->
-  <link rel="stylesheet" href="css/dashboard.css?v=2">
+  <link rel="stylesheet" href="css/dashboard.css?v=3">
 </head>
 
 <body>
@@ -2673,9 +2673,9 @@
 
     <!-- ===== NEW PAYMENT MODAL ===== -->
     <div class="sb-modal-overlay" id="feesNewPaymentModal" style="display:none; z-index: 1050;">
-      <div class="sb-modal fees-new-payment-modal" style="max-width: 440px;">
+      <div class="sb-modal fees-new-payment-modal">
         <!-- Modal Header -->
-        <div class="sb-modal-header" style="padding-bottom: 0.75rem;">
+        <div class="sb-modal-header">
           <div>
             <div class="sb-modal-badge" id="feesNewPaymentBadge" style="background: rgba(0, 230, 118, 0.12); color: #00e676; border-color: rgba(0, 230, 118, 0.28);">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -2684,16 +2684,16 @@
               </svg>
               <span id="feesNewPaymentBadgeText">Payment Cycle</span>
             </div>
-            <h2 class="sb-modal-title" id="feesNewPaymentTitle" style="font-size: 1.25rem;">New Payment</h2>
+            <h2 class="sb-modal-title" id="feesNewPaymentTitle">New Payment</h2>
             <p class="sb-modal-subtitle" id="feesNewPaymentSubtitle">Select the month and year for which you want to start payments.</p>
           </div>
           <button type="button" class="modal-close-btn" id="closeFeesNewPaymentModal" aria-label="Close modal">&times;</button>
         </div>
 
         <!-- Step 1: Select Month & Year -->
-        <div id="feesNewPaymentStepSelect" class="fees-modal-step-pane" style="padding: 1rem 1.75rem 1.75rem;">
+        <div id="feesNewPaymentStepSelect" class="fees-modal-step-pane">
           <form id="feesNewPaymentForm" onsubmit="return false;">
-            <div class="sb-form-grid" style="grid-template-columns: 1fr 1fr; gap: 0.85rem; margin-bottom: 1.25rem;">
+            <div class="sb-form-grid">
               <div class="sb-form-group">
                 <label class="sb-label" for="feesNewPaymentMonthSelect">Month <span class="sb-required">*</span></label>
                 <div class="fees-modal-select-wrap">
@@ -2712,7 +2712,7 @@
             </div>
 
             <!-- Schedule Notifications Control -->
-            <div class="sb-form-group" style="margin-bottom: 1.25rem;">
+            <div class="sb-form-group">
               <label class="sb-label">WhatsApp Notifications <span class="sb-required">*</span></label>
               <div class="fees-schedule-banner">
                 <div style="flex:1;">
@@ -2736,7 +2736,7 @@
               <div id="feesScheduleValidationError" style="display:none; color:#ef4444; font-size:0.75rem; margin-top:5px;">Please add at least one valid notification schedule.</div>
             </div>
 
-            <div class="sb-modal-footer" style="padding-top: 1rem;">
+            <div class="sb-modal-footer">
               <button type="button" class="btn-sb-ghost" id="cancelNewPaymentStep1">Cancel</button>
               <button type="button" class="btn-fees-modal-primary" id="btnContinueNewPayment">
                 <span>Continue</span>
@@ -2749,7 +2749,7 @@
         </div>
 
         <!-- Step 2: Confirmation Warning -->
-        <div id="feesNewPaymentStepConfirm" class="fees-modal-step-pane" style="display:none; padding: 1rem 1.75rem 1.75rem;">
+        <div id="feesNewPaymentStepConfirm" class="fees-modal-step-pane" style="display:none;">
           <div class="fees-warning-box">
             <div class="fees-warning-icon">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2780,7 +2780,7 @@
             </div>
           </div>
 
-          <div class="sb-modal-footer" style="padding-top: 0.5rem;">
+          <div class="sb-modal-footer">
             <button type="button" class="btn-sb-ghost" id="cancelNewPaymentStep2">Back</button>
             <button type="button" class="btn-fees-modal-primary" id="btnConfirmStartPayment">
               <span id="btnStartPaymentSpinner" class="fees-spinner" style="display:none;"></span>
@@ -2790,7 +2790,7 @@
         </div>
 
         <!-- Step 3: Duplicate Warning State (Frontend Mock / Hook) -->
-        <div id="feesNewPaymentStepDuplicate" class="fees-modal-step-pane" style="display:none; padding: 1rem 1.75rem 1.75rem;">
+        <div id="feesNewPaymentStepDuplicate" class="fees-modal-step-pane" style="display:none;">
           <div class="fees-warning-box fees-duplicate-box">
             <div class="fees-warning-icon duplicate-icon">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2804,13 +2804,13 @@
             </div>
           </div>
 
-          <div class="sb-modal-footer" style="padding-top: 1rem;">
+          <div class="sb-modal-footer">
             <button type="button" class="btn-sb-ghost" id="btnCloseDuplicateWarning">Close</button>
           </div>
         </div>
 
         <!-- Step 4: Success State -->
-        <div id="feesNewPaymentStepSuccess" class="fees-modal-step-pane" style="display:none; padding: 1rem 1.75rem 1.75rem;">
+        <div id="feesNewPaymentStepSuccess" class="fees-modal-step-pane" style="display:none;">
           <div class="fees-success-box">
             <div class="fees-success-icon">
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -2840,13 +2840,13 @@
             </div>
           </div>
 
-          <div class="sb-modal-footer" style="padding-top: 1rem;">
+          <div class="sb-modal-footer">
             <button type="button" class="btn-fees-modal-primary" id="btnCloseSuccessModal">Done</button>
           </div>
         </div>
 
         <!-- Step 5: Error State -->
-        <div id="feesNewPaymentStepError" class="fees-modal-step-pane" style="display:none; padding: 1rem 1.75rem 1.75rem;">
+        <div id="feesNewPaymentStepError" class="fees-modal-step-pane" style="display:none;">
           <div class="fees-error-box">
             <div class="fees-error-icon">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2859,7 +2859,7 @@
             <div class="fees-error-desc">Something went wrong while creating the payment cycle. Please try again.</div>
           </div>
 
-          <div class="sb-modal-footer" style="padding-top: 1rem;">
+          <div class="sb-modal-footer">
             <button type="button" class="btn-sb-ghost" id="btnCloseErrorModal">Close</button>
             <button type="button" class="btn-fees-modal-primary" id="btnTryAgainPayment">Try Again</button>
           </div>

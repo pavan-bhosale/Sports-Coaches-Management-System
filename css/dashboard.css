@@ -3008,9 +3008,51 @@ input[type="date"].reg-input::-webkit-calendar-picker-indicator:hover {
     left: -280px !important;
     width: 280px !important;
     height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
     z-index: 100 !important;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  .app-sidebar .sidebar-nav {
+    padding: 0.65rem 0.75rem !important;
+    gap: 0.2rem !important;
+    flex: 1 0 auto !important;
+  }
+
+  .app-sidebar .nav-section-title {
+    padding: 0.45rem 0.75rem 0.2rem !important;
+    font-size: 0.65rem !important;
+  }
+
+  .app-sidebar .nav-link {
+    padding: 0.55rem 0.75rem !important;
+    font-size: 0.835rem !important;
+    gap: 0.7rem !important;
+  }
+
+  .app-sidebar .nav-icon {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .app-sidebar .sidebar-footer {
+    padding: 0.75rem 0.875rem calc(1.25rem + env(safe-area-inset-bottom, 20px)) !important;
+    margin-top: auto !important;
+    flex-shrink: 0 !important;
+    background: var(--bg-sidebar) !important;
+    border-top: 1px solid var(--border-glass) !important;
+  }
+
+  .app-sidebar .user-profile-chip {
+    padding: 0.5rem 0.65rem !important;
   }
 
   .dashboard-layout.sidebar-mobile-open .app-sidebar {
@@ -3412,10 +3454,22 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   transition: transform var(--transition-fast), border-color var(--transition-fast);
   position: relative;
   overflow: visible;
+  cursor: pointer;
+  user-select: none;
 }
 
 .coach-card-mobile:hover {
   border-color: var(--border-glass-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.coach-card-mobile:active {
+  transform: translateY(0);
+}
+
+.coach-card-mobile .batch-actions-wrap {
+  cursor: default;
 }
 
 .coach-card-top {
@@ -5071,13 +5125,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .attendance-roster-table th.roster-th-status,
 .attendance-roster-table td.roster-td-status {
-  width: 80px !important;
-  min-width: 75px !important;
-  max-width: 90px !important;
+  width: 110px !important;
+  min-width: 105px !important;
+  max-width: 120px !important;
   text-align: center !important;
-  padding: 0.75rem 1.15rem 0.75rem 0.5rem !important;
+  padding: 0.75rem 0.5rem !important;
   white-space: nowrap !important;
   vertical-align: middle !important;
+  box-sizing: border-box !important;
 }
 
 .roster-student-cell {
@@ -5329,15 +5384,27 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     backdrop-filter: blur(16px);
     display: flex;
     flex-direction: column;
-    transition: transform var(--transition-fast), border-color var(--transition-fast);
+    transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
     position: relative;
     width: 100%;
     box-sizing: border-box;
     overflow: visible;
+    cursor: pointer;
+    user-select: none;
   }
 
   .attendance-card-mobile:hover {
     border-color: var(--border-glass-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  }
+
+  .attendance-card-mobile:active {
+    transform: translateY(0);
+  }
+
+  .attendance-card-mobile .batch-actions-wrap {
+    cursor: default;
   }
 
   .attendance-card-top {
@@ -5559,7 +5626,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .attendance-roster-table th.roster-th-name,
   .attendance-roster-table td.roster-td-name {
     width: auto !important;
-    padding: 0.65rem 0.6rem 0.65rem 0.85rem !important;
+    padding: 0.65rem 0.5rem 0.65rem 0.75rem !important;
     overflow: hidden !important;
     min-width: 0 !important;
     vertical-align: middle !important;
@@ -5567,13 +5634,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
   .attendance-roster-table th.roster-th-status,
   .attendance-roster-table td.roster-td-status {
-    width: 76px !important;
-    min-width: 70px !important;
-    max-width: 85px !important;
-    padding: 0.65rem 1.15rem 0.65rem 0.5rem !important;
+    width: 105px !important;
+    min-width: 100px !important;
+    max-width: 115px !important;
+    padding: 0.65rem 0.45rem !important;
     text-align: center !important;
     white-space: nowrap !important;
     vertical-align: middle !important;
+    box-sizing: border-box !important;
   }
 
   .roster-student-cell {
@@ -6650,13 +6718,25 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   background: var(--bg-surface-glass) !important;
   border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08)) !important;
   backdrop-filter: blur(16px);
-  transition: transform var(--transition-fast), border-color var(--transition-fast);
+  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
   box-sizing: border-box;
   width: 100%;
+  cursor: pointer;
+  user-select: none;
 }
 
 .superadmin-attendance-card:hover {
   border-color: var(--border-glass-hover) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.superadmin-attendance-card:active {
+  transform: translateY(0);
+}
+
+.superadmin-attendance-card .batch-actions-wrap {
+  cursor: default;
 }
 
 /* Top Row: Batch Name (Left) & Calendar Date + 3-dots (Right) */
@@ -7035,12 +7115,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.2rem 0.6rem;
+  padding: 0.22rem 0.52rem;
   border-radius: 9999px;
   font-size: 0.72rem;
   font-weight: 600;
   line-height: 1.2;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .roster-status-badge.badge-present {
@@ -7117,6 +7198,30 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 @media (max-width: 375px) {
+  .attendance-roster-table th.roster-th-status,
+  .attendance-roster-table td.roster-td-status {
+    width: 96px !important;
+    min-width: 90px !important;
+    max-width: 100px !important;
+    padding: 0.5rem 0.35rem !important;
+  }
+  .attendance-roster-table th.roster-th-name,
+  .attendance-roster-table td.roster-td-name {
+    padding: 0.5rem 0.35rem 0.5rem 0.5rem !important;
+  }
+  .roster-status-badge {
+    padding: 0.18rem 0.42rem !important;
+    font-size: 0.68rem !important;
+  }
+  .roster-student-avatar {
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    font-size: 0.625rem !important;
+  }
+  .roster-student-name {
+    font-size: 0.78rem !important;
+  }
   .superadmin-attendance-card {
     padding: 0.5rem 0.6rem !important;
   }
@@ -9007,6 +9112,168 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     height: 32px;
     font-size: 0.74rem;
     padding: 0 0.4rem;
+  }
+}
+
+/* ==========================================================================
+   FEES & COLLECTIONS - NEW PAYMENT MODAL COMPACT STYLES
+   ========================================================================== */
+.fees-new-payment-modal {
+  max-width: 440px !important;
+  max-height: 90vh;
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.fees-new-payment-modal .sb-modal-header {
+  padding: 1.15rem 1.35rem 0.35rem !important;
+}
+
+.fees-new-payment-modal .sb-modal-badge {
+  margin-bottom: 0.35rem !important;
+  padding: 0.22rem 0.65rem !important;
+  font-size: 0.72rem !important;
+}
+
+.fees-new-payment-modal .sb-modal-title {
+  font-size: 1.2rem !important;
+  margin-bottom: 0.15rem !important;
+}
+
+.fees-new-payment-modal .sb-modal-subtitle {
+  font-size: 0.82rem !important;
+  line-height: 1.35 !important;
+  color: var(--text-secondary) !important;
+}
+
+.fees-new-payment-modal .fees-modal-step-pane {
+  padding: 0.75rem 1.35rem 1.15rem !important;
+  box-sizing: border-box;
+}
+
+.fees-new-payment-modal .sb-form-grid {
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem !important;
+  margin-bottom: 0.75rem !important;
+}
+
+.fees-new-payment-modal .sb-form-group {
+  margin-bottom: 0.75rem !important;
+  gap: 0.3rem !important;
+}
+
+.fees-new-payment-modal .sb-label {
+  font-size: 0.74rem !important;
+  margin-bottom: 0.15rem !important;
+}
+
+.fees-new-payment-modal .fees-schedule-banner {
+  padding: 0.65rem 0.85rem !important;
+  margin-top: 0.35rem !important;
+  gap: 0.6rem !important;
+  border-radius: var(--radius-md, 8px);
+}
+
+.fees-new-payment-modal .fees-schedule-banner-title {
+  font-size: 0.8rem !important;
+}
+
+.fees-new-payment-modal .fees-schedule-banner-desc {
+  font-size: 0.72rem !important;
+  line-height: 1.3 !important;
+}
+
+.fees-new-payment-modal .btn-fees-schedule-trigger {
+  padding: 0.4rem 0.75rem !important;
+  font-size: 0.76rem !important;
+  white-space: nowrap !important;
+}
+
+.fees-new-payment-modal .sb-modal-footer {
+  padding-top: 0.75rem !important;
+  margin-top: 0.4rem !important;
+  border-top: 1px solid var(--border-glass) !important;
+}
+
+@media (max-width: 480px) {
+  #feesNewPaymentModal {
+    padding: 0.5rem !important;
+  }
+
+  .fees-new-payment-modal {
+    width: 95% !important;
+    max-height: calc(100dvh - 1rem) !important;
+    border-radius: var(--radius-lg) !important;
+  }
+
+  .fees-new-payment-modal .sb-modal-header {
+    padding: 0.9rem 1rem 0.25rem !important;
+  }
+
+  .fees-new-payment-modal .sb-modal-badge {
+    padding: 0.18rem 0.5rem !important;
+    font-size: 0.68rem !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  .fees-new-payment-modal .sb-modal-title {
+    font-size: 1.1rem !important;
+  }
+
+  .fees-new-payment-modal .sb-modal-subtitle {
+    font-size: 0.78rem !important;
+    line-height: 1.3 !important;
+  }
+
+  .fees-new-payment-modal .fees-modal-step-pane {
+    padding: 0.6rem 1rem 0.95rem !important;
+  }
+
+  .fees-new-payment-modal .sb-form-grid {
+    gap: 0.55rem !important;
+    margin-bottom: 0.65rem !important;
+  }
+
+  .fees-new-payment-modal .sb-form-group {
+    margin-bottom: 0.65rem !important;
+  }
+
+  .fees-new-payment-modal .fees-schedule-banner {
+    padding: 0.55rem 0.7rem !important;
+    margin-top: 0.25rem !important;
+  }
+
+  .fees-new-payment-modal .btn-fees-schedule-trigger {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 0.45rem 0.6rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  .fees-new-payment-modal .sb-modal-footer {
+    padding-top: 0.65rem !important;
+    gap: 0.5rem !important;
+  }
+}
+
+@media (max-width: 360px) {
+  #feesNewPaymentModal {
+    padding: 0.35rem !important;
+  }
+
+  .fees-new-payment-modal .sb-modal-header {
+    padding: 0.75rem 0.85rem 0.2rem !important;
+  }
+
+  .fees-new-payment-modal .fees-modal-step-pane {
+    padding: 0.5rem 0.85rem 0.8rem !important;
+  }
+
+  .fees-new-payment-modal .sb-form-grid {
+    grid-template-columns: 1fr;
+    gap: 0.45rem !important;
+    margin-bottom: 0.55rem !important;
   }
 }
 

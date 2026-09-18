@@ -734,8 +734,8 @@ async function fetchAttendanceSheets() {
           card.className = isSuper ? 'attendance-card-mobile superadmin-attendance-card' : 'attendance-card-mobile';
           card.dataset.batchId = sheet.batch_id;
           card.dataset.date = sheet.attendance_date;
-          card.dataset.batchName = sheet.batch_name || '';
-          card.dataset.coachName = sheet.coach_name || '';
+          card.dataset.batchName = safeBatchName;
+          card.dataset.coachName = safeCoachName;
           card.dataset.fullDate = fullDate;
           card.dataset.day = dayOfWeek;
 
@@ -1324,6 +1324,25 @@ document.addEventListener('DOMContentLoaded', () => {
   if (btnCloseDeleteModal) btnCloseDeleteModal.addEventListener('click', () => closeModal('deleteAttendanceModal'));
   if (btnCancelDeleteModal) btnCancelDeleteModal.addEventListener('click', () => closeModal('deleteAttendanceModal'));
   if (btnConfirmDeleteModal) btnConfirmDeleteModal.addEventListener('click', executeDeleteAttendanceSheet);
+
+  // Entire Attendance Sheet Card Click Handler (opens attendance sheet on card click)
+  document.addEventListener('click', (e) => {
+    // 1. Never trigger card action if clicking inside the 3-dots actions menu or dropdown
+    if (e.target.closest('.batch-actions-wrap')) return;
+
+    // 2. Check if click was inside an attendance card
+    const card = e.target.closest('.attendance-card-mobile');
+    if (!card) return;
+
+    const batchId = card.dataset.batchId;
+    const date = card.dataset.date;
+    const batchName = card.dataset.batchName || '';
+    const coachName = card.dataset.coachName || '';
+
+    if (batchId && date) {
+      openAttendanceSheet(batchId, date, batchName, coachName);
+    }
+  });
 
   // Attendance Date Filter Controls
   const btnSelectDate = document.getElementById('btnAttendanceSelectDate');

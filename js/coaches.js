@@ -635,11 +635,23 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   document.addEventListener('click', (e) => {
+    // 1. If clicking inside the actions dropdown/buttons, do not trigger profile
+    if (e.target.closest('.batch-actions-wrap')) return;
+
+    // 2. Click anywhere on mobile coach card
+    const card = e.target.closest('.coach-card-mobile');
+    if (card && card.dataset.coachId) {
+      openCoachProfile(card.dataset.coachId);
+      return;
+    }
+
+    // 3. Click on desktop table coach name link
     const link = e.target.closest('.coach-name-link');
-    if (!link) return;
-    const coachId = link.getAttribute('data-id');
-    if (coachId) {
-      openCoachProfile(coachId);
+    if (link) {
+      const coachId = link.getAttribute('data-id');
+      if (coachId) {
+        openCoachProfile(coachId);
+      }
     }
   });
 
