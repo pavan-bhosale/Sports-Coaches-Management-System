@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS vsa_students (
     student_id INT AUTO_INCREMENT PRIMARY KEY,
     student_name VARCHAR(100) NOT NULL,
     student_email VARCHAR(100) UNIQUE NOT NULL,
+    school_name VARCHAR(150),
     student_phone VARCHAR(20),
     google_id VARCHAR(255) UNIQUE,
     address VARCHAR(255),

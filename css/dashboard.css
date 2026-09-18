@@ -1657,7 +1657,7 @@ html, body {
   gap: 0.75rem;
 }
 
-/* Search box inside Students section */
+/* Search box inside sections */
 .sb-search-box {
   display: flex;
   align-items: center;
@@ -1667,6 +1667,9 @@ html, body {
   border-radius: var(--radius-sm);
   padding: 0.5rem 0.875rem;
   transition: border-color var(--transition-fast);
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 .sb-search-box:focus-within {
   border-color: var(--color-primary);
@@ -1680,9 +1683,18 @@ html, body {
   color: var(--text-primary);
   font-size: 0.85rem;
   font-family: var(--font-body);
-  width: 220px;
+  width: 100%;
+  min-width: 0;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
-.sb-search-input::placeholder { color: var(--text-muted); }
+.sb-search-input::placeholder {
+  color: var(--text-muted);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
 
 /* Filter Tabs */
 .sb-filter-tabs {
@@ -3054,6 +3066,13 @@ input[type="date"].reg-input::-webkit-calendar-picker-indicator:hover {
   font-weight: 500;
   text-align: right;
   word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+#viewStudentEmailMeta {
+  max-width: 100%;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 /* ── Responsive Refinements ── */
@@ -4379,10 +4398,23 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     min-width: 0 !important;
     height: 38px !important;
     padding: 0.35rem 0.75rem !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
   }
 
   .coaches-controls-row .sb-search-input {
+    width: 100% !important;
+    min-width: 0 !important;
     font-size: 0.825rem !important;
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+  }
+
+  .coaches-controls-row .sb-search-input::placeholder {
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
   }
 
   .coaches-controls-row .btn-sb-primary {
@@ -4453,8 +4485,21 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 
   .coach-card-bottom-grid {
-    grid-template-columns: minmax(0, 0.85fr) minmax(0, 0.95fr) minmax(0, 1.45fr) !important;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr) minmax(0, 1.25fr) !important;
     gap: 0.35rem !important;
+  }
+
+  .coach-meta-col-date .coach-meta-val {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    word-break: normal !important;
+  }
+
+  .coach-meta-col-location .coach-meta-val {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
 
   .coach-meta-val {
@@ -4474,8 +4519,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
   .coach-meta-val-phone .coach-phone-val {
     display: inline-block !important;
-    font-size: 0.78rem !important;
+    font-size: 0.76rem !important;
     line-height: 1.2 !important;
+    word-break: break-word !important;
   }
 }
 
@@ -4523,10 +4569,23 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     min-width: 0 !important;
     height: 38px !important;
     padding: 0.35rem 0.75rem !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
   }
 
   .batches-controls-row .sb-search-input {
+    width: 100% !important;
+    min-width: 0 !important;
     font-size: 0.825rem !important;
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+  }
+
+  .batches-controls-row .sb-search-input::placeholder {
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
   }
 
   .batches-controls-row .btn-sb-primary {
@@ -4562,12 +4621,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .batch-card-mobile {
     background: var(--bg-surface-glass);
     border: 1px solid var(--border-glass);
-    border-radius: var(--radius-lg);
-    padding: 0.75rem 0.85rem;
+    border-radius: var(--radius-lg, 10px);
+    padding: 0.65rem 0.8rem;
     backdrop-filter: blur(16px);
     display: flex;
     flex-direction: column;
-    gap: 0.55rem;
+    gap: 0.35rem;
     transition: transform var(--transition-fast), border-color var(--transition-fast);
     position: relative;
     width: 100%;
@@ -4599,20 +4658,21 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .batch-card-top {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.5rem;
     width: 100%;
   }
 
   .batch-card-avatar {
-    width: 38px;
-    height: 38px;
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
     border-radius: 50%;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 800;
-    font-size: 0.875rem;
+    font-weight: 700;
+    font-size: 0.75rem;
     background: #00E699;
     color: #080c14;
   }
@@ -4627,10 +4687,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
   .batch-card-name {
     font-family: var(--font-heading);
-    font-size: 0.95rem;
-    font-weight: 700;
+    font-size: 0.88rem;
+    font-weight: 600;
     color: var(--text-primary);
-    line-height: 1.25;
+    line-height: 1.2;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -4640,7 +4700,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     display: flex;
     align-items: center;
     gap: 0.25rem;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: var(--text-muted);
     white-space: nowrap;
     overflow: hidden;
@@ -4674,13 +4734,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     height: 1px;
     background: rgba(255, 255, 255, 0.06);
     width: 100%;
-    margin: 0.1rem 0;
+    margin: 0.25rem 0;
   }
 
   .batch-card-bottom-grid {
     display: grid;
     grid-template-columns: 1.2fr 1fr;
-    gap: 0.35rem;
+    gap: 0.25rem;
     width: 100%;
   }
 
@@ -4694,8 +4754,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .batch-meta-val {
     display: flex;
     align-items: center;
-    gap: 0.3rem;
-    font-size: 0.8rem;
+    gap: 0.25rem;
+    font-size: 0.78rem;
     font-weight: 600;
     color: var(--text-primary);
     line-height: 1.2;
@@ -4714,7 +4774,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 
   .batch-meta-lbl {
-    font-size: 0.685rem;
+    font-size: 0.65rem;
     color: var(--text-muted);
     line-height: 1.1;
   }
@@ -7646,6 +7706,31 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .superadmin-student-right .student-card-pct-text {
     font-size: 0.64rem;
   }
+  .batch-card-mobile {
+    padding: 0.55rem 0.7rem !important;
+    gap: 0.3rem !important;
+  }
+  .batch-card-avatar {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    font-size: 0.72rem !important;
+  }
+  .batch-card-name {
+    font-size: 0.84rem !important;
+  }
+  .batch-card-location {
+    font-size: 0.7rem !important;
+  }
+  .batch-card-divider {
+    margin: 0.2rem 0 !important;
+  }
+  .batch-meta-val {
+    font-size: 0.75rem !important;
+  }
+  .batch-meta-lbl {
+    font-size: 0.64rem !important;
+  }
 }
 
 @media (max-width: 375px) {
@@ -7810,15 +7895,27 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     height: 10px !important;
   }
   .coach-card-bottom-grid {
-    grid-template-columns: minmax(0, 0.8fr) minmax(0, 0.88fr) minmax(0, 1.55fr) !important;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr) minmax(0, 1.25fr) !important;
     gap: 0.25rem !important;
+    text-align: left;
+  }
+  .coach-meta-col-date .coach-meta-val {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    word-break: normal !important;
+  }
+  .coach-meta-col-location .coach-meta-val {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
   .coach-meta-val {
-    font-size: 0.76rem !important;
-    gap: 0.25rem !important;
+    font-size: 0.74rem !important;
+    gap: 0.2rem !important;
   }
   .coach-meta-lbl {
-    font-size: 0.65rem !important;
+    font-size: 0.64rem !important;
   }
   .coach-meta-val-phone {
     overflow: visible !important;
@@ -7826,8 +7923,48 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     white-space: normal !important;
   }
   .coach-meta-val-phone .coach-phone-val {
-    font-size: 0.74rem !important;
-    line-height: 1.2 !important;
+    font-size: 0.72rem !important;
+    line-height: 1.15 !important;
+    word-break: break-word !important;
+    display: inline-block !important;
+  }
+  .coaches-controls-row .sb-search-box,
+  .batches-controls-row .sb-search-box {
+    padding: 0.35rem 0.5rem !important;
+  }
+  .coaches-controls-row .sb-search-input,
+  .batches-controls-row .sb-search-input {
+    font-size: 0.78rem !important;
+  }
+  .coaches-controls-row .btn-sb-primary,
+  .batches-controls-row .btn-sb-primary {
+    padding: 0 0.65rem !important;
+    font-size: 0.78rem !important;
+  }
+  .batch-card-mobile {
+    padding: 0.5rem 0.6rem !important;
+    gap: 0.25rem !important;
+  }
+  .batch-card-avatar {
+    width: 26px !important;
+    height: 26px !important;
+    min-width: 26px !important;
+    font-size: 0.68rem !important;
+  }
+  .batch-card-name {
+    font-size: 0.8rem !important;
+  }
+  .batch-card-location {
+    font-size: 0.68rem !important;
+  }
+  .batch-card-divider {
+    margin: 0.15rem 0 !important;
+  }
+  .batch-meta-val {
+    font-size: 0.72rem !important;
+  }
+  .batch-meta-lbl {
+    font-size: 0.62rem !important;
   }
 }
 

@@ -458,15 +458,11 @@
     if (spinner) spinner.style.display = 'none';
     if (btnText) btnText.textContent = 'Delete';
 
-    modal.style.display = 'flex';
-    document.body.classList.add('modal-open');
+    openModal('feesDeleteCycleModal');
   }
 
   function closeDeleteCycleConfirmationModal() {
-    const modal = document.getElementById('feesDeleteCycleModal');
-    if (!modal) return;
-    modal.style.display = 'none';
-    document.body.classList.remove('modal-open');
+    closeModal('feesDeleteCycleModal');
   }
 
   async function handleDeletePaymentCycle() {
@@ -667,8 +663,7 @@
     setVal('feesModalFieldPaidDate', '-');
     setVal('feesModalFieldPaymentId', '-');
 
-    modal.style.display = 'flex';
-    document.body.classList.add('modal-open');
+    openModal('feesPaymentDetailModal');
 
     try {
       const res = await fetch(`${FEES_API_URL}?action=get_student_fee_details&fee_id=${feeId}`, {
@@ -723,10 +718,7 @@
   }
 
   function closeStudentPaymentDetailModal() {
-    const modal = document.getElementById('feesPaymentDetailModal');
-    if (!modal) return;
-    modal.style.display = 'none';
-    document.body.classList.remove('modal-open');
+    closeModal('feesPaymentDetailModal');
   }
 
   // ==========================================================================
@@ -1030,13 +1022,11 @@
     if (errBox) errBox.style.display = 'none';
 
     renderScheduleRows();
-    modal.style.display = 'flex';
+    openModal('feesScheduleModal');
   }
 
   function closeScheduleModal() {
-    const modal = document.getElementById('feesScheduleModal');
-    if (!modal) return;
-    modal.style.display = 'none';
+    closeModal('feesScheduleModal');
   }
 
   function renderScheduleRows() {
@@ -1258,8 +1248,7 @@
     const modal = document.getElementById('feesNewPaymentModal');
     if (!modal) return;
     resetNewPaymentModal();
-    modal.style.display = 'flex';
-    document.body.classList.add('modal-open');
+    openModal('feesNewPaymentModal');
 
     // Focus month selector
     const monthSelect = document.getElementById('feesNewPaymentMonthSelect');
@@ -1267,10 +1256,7 @@
   }
 
   function closeNewPaymentModal() {
-    const modal = document.getElementById('feesNewPaymentModal');
-    if (!modal) return;
-    modal.style.display = 'none';
-    document.body.classList.remove('modal-open');
+    closeModal('feesNewPaymentModal');
   }
 
   /**

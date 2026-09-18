@@ -20,7 +20,7 @@
     rel="stylesheet">
 
   <!-- Stylesheets -->
-  <link rel="stylesheet" href="css/dashboard.css?v=5">
+  <link rel="stylesheet" href="css/dashboard.css?v=6">
 </head>
 
 <body>
@@ -1066,6 +1066,16 @@
                     <option>Unknown</option>
                   </select>
                 </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="regEmail">Student Email <span class="sb-required">*</span></label>
+                  <input type="email" id="regEmail" class="reg-input" placeholder="e.g. aarav@example.com" autocomplete="email">
+                  <span class="reg-error" id="err-regEmail">Enter a valid email address.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="regSchool">School Name <span class="sb-required">*</span></label>
+                  <input type="text" id="regSchool" class="reg-input" placeholder="e.g. St. Xavier's High School">
+                  <span class="reg-error" id="err-regSchool">School name is required.</span>
+                </div>
               </div>
             </div>
 
@@ -1273,6 +1283,16 @@
                     <option>AB+</option><option>AB−</option>
                     <option>Unknown</option>
                   </select>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="editRegEmail">Student Email <span class="sb-required">*</span></label>
+                  <input type="email" id="editRegEmail" class="reg-input" placeholder="e.g. aarav@example.com" autocomplete="email">
+                  <span class="reg-error" id="err-editRegEmail">Enter a valid email address.</span>
+                </div>
+                <div class="reg-field">
+                  <label class="reg-label" for="editRegSchool">School Name <span class="sb-required">*</span></label>
+                  <input type="text" id="editRegSchool" class="reg-input" placeholder="e.g. St. Xavier's High School">
+                  <span class="reg-error" id="err-editRegSchool">School name is required.</span>
                 </div>
               </div>
             </div>
@@ -2096,6 +2116,10 @@
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.37 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.76a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
                   +91 9876543210
                 </span>
+                <span class="coach-meta-item" id="viewStudentEmailMeta">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/></svg>
+                  <span id="viewStudentEmailTop">—</span>
+                </span>
               </div>
             </div>
           </div>
@@ -2120,6 +2144,10 @@
               <div class="coach-detail-row">
                 <span class="coach-detail-label">Blood Group:</span>
                 <span class="coach-detail-val" id="viewStudentBloodGroup">—</span>
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">School:</span>
+                <span class="coach-detail-val" id="viewStudentSchool">—</span>
               </div>
               <div class="coach-detail-row">
                 <span class="coach-detail-label">Date of Joining:</span>
@@ -2172,6 +2200,10 @@
               <div class="coach-detail-card-title">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.37 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.76a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
                 Contact Details
+              </div>
+              <div class="coach-detail-row">
+                <span class="coach-detail-label">Student Email:</span>
+                <span class="coach-detail-val" id="viewStudentEmailVal">—</span>
               </div>
               <div class="coach-detail-row">
                 <span class="coach-detail-label">Father's Contact:</span>

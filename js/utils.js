@@ -28,16 +28,93 @@ const ATTENDANCE_API = 'server/attendance.php';
 const FEES_API       = 'server/fees.php';
 */
 
-// Modal Open / Close Helpers
+// Modal Stack & History Management for Mobile Back Button
+const activeModalStack = [];
+let isProgrammaticHistoryBack = false;
+let isPopstateClosing = false;
+
 function openModal(id) {
   const m = document.getElementById(id);
-  if (m) { m.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+  if (!m) return;
+  m.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  document.body.classList.add('modal-open');
+
+  // If not already the top of the stack, register it
+  if (activeModalStack[activeModalStack.length - 1] !== id) {
+    activeModalStack.push(id);
+    try {
+      history.pushState({ vsaModalId: id, stackDepth: activeModalStack.length }, '');
+    } catch (e) {
+      console.warn('History pushState failed:', e);
+    }
+  }
 }
 
 function closeModal(id) {
   const m = document.getElementById(id);
-  if (m) { m.style.display = 'none'; document.body.style.overflow = ''; }
+  if (m) {
+    m.style.display = 'none';
+  }
+
+  const idx = activeModalStack.lastIndexOf(id);
+  const wasInStack = (idx !== -1);
+  if (wasInStack) {
+    activeModalStack.splice(idx, 1);
+  }
+
+  if (activeModalStack.length === 0) {
+    document.body.style.overflow = '';
+    document.body.classList.remove('modal-open');
+  }
+
+  // If closed directly by user (close button, Cancel, backdrop) and not by browser popstate,
+  // sync history so back button doesn't have stale states
+  if (wasInStack && !isPopstateClosing) {
+    isProgrammaticHistoryBack = true;
+    try {
+      history.back();
+    } catch (e) {
+      isProgrammaticHistoryBack = false;
+    }
+  }
 }
+
+// Global popstate listener for mobile / browser back button
+window.addEventListener('popstate', (e) => {
+  if (isProgrammaticHistoryBack) {
+    isProgrammaticHistoryBack = false;
+    return;
+  }
+
+  if (activeModalStack.length > 0) {
+    const topModalId = activeModalStack[activeModalStack.length - 1];
+    isPopstateClosing = true;
+    try {
+      // Execute specific cleanup methods if defined, falling back to closeModal
+      if (topModalId === 'addStudentModal' && typeof closeRegForm === 'function') {
+        closeRegForm();
+      } else if (topModalId === 'editStudentModal' && typeof closeEditStudentForm === 'function') {
+        closeEditStudentForm();
+      } else if (topModalId === 'feesPaymentDetailModal' && typeof closeStudentPaymentDetailModal === 'function') {
+        closeStudentPaymentDetailModal();
+      } else if (topModalId === 'feesNewPaymentModal' && typeof closeNewPaymentModal === 'function') {
+        closeNewPaymentModal();
+      } else if (topModalId === 'feesScheduleModal' && typeof closeScheduleModal === 'function') {
+        closeScheduleModal();
+      } else if (topModalId === 'feesDeleteCycleModal' && typeof closeDeleteCycleConfirmationModal === 'function') {
+        closeDeleteCycleConfirmationModal();
+      } else {
+        closeModal(topModalId);
+      }
+    } catch (err) {
+      console.error('Error closing modal on popstate:', err);
+      closeModal(topModalId);
+    } finally {
+      isPopstateClosing = false;
+    }
+  }
+});
 
 // Toast Notification Helper
 function showToast(message, type = 'info') {
@@ -133,12 +210,36 @@ function getCoachInitials(name) {
   return parts[0].substring(0, 2).toUpperCase();
 }
 
-function formatBatchTime(raw) {
+function formatTime12Hour(raw) {
   if (!raw) return '—';
+  const str = String(raw).trim();
+  // Check for HH:MM:SS or HH:MM format
+  const match = str.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (match) {
+    let hour = parseInt(match[1], 10);
+    const minute = match[2];
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    hour = hour % 12;
+    if (hour === 0) hour = 12;
+    return `${hour}:${minute} ${ampm}`;
+  }
+  // Try parsing ISO date or datetime string
   try {
-    return new Date(`1970-01-01T${raw}`)
-      .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  } catch (e) { return raw; }
+    const d = new Date(str.includes('T') ? str : `1970-01-01T${str}`);
+    if (!isNaN(d.getTime())) {
+      let hour = d.getHours();
+      const minute = String(d.getMinutes()).padStart(2, '0');
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      hour = hour % 12;
+      if (hour === 0) hour = 12;
+      return `${hour}:${minute} ${ampm}`;
+    }
+  } catch (e) {}
+  return str;
+}
+
+function formatBatchTime(raw) {
+  return formatTime12Hour(raw);
 }
 
 // Shared State & Dropdown Populators

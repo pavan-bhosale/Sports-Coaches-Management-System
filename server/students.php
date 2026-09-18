@@ -159,13 +159,20 @@ if ($method === 'POST') {
     $whatsapp_number          = trim($input['whatsapp_number']          ?? '');
 
     $student_email            = trim($input['student_email']            ?? '');
+    $school_name              = trim($input['school_name']              ?? '');
     $student_phone            = trim($input['student_phone']            ?? $father_contact_number);
     $joined_date              = trim($input['joined_date']              ?? date('Y-m-d'));
     $status                   = trim($input['status']                   ?? 'Active');
 
-    if (!$student_name || !$parent_name || !$branch_name || !$city || !$father_contact_number) {
+    if (!$student_name || !$parent_name || !$branch_name || !$city || !$father_contact_number || !$school_name) {
         http_response_code(400);
         echo json_encode(['error' => 'All required fields must be filled.']);
+        exit;
+    }
+
+    if ($student_email && !filter_var($student_email, FILTER_VALIDATE_EMAIL)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid email address format.']);
         exit;
     }
 
@@ -178,13 +185,13 @@ if ($method === 'POST') {
     try {
         $stmt = $pdo->prepare(
             'INSERT INTO vsa_students (
-                student_name, student_email, student_phone, address, date_of_birth, joined_date, status,
+                student_name, student_email, school_name, student_phone, address, date_of_birth, joined_date, status,
                 parent_name, gender, blood_group, branch_name, coach_name, batch_name, city, postal_code,
                 father_contact_number, mother_contact_number, emergency_contact_number, whatsapp_number
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
-            $student_name, $student_email, $student_phone, $address, $date_of_birth ?: null, $joined_date, $status,
+            $student_name, $student_email, $school_name ?: null, $student_phone, $address, $date_of_birth ?: null, $joined_date, $status,
             $parent_name, $gender, $blood_group, $branch_name, $coach_name, $batch_name, $city, $postal_code,
             $father_contact_number, $mother_contact_number ?: null, $emergency_contact_number, $whatsapp_number
         ]);
@@ -222,31 +229,56 @@ if ($method === 'PUT') {
     $emergency_contact_number = trim($input['emergency_contact_number'] ?? '');
     $whatsapp_number          = trim($input['whatsapp_number']          ?? '');
     $student_email            = trim($input['student_email']            ?? '');
+    $school_name              = trim($input['school_name']              ?? '');
     $student_phone            = trim($input['student_phone']            ?? $father_contact_number);
     $status                   = trim($input['status']                   ?? 'Active');
 
-    if (!$student_id || !$student_name || !$parent_name || !$branch_name || !$city || !$father_contact_number) {
+    if (!$student_id || !$student_name || !$parent_name || !$branch_name || !$city || !$father_contact_number || !$school_name) {
         http_response_code(400);
         echo json_encode(['error' => 'student_id and required fields are required.']);
         exit;
     }
 
+    if ($student_email && !filter_var($student_email, FILTER_VALIDATE_EMAIL)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid email address format.']);
+        exit;
+    }
+
     try {
-        $stmt = $pdo->prepare(
-            'UPDATE vsa_students SET
-                student_name = ?, student_phone = ?, address = ?, date_of_birth = ?, status = ?,
-                parent_name = ?, gender = ?, blood_group = ?, branch_name = ?, coach_name = ?, batch_name = ?,
-                city = ?, postal_code = ?, father_contact_number = ?, mother_contact_number = ?,
-                emergency_contact_number = ?, whatsapp_number = ?
-             WHERE student_id = ?'
-        );
-        $stmt->execute([
-            $student_name, $student_phone, $address, $date_of_birth ?: null, $status,
-            $parent_name, $gender, $blood_group, $branch_name, $coach_name, $batch_name,
-            $city, $postal_code, $father_contact_number, $mother_contact_number ?: null,
-            $emergency_contact_number, $whatsapp_number,
-            $student_id
-        ]);
+        if ($student_email) {
+            $stmt = $pdo->prepare(
+                'UPDATE vsa_students SET
+                    student_name = ?, student_email = ?, school_name = ?, student_phone = ?, address = ?, date_of_birth = ?, status = ?,
+                    parent_name = ?, gender = ?, blood_group = ?, branch_name = ?, coach_name = ?, batch_name = ?,
+                    city = ?, postal_code = ?, father_contact_number = ?, mother_contact_number = ?,
+                    emergency_contact_number = ?, whatsapp_number = ?
+                 WHERE student_id = ?'
+            );
+            $stmt->execute([
+                $student_name, $student_email, $school_name ?: null, $student_phone, $address, $date_of_birth ?: null, $status,
+                $parent_name, $gender, $blood_group, $branch_name, $coach_name, $batch_name,
+                $city, $postal_code, $father_contact_number, $mother_contact_number ?: null,
+                $emergency_contact_number, $whatsapp_number,
+                $student_id
+            ]);
+        } else {
+            $stmt = $pdo->prepare(
+                'UPDATE vsa_students SET
+                    student_name = ?, school_name = ?, student_phone = ?, address = ?, date_of_birth = ?, status = ?,
+                    parent_name = ?, gender = ?, blood_group = ?, branch_name = ?, coach_name = ?, batch_name = ?,
+                    city = ?, postal_code = ?, father_contact_number = ?, mother_contact_number = ?,
+                    emergency_contact_number = ?, whatsapp_number = ?
+                 WHERE student_id = ?'
+            );
+            $stmt->execute([
+                $student_name, $school_name ?: null, $student_phone, $address, $date_of_birth ?: null, $status,
+                $parent_name, $gender, $blood_group, $branch_name, $coach_name, $batch_name,
+                $city, $postal_code, $father_contact_number, $mother_contact_number ?: null,
+                $emergency_contact_number, $whatsapp_number,
+                $student_id
+            ]);
+        }
 
         if ($stmt->rowCount() === 0) {
             $check = $pdo->prepare('SELECT student_id FROM vsa_students WHERE student_id = ?');

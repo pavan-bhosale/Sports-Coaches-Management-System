@@ -312,6 +312,20 @@ async function openStudentProfile(studentId) {
     document.getElementById('viewStudentEmergencyPhone').textContent = student.emergency_contact_number ? '+91 ' + student.emergency_contact_number : '—';
     document.getElementById('viewStudentWhatsappVal').textContent = student.whatsapp_number ? '+91 ' + student.whatsapp_number : '—';
 
+    // Student Email & School Name Display Handling
+    const rawEmail = student.student_email || '';
+    const displayEmail = (rawEmail && !rawEmail.endsWith('@vavasports.local')) ? rawEmail : '—';
+    const displaySchool = student.school_name || '—';
+
+    const viewStudentEmailTop = document.getElementById('viewStudentEmailTop');
+    if (viewStudentEmailTop) viewStudentEmailTop.textContent = displayEmail;
+
+    const viewStudentEmailVal = document.getElementById('viewStudentEmailVal');
+    if (viewStudentEmailVal) viewStudentEmailVal.textContent = displayEmail;
+
+    const viewStudentSchool = document.getElementById('viewStudentSchool');
+    if (viewStudentSchool) viewStudentSchool.textContent = displaySchool;
+
     // Photo Rendering
     const imgEl = document.getElementById('studentProfileImg');
     const initialsEl = document.getElementById('studentProfileInitials');
@@ -361,6 +375,8 @@ document.addEventListener('DOMContentLoaded', () => {
     { id: 'regMotherContact', check: v => v.trim() === '' || /^\d{10}$/.test(v.trim()), errId: 'err-regMotherContact' },
     { id: 'regEmergency',   check: v => /^\d{10}$/.test(v.trim()),      errId: 'err-regEmergency' },
     { id: 'regWhatsapp',    check: v => /^\d{10}$/.test(v.trim()),      errId: 'err-regWhatsapp' },
+    { id: 'regEmail',       check: v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()), errId: 'err-regEmail' },
+    { id: 'regSchool',      check: v => v.trim().length > 0,            errId: 'err-regSchool' },
   ];
 
   if (submitAddStudent) {
@@ -408,7 +424,9 @@ document.addEventListener('DOMContentLoaded', () => {
         father_contact_number: document.getElementById('regFatherContact').value.trim(),
         mother_contact_number: document.getElementById('regMotherContact').value.trim(),
         emergency_contact_number: document.getElementById('regEmergency').value.trim(),
-        whatsapp_number: document.getElementById('regWhatsapp').value.trim()
+        whatsapp_number: document.getElementById('regWhatsapp').value.trim(),
+        student_email: document.getElementById('regEmail').value.trim(),
+        school_name: document.getElementById('regSchool').value.trim()
       };
 
       submitAddStudent.disabled = true;
@@ -485,6 +503,8 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('editRegMotherContact').value = s.mother_contact_number || '';
       document.getElementById('editRegEmergency').value = s.emergency_contact_number || '';
       document.getElementById('editRegWhatsapp').value = s.whatsapp_number || '';
+      document.getElementById('editRegEmail').value = (s.student_email && !s.student_email.endsWith('@vavasports.local')) ? s.student_email : '';
+      document.getElementById('editRegSchool').value = s.school_name || '';
 
       openEditStudentForm();
     } catch (err) {
@@ -505,6 +525,8 @@ document.addEventListener('DOMContentLoaded', () => {
     { id: 'editRegMotherContact', check: v => v.trim() === '' || /^\d{10}$/.test(v.trim()), errId: 'err-editRegMotherContact' },
     { id: 'editRegEmergency',   check: v => /^\d{10}$/.test(v.trim()),      errId: 'err-editRegEmergency' },
     { id: 'editRegWhatsapp',    check: v => /^\d{10}$/.test(v.trim()),      errId: 'err-editRegWhatsapp' },
+    { id: 'editRegEmail',       check: v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()), errId: 'err-editRegEmail' },
+    { id: 'editRegSchool',      check: v => v.trim().length > 0,            errId: 'err-editRegSchool' },
   ];
 
   if (submitEditStudent) {
@@ -556,7 +578,9 @@ document.addEventListener('DOMContentLoaded', () => {
         father_contact_number: document.getElementById('editRegFatherContact').value.trim(),
         mother_contact_number: document.getElementById('editRegMotherContact').value.trim(),
         emergency_contact_number: document.getElementById('editRegEmergency').value.trim(),
-        whatsapp_number: document.getElementById('editRegWhatsapp').value.trim()
+        whatsapp_number: document.getElementById('editRegWhatsapp').value.trim(),
+        student_email: document.getElementById('editRegEmail').value.trim(),
+        school_name: document.getElementById('editRegSchool').value.trim()
       };
 
       try {
