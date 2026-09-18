@@ -111,6 +111,9 @@ async function fetchStudents() {
           const card = document.createElement('div');
           card.className = 'student-card-mobile';
           card.dataset.studentId = student.student_id;
+          card.setAttribute('role', 'button');
+          card.setAttribute('tabindex', '0');
+          card.setAttribute('aria-label', `View profile for ${student.student_name}`);
           card.innerHTML = `
             <div class="student-card-header">
               <div class="student-card-avatar bg-avatar-green" style="${student.student_photo ? 'background:none;padding:0;' : ''}">
@@ -654,11 +657,42 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   document.addEventListener('click', (e) => {
+    // 1. If clicking inside the actions dropdown/buttons, do not trigger profile
+    if (e.target.closest('.batch-actions-wrap')) return;
+
+    // 2. Click anywhere on mobile/tablet student card
+    const card = e.target.closest('.student-card-mobile');
+    if (card && card.dataset.studentId) {
+      openStudentProfile(card.dataset.studentId);
+      return;
+    }
+
+    // 3. Click on desktop table student name link
     const link = e.target.closest('.student-name-link');
-    if (!link) return;
-    const studentId = link.getAttribute('data-id');
-    if (studentId) {
-      openStudentProfile(studentId);
+    if (link) {
+      const studentId = link.getAttribute('data-id');
+      if (studentId) {
+        openStudentProfile(studentId);
+      }
+      return;
+    }
+
+    // 4. Click anywhere on desktop table row (student info)
+    const tr = e.target.closest('#studentsTableBody tr');
+    if (tr && tr.dataset.studentId) {
+      openStudentProfile(tr.dataset.studentId);
+      return;
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      if (e.target.closest('.batch-actions-wrap')) return;
+      const card = e.target.closest('.student-card-mobile');
+      if (card && card.dataset.studentId && document.activeElement === card) {
+        e.preventDefault();
+        openStudentProfile(card.dataset.studentId);
+      }
     }
   });
 

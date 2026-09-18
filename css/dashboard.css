@@ -2810,6 +2810,413 @@ input[type="date"].reg-input::-webkit-calendar-picker-indicator:hover {
 .coach-detail-label { color: var(--text-muted); }
 .coach-detail-val { color: var(--text-primary); font-weight: 500; text-align: right; }
 
+/* ==========================================================================
+   STUDENT PROFILE POPUP MODAL (COMPACT & RESPONSIVE REFINEMENT)
+   ========================================================================== */
+#studentsTableBody tr {
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+#studentsTableBody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+#studentsTableBody tr .batch-actions-wrap {
+  cursor: default;
+}
+
+#studentProfileModal.sb-modal-overlay {
+  padding: 1rem;
+}
+
+#studentProfileModal .sb-modal,
+#studentProfileModal .student-profile-modal-dialog {
+  max-width: 640px;
+  max-height: 92vh;
+  border-radius: var(--radius-lg);
+  overflow-y: auto;
+}
+
+#studentProfileModal .sb-modal-header,
+#studentProfileModal .student-profile-modal-header {
+  padding: 1.15rem 1.35rem 0.25rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+#studentProfileModal .sb-modal-badge,
+#studentProfileModal .student-profile-modal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  margin-bottom: 0.35rem;
+}
+
+#studentProfileModal .sb-modal-title,
+#studentProfileModal .student-profile-modal-title {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 0;
+  line-height: 1.25;
+}
+
+#studentProfileModal .modal-close-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+#studentProfileModal .modal-close-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Modal Body */
+#studentProfileModal .student-profile-modal-body {
+  padding: 0.85rem 1.35rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Top Profile Card */
+#studentProfileModal .coach-profile-card {
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
+  padding: 0.9rem 1.15rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  margin-bottom: 0.85rem;
+}
+
+#studentProfileModal .coach-profile-avatar-wrap {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+#studentProfileModal .coach-profile-avatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  color: #080c14;
+  font-size: 1.75rem;
+  font-weight: 800;
+  font-family: var(--font-heading);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2.5px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  object-fit: cover;
+}
+
+#studentProfileModal .coach-photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+#studentProfileModal .coach-photo-hover-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+#studentProfileModal .coach-pen-badge {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#studentProfileModal .coach-profile-header-info {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+#studentProfileModal .coach-profile-name {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+  font-family: var(--font-heading);
+  line-height: 1.25;
+}
+
+#studentProfileModal .coach-profile-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+  margin-top: 0.35rem;
+}
+
+#studentProfileModal .badge-status {
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+#studentProfileModal .coach-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+#studentProfileModal .coach-meta-item svg {
+  flex-shrink: 0;
+}
+
+/* Details Grid */
+#studentProfileModal .coach-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+/* Detail Card */
+#studentProfileModal .coach-detail-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.95rem;
+}
+
+#studentProfileModal .coach-detail-card-title {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: 0.45rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+#studentProfileModal .coach-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+  font-size: 0.8125rem;
+  gap: 0.5rem;
+}
+
+#studentProfileModal .coach-detail-row:last-child {
+  border-bottom: none;
+}
+
+#studentProfileModal .coach-detail-label {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+#studentProfileModal .coach-detail-val {
+  color: var(--text-primary);
+  font-weight: 500;
+  text-align: right;
+  word-break: break-word;
+}
+
+/* ── Responsive Refinements ── */
+@media (max-width: 640px) {
+  #studentProfileModal.sb-modal-overlay {
+    padding: 0.65rem 0.5rem;
+  }
+
+  #studentProfileModal .sb-modal,
+  #studentProfileModal .student-profile-modal-dialog {
+    max-height: 94vh;
+  }
+
+  #studentProfileModal .sb-modal-header,
+  #studentProfileModal .student-profile-modal-header {
+    padding: 0.85rem 0.95rem 0.2rem;
+  }
+
+  #studentProfileModal .sb-modal-badge,
+  #studentProfileModal .student-profile-modal-badge {
+    padding: 0.18rem 0.5rem;
+    font-size: 0.685rem;
+    margin-bottom: 0.25rem;
+  }
+
+  #studentProfileModal .sb-modal-title,
+  #studentProfileModal .student-profile-modal-title {
+    font-size: 1.15rem;
+  }
+
+  #studentProfileModal .student-profile-modal-body {
+    padding: 0.75rem 0.85rem 1rem;
+  }
+
+  #studentProfileModal .coach-profile-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 0.85rem 0.75rem;
+    gap: 0.6rem;
+    margin-bottom: 0.7rem;
+  }
+
+  #studentProfileModal .coach-profile-avatar-wrap {
+    width: 68px;
+    height: 68px;
+  }
+
+  #studentProfileModal .coach-profile-avatar {
+    width: 68px;
+    height: 68px;
+    font-size: 1.55rem;
+    border-width: 2px;
+  }
+
+  #studentProfileModal .coach-profile-name {
+    font-size: 1.15rem;
+    margin-bottom: 0.15rem;
+  }
+
+  #studentProfileModal .coach-profile-meta {
+    justify-content: center;
+    gap: 0.4rem;
+    margin-top: 0.25rem;
+  }
+
+  #studentProfileModal .coach-meta-item {
+    font-size: 0.78rem;
+  }
+
+  #studentProfileModal .coach-details-grid {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+
+  #studentProfileModal .coach-detail-card {
+    padding: 0.65rem 0.75rem;
+  }
+
+  #studentProfileModal .coach-detail-card-title {
+    font-size: 0.7rem;
+    margin-bottom: 0.35rem;
+  }
+
+  #studentProfileModal .coach-detail-row {
+    padding: 0.22rem 0;
+    font-size: 0.78rem;
+  }
+}
+
+@media (max-width: 375px) {
+  #studentProfileModal.sb-modal-overlay {
+    padding: 0.35rem 0.3rem;
+  }
+
+  #studentProfileModal .sb-modal-header,
+  #studentProfileModal .student-profile-modal-header {
+    padding: 0.75rem 0.75rem 0.15rem;
+  }
+
+  #studentProfileModal .sb-modal-badge,
+  #studentProfileModal .student-profile-modal-badge {
+    padding: 0.16rem 0.45rem;
+    font-size: 0.67rem;
+    margin-bottom: 0.2rem;
+  }
+
+  #studentProfileModal .sb-modal-title,
+  #studentProfileModal .student-profile-modal-title {
+    font-size: 1.05rem;
+  }
+
+  #studentProfileModal .student-profile-modal-body {
+    padding: 0.6rem 0.65rem 0.85rem;
+  }
+
+  #studentProfileModal .coach-profile-card {
+    padding: 0.7rem 0.65rem;
+    gap: 0.5rem;
+    margin-bottom: 0.6rem;
+  }
+
+  #studentProfileModal .coach-profile-avatar-wrap {
+    width: 60px;
+    height: 60px;
+  }
+
+  #studentProfileModal .coach-profile-avatar {
+    width: 60px;
+    height: 60px;
+    font-size: 1.35rem;
+  }
+
+  #studentProfileModal .coach-profile-name {
+    font-size: 1.05rem;
+  }
+
+  #studentProfileModal .coach-profile-meta {
+    gap: 0.3rem;
+  }
+
+  #studentProfileModal .coach-meta-item {
+    font-size: 0.74rem;
+  }
+
+  #studentProfileModal .coach-details-grid {
+    gap: 0.5rem;
+  }
+
+  #studentProfileModal .coach-detail-card {
+    padding: 0.55rem 0.65rem;
+  }
+
+  #studentProfileModal .coach-detail-card-title {
+    font-size: 0.68rem;
+    margin-bottom: 0.3rem;
+  }
+
+  #studentProfileModal .coach-detail-row {
+    padding: 0.18rem 0;
+    font-size: 0.75rem;
+  }
+}
+
 /* ── Image Crop / Edit Modal Toolbar ── */
 .crop-container {
   display: flex;
@@ -3752,15 +4159,27 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     display: flex;
     flex-direction: column;
     gap: 0.55rem;
-    transition: transform var(--transition-fast), border-color var(--transition-fast);
+    transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
     position: relative;
     width: 100%;
     box-sizing: border-box;
     overflow: visible !important;
+    cursor: pointer;
+    user-select: none;
   }
 
   .student-card-mobile:hover {
     border-color: var(--border-glass-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  }
+
+  .student-card-mobile:active {
+    transform: translateY(0);
+  }
+
+  .student-card-mobile .batch-actions-wrap {
+    cursor: default;
   }
 
   .student-card-header {
