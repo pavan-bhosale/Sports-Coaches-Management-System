@@ -3549,7 +3549,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .coach-card-pill {
@@ -3561,6 +3561,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-size: 0.735rem;
   font-weight: 700;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .pill-batch {
@@ -3601,7 +3602,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .coach-card-bottom-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 1.4fr);
   gap: 0.5rem;
   text-align: left;
 }
@@ -3610,6 +3611,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
+  min-width: 0;
+}
+
+.coach-meta-col-phone {
   min-width: 0;
 }
 
@@ -3623,6 +3628,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.coach-meta-val-phone {
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: normal !important;
+}
+
+.coach-meta-val-phone .coach-phone-val {
+  display: inline-block;
+  line-height: 1.25;
 }
 
 .coach-meta-val svg {
@@ -4001,13 +4017,16 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 
   .coach-card-badges {
-    gap: 0.4rem !important;
+    flex-wrap: nowrap !important;
+    gap: 0.35rem !important;
   }
 
   .coach-card-pill {
-    padding: 0.2rem 0.55rem !important;
-    font-size: 0.725rem !important;
+    padding: 0.18rem 0.5rem !important;
+    font-size: 0.72rem !important;
     gap: 0.25rem !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
   }
 
   .coach-card-divider {
@@ -4015,6 +4034,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 
   .coach-card-bottom-grid {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 0.95fr) minmax(0, 1.45fr) !important;
     gap: 0.35rem !important;
   }
 
@@ -4025,6 +4045,18 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
   .coach-meta-lbl {
     font-size: 0.685rem !important;
+  }
+
+  .coach-meta-val-phone {
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+  }
+
+  .coach-meta-val-phone .coach-phone-val {
+    display: inline-block !important;
+    font-size: 0.78rem !important;
+    line-height: 1.2 !important;
   }
 }
 
@@ -7313,6 +7345,70 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .superadmin-student-right .student-card-arrow-btn svg {
     width: 13px;
     height: 13px;
+  }
+
+  /* Mobile S Coach Card Enhancements (Prevents badge stacking and phone clipping) */
+  .coach-card-mobile {
+    padding: 0.65rem 0.7rem !important;
+    gap: 0.45rem !important;
+  }
+  .coach-card-top {
+    gap: 0.35rem !important;
+  }
+  .coach-card-profile {
+    gap: 0.5rem !important;
+  }
+  .coach-card-avatar {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+  }
+  .coach-avatar-initials {
+    font-size: 0.8rem !important;
+  }
+  .coach-card-name {
+    font-size: 0.9rem !important;
+  }
+  .coach-card-email {
+    font-size: 0.72rem !important;
+    margin-bottom: 0.2rem !important;
+  }
+  .coach-card-badges {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 0.28rem !important;
+  }
+  .coach-card-pill {
+    padding: 0.16rem 0.42rem !important;
+    font-size: 0.68rem !important;
+    gap: 0.2rem !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
+  .coach-card-pill svg {
+    width: 10px !important;
+    height: 10px !important;
+  }
+  .coach-card-bottom-grid {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 0.88fr) minmax(0, 1.55fr) !important;
+    gap: 0.25rem !important;
+  }
+  .coach-meta-val {
+    font-size: 0.76rem !important;
+    gap: 0.25rem !important;
+  }
+  .coach-meta-lbl {
+    font-size: 0.65rem !important;
+  }
+  .coach-meta-val-phone {
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+  }
+  .coach-meta-val-phone .coach-phone-val {
+    font-size: 0.74rem !important;
+    line-height: 1.2 !important;
   }
 }
 

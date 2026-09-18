@@ -131,8 +131,8 @@ function navigateToSection(targetHref, showToastNotice = true) {
       feesSection.style.display = '';
       if (typeof initFeesModule === 'function') initFeesModule();
     }
-    if (pageTitle) pageTitle.textContent = 'Fee & Payments';
-    if (currentSectionName) currentSectionName.textContent = 'Fees & Collections';
+    if (pageTitle) pageTitle.textContent = 'Fees & Payments';
+    if (currentSectionName) currentSectionName.textContent = 'Fees & Payments';
   }
 
   if (showToastNotice && !isSameSection) {
