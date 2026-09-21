@@ -251,6 +251,166 @@ assertTest("vsa_coaches table intact (count: {$coachesCount})", $coachesCount > 
 $adminCount = $pdo->query('SELECT COUNT(*) FROM vsa_superadmin')->fetchColumn();
 assertTest("vsa_superadmin table intact (count: {$adminCount})", $adminCount > 0, $errors, $passes);
 
+// 7. Comprehensive Available vs Allocated Stock Deduction Tests
+echo "\n--- 7. Comprehensive Deduct Stock Tests (Available vs Allocated) ---\n";
+
+// Setup Item for Test 1: Total = 21, Batch 1 = 9, Batch 2 = 9, Available = 3
+$setup1 = runApi('POST', [
+    'action' => 'create',
+    'item_name' => 'TEST_Deduct_Item1',
+    'initial_quantity' => 21
+]);
+$deductItemId1 = $setup1['body']['item']['inventory_id'];
+runApi('POST', ['action' => 'allocate', 'inventory_id' => $deductItemId1, 'batch_id' => $batch1Id, 'quantity' => 9]);
+$itemState1 = runApi('POST', ['action' => 'allocate', 'inventory_id' => $deductItemId1, 'batch_id' => $batch2Id, 'quantity' => 9]);
+
+assertTest("[TEST 1 Init] Total is 21", ($itemState1['body']['item']['total_quantity'] ?? 0) === 21, $errors, $passes);
+assertTest("[TEST 1 Init] Allocated is 18", ($itemState1['body']['item']['allocated_quantity'] ?? 0) === 18, $errors, $passes);
+assertTest("[TEST 1 Init] Available is 3", ($itemState1['body']['item']['available_quantity'] ?? 0) === 3, $errors, $passes);
+
+// TEST 1: Deduct 2 from Available Stock
+$t1Res = runApi('POST', [
+    'action' => 'deduct_stock',
+    'inventory_id' => $deductItemId1,
+    'deduct_source' => 'available',
+    'quantity' => 2,
+    'reason' => 'Lost equipment from storage'
+]);
+assertTest("TEST 1: Deduct 2 from Available returns HTTP 200", $t1Res['status'] === 200, $errors, $passes);
+assertTest("TEST 1: Total decreases from 21 to 19", ($t1Res['body']['item']['total_quantity'] ?? 0) === 19, $errors, $passes);
+assertTest("TEST 1: Available decreases from 3 to 1", ($t1Res['body']['item']['available_quantity'] ?? 0) === 1, $errors, $passes);
+assertTest("TEST 1: Allocated remains 18", ($t1Res['body']['item']['allocated_quantity'] ?? 0) === 18, $errors, $passes);
+
+// Setup Item for TEST 2: Total = 21, Batch 1 = 9, Batch 2 = 9, Available = 3
+$setup2 = runApi('POST', [
+    'action' => 'create',
+    'item_name' => 'TEST_Deduct_Item2',
+    'initial_quantity' => 21
+]);
+$deductItemId2 = $setup2['body']['item']['inventory_id'];
+runApi('POST', ['action' => 'allocate', 'inventory_id' => $deductItemId2, 'batch_id' => $batch1Id, 'quantity' => 9]);
+runApi('POST', ['action' => 'allocate', 'inventory_id' => $deductItemId2, 'batch_id' => $batch2Id, 'quantity' => 9]);
+
+// TEST 2: Deduct 2 from Batch 1 Allocated Stock
+$t2Res = runApi('POST', [
+    'action' => 'deduct_stock',
+    'inventory_id' => $deductItemId2,
+    'deduct_source' => 'allocated',
+    'batch_id' => $batch1Id,
+    'quantity' => 2,
+    'reason' => 'Damaged during practice'
+]);
+assertTest("TEST 2: Deduct 2 from Batch 1 returns HTTP 200", $t2Res['status'] === 200, $errors, $passes);
+assertTest("TEST 2: Total decreases from 21 to 19", ($t2Res['body']['item']['total_quantity'] ?? 0) === 19, $errors, $passes);
+assertTest("TEST 2: Available remains 3", ($t2Res['body']['item']['available_quantity'] ?? 0) === 3, $errors, $passes);
+assertTest("TEST 2: Allocated decreases from 18 to 16", ($t2Res['body']['item']['allocated_quantity'] ?? 0) === 16, $errors, $passes);
+$b1AllocQty = 0;
+$b2AllocQty = 0;
+foreach ($t2Res['body']['item']['allocations'] as $a) {
+    if ($a['batch_id'] === $batch1Id) $b1AllocQty = $a['quantity'];
+    if ($a['batch_id'] === $batch2Id) $b2AllocQty = $a['quantity'];
+}
+assertTest("TEST 2: Batch 1 allocation reduced from 9 to 7", $b1AllocQty === 7, $errors, $passes);
+assertTest("TEST 2: Batch 2 allocation remains 9", $b2AllocQty === 9, $errors, $passes);
+
+// Setup Item for TEST 3 & 4: Total = 20, Batch 1 = 5, Available = 15
+$setup3 = runApi('POST', [
+    'action' => 'create',
+    'item_name' => 'TEST_Deduct_Item3',
+    'initial_quantity' => 20
+]);
+$deductItemId3 = $setup3['body']['item']['inventory_id'];
+runApi('POST', ['action' => 'allocate', 'inventory_id' => $deductItemId3, 'batch_id' => $batch1Id, 'quantity' => 5]);
+
+// TEST 4: Invalid allocated deduction (attempt to deduct 6 when allocated is 5)
+$t4Res = runApi('POST', [
+    'action' => 'deduct_stock',
+    'inventory_id' => $deductItemId3,
+    'deduct_source' => 'allocated',
+    'batch_id' => $batch1Id,
+    'quantity' => 6,
+    'reason' => 'Over-deduction attempt'
+]);
+assertTest("TEST 4: Deducting 6 from batch with 5 allocated is rejected with HTTP 400", $t4Res['status'] === 400, $errors, $passes);
+
+// Verify item unchanged after rejected operation
+$t4Verify = runApi('GET', ['id' => $deductItemId3]);
+assertTest("TEST 4: Item total remains 20 after rejected deduction", ($t4Verify['body']['item']['total_quantity'] ?? 0) === 20, $errors, $passes);
+
+// TEST 3: Full batch allocation deduction (deduct all 5 from Batch 1)
+$t3Res = runApi('POST', [
+    'action' => 'deduct_stock',
+    'inventory_id' => $deductItemId3,
+    'deduct_source' => 'allocated',
+    'batch_id' => $batch1Id,
+    'quantity' => 5,
+    'reason' => 'Entire batch gear damaged in flood'
+]);
+assertTest("TEST 3: Full batch deduction returns HTTP 200", $t3Res['status'] === 200, $errors, $passes);
+assertTest("TEST 3: Total decreases by 5 (20 -> 15)", ($t3Res['body']['item']['total_quantity'] ?? 0) === 15, $errors, $passes);
+assertTest("TEST 3: Available remains unchanged (15)", ($t3Res['body']['item']['available_quantity'] ?? 0) === 15, $errors, $passes);
+assertTest("TEST 3: Allocated is now 0", ($t3Res['body']['item']['allocated_quantity'] ?? 0) === 0, $errors, $passes);
+assertTest("TEST 3: Batch 1 allocation entry completely removed from JSON", empty($t3Res['body']['item']['allocations']), $errors, $passes);
+
+// TEST 5: Invalid available deduction (Available = 3, try to deduct 4)
+// Use deductItemId1 which now has Available = 1
+$t5Res = runApi('POST', [
+    'action' => 'deduct_stock',
+    'inventory_id' => $deductItemId1,
+    'deduct_source' => 'available',
+    'quantity' => 4,
+    'reason' => 'Excessive available deduction'
+]);
+assertTest("TEST 5: Deducting 4 when available is 1 is rejected with HTTP 400", $t5Res['status'] === 400, $errors, $passes);
+
+// TEST 6: Deallocation remains different (Total remains unchanged, Available increases)
+// Setup Item: Total = 21, Batch 1 = 9, Available = 12
+$setup6 = runApi('POST', [
+    'action' => 'create',
+    'item_name' => 'TEST_Deduct_Item6',
+    'initial_quantity' => 21
+]);
+$deductItemId6 = $setup6['body']['item']['inventory_id'];
+runApi('POST', ['action' => 'allocate', 'inventory_id' => $deductItemId6, 'batch_id' => $batch1Id, 'quantity' => 9]);
+
+// Deallocate 2 from Batch 1
+$t6Res = runApi('POST', [
+    'action' => 'deallocate',
+    'inventory_id' => $deductItemId6,
+    'batch_id' => $batch1Id,
+    'quantity' => 2
+]);
+assertTest("TEST 6: Deallocate returns HTTP 200", $t6Res['status'] === 200, $errors, $passes);
+assertTest("TEST 6: Total remains 21 (gear not destroyed)", ($t6Res['body']['item']['total_quantity'] ?? 0) === 21, $errors, $passes);
+assertTest("TEST 6: Batch 1 allocation decreased from 9 to 7", ($t6Res['body']['item']['allocations'][0]['quantity'] ?? 0) === 7, $errors, $passes);
+assertTest("TEST 6: Available increased from 12 to 14", ($t6Res['body']['item']['available_quantity'] ?? 0) === 14, $errors, $passes);
+
+// TEST 7: Stock history verification
+$history1 = $t1Res['body']['item']['stock_history'];
+$lastH1 = end($history1);
+assertTest("TEST 7: Available deduction logged with source 'Available Stock'", ($lastH1['source'] ?? '') === 'Available Stock' && ($lastH1['type'] ?? '') === 'Deducted', $errors, $passes);
+
+$history2 = $t2Res['body']['item']['stock_history'];
+$lastH2 = end($history2);
+assertTest("TEST 7: Allocated deduction logged with source 'Allocated Stock'", ($lastH2['source'] ?? '') === 'Allocated Stock' && ($lastH2['type'] ?? '') === 'Deducted', $errors, $passes);
+assertTest("TEST 7: Allocated deduction logged with batch_id and batch_name", ($lastH2['batch_id'] ?? 0) === $batch1Id && !empty($lastH2['batch_name']), $errors, $passes);
+
+// TEST 8: Data consistency invariant assertions
+$itemsToAudit = [$t1Res['body']['item'], $t2Res['body']['item'], $t3Res['body']['item'], $t6Res['body']['item']];
+$allConsistent = true;
+foreach ($itemsToAudit as $it) {
+    $tot = $it['total_quantity'];
+    $alloc = $it['allocated_quantity'];
+    $avail = $it['available_quantity'];
+    if ($alloc > $tot || $avail < 0 || ($avail + $alloc) !== $tot) {
+        $allConsistent = false;
+    }
+}
+assertTest("TEST 8: Data consistency invariants hold (allocated <= total, avail >= 0, avail + alloc == total)", $allConsistent, $errors, $passes);
+
+// Cleanup test items
+$pdo->exec("DELETE FROM vsa_inventory WHERE item_name LIKE 'TEST_%'");
+
 echo "\n======================================================\n";
 echo "TEST RESULTS SUMMARY: {$passes} PASSED, " . count($errors) . " FAILED\n";
 echo "======================================================\n";

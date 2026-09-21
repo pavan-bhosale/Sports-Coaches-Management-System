@@ -3113,7 +3113,7 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Add Stock
             </button>
-            <button type="button" class="btn-sb-ghost inv-action-btn" id="btnDetailDeductStock">
+            <button type="button" class="btn-sb-ghost inv-action-btn inv-btn-deduct-tone" id="btnDetailDeductStock">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Deduct Stock
             </button>
@@ -3121,7 +3121,7 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
               Allocate
             </button>
-            <button type="button" class="btn-sb-ghost inv-action-btn" id="btnDetailScrollHistory">
+            <button type="button" class="btn-sb-ghost inv-action-btn inv-btn-history-tone" id="btnDetailScrollHistory">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               Stock History
             </button>
@@ -3134,26 +3134,6 @@
               <!-- Populated by JS -->
             </div>
           </div>
-
-          <!-- Stock History Log -->
-          <div class="inv-detail-section" id="invDetailHistorySection">
-            <h4 class="inv-detail-section-title">Stock History</h4>
-            <div class="inv-history-table-wrapper">
-              <table class="inv-history-table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Type</th>
-                    <th>Qty</th>
-                    <th>Reason</th>
-                  </tr>
-                </thead>
-                <tbody id="invDetailHistoryList">
-                  <!-- Populated by JS -->
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
 
         <div class="sb-modal-footer" style="justify-content: space-between;">
@@ -3163,6 +3143,45 @@
       </div>
     </div>
     <!-- ===== END INVENTORY DETAILS MODAL ===== -->
+
+    <!-- ===== STOCK HISTORY MODAL ===== -->
+    <div class="sb-modal-overlay" id="inventoryHistoryModal" style="display:none; z-index: 1060;">
+      <div class="sb-modal inv-history-modal" style="max-width: 580px;">
+        <div class="sb-modal-header">
+          <div>
+            <div class="sb-modal-badge inv-badge-history">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Log & Audit
+            </div>
+            <h3 class="sb-modal-title" id="invHistoryItemTitle">Stock History</h3>
+            <p class="sb-modal-subtitle" id="invHistoryItemSubtitle">View full stock movement records</p>
+          </div>
+          <button type="button" class="modal-close-btn" id="closeInventoryHistoryModal">&times;</button>
+        </div>
+
+        <div class="sb-modal-body" style="padding-top: 0.5rem;">
+          <div class="inv-history-container">
+            <table class="inv-history-table inv-history-table-clean">
+              <thead>
+                <tr>
+                  <th style="width: 28%; min-width: 80px;">Date</th>
+                  <th style="width: 22%; min-width: 60px;">Change</th>
+                  <th style="width: 50%;">Reason</th>
+                </tr>
+              </thead>
+              <tbody id="invDetailHistoryList">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="sb-modal-footer" style="justify-content: flex-end;">
+          <button type="button" class="btn-sb-ghost" id="cancelInventoryHistory">Back to Details</button>
+        </div>
+      </div>
+    </div>
+    <!-- ===== END STOCK HISTORY MODAL ===== -->
 
     <!-- ===== ADD STOCK MODAL ===== -->
     <div class="sb-modal-overlay" id="addStockModal" style="display:none; z-index: 1050;">
@@ -3198,7 +3217,7 @@
 
     <!-- ===== DEDUCT STOCK MODAL ===== -->
     <div class="sb-modal-overlay" id="deductStockModal" style="display:none; z-index: 1050;">
-      <div class="sb-modal" style="max-width: 440px;">
+      <div class="sb-modal" style="max-width: 450px;">
         <div class="sb-modal-header">
           <div>
             <div class="sb-modal-badge" style="background: rgba(239, 68, 68, 0.12); color: var(--color-danger); border-color: rgba(239, 68, 68, 0.3);">
@@ -3211,12 +3230,47 @@
           <button type="button" class="modal-close-btn" id="closeDeductStockModal">&times;</button>
         </div>
         <div class="sb-modal-body">
-          <div class="inv-modal-hint-box">
+          <div class="sb-form-group">
+            <label class="sb-label">Deduct From <span class="sb-required">*</span></label>
+            <div class="inv-deduct-source-toggle">
+              <label class="inv-source-radio-label">
+                <input type="radio" name="deductStockSource" value="available" checked id="deductSourceAvailable">
+                <span class="inv-source-radio-pill">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12h6"/></svg>
+                  Available Stock
+                </span>
+              </label>
+              <label class="inv-source-radio-label">
+                <input type="radio" name="deductStockSource" value="allocated" id="deductSourceAllocated">
+                <span class="inv-source-radio-pill">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  Allocated Stock
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Available Stock Info Box -->
+          <div class="inv-modal-hint-box" id="deductStockAvailHintBox" style="margin-bottom: 1rem;">
             <span>Available (unallocated) stock: <strong id="deductStockAvailable">0</strong></span>
           </div>
+
+          <!-- Allocated Stock Section -->
+          <div id="deductStockAllocatedSection" style="display: none; margin-bottom: 1rem;">
+            <div class="sb-form-group" style="margin-bottom: 0.75rem;">
+              <label class="sb-label" for="deductStockBatchSelect">Select Batch <span class="sb-required">*</span></label>
+              <select class="sb-input" id="deductStockBatchSelect">
+                <!-- Dynamically populated -->
+              </select>
+            </div>
+            <div class="inv-modal-hint-box" id="deductStockAllocHintBox">
+              <span>Currently allocated to batch: <strong id="deductStockBatchAllocatedQty">0</strong></span>
+            </div>
+          </div>
+
           <div class="sb-form-group">
             <label class="sb-label" for="deductStockQuantity">Quantity to Deduct <span class="sb-required">*</span></label>
-            <input type="number" class="sb-input" id="deductStockQuantity" min="1" placeholder="e.g. 5">
+            <input type="number" class="sb-input" id="deductStockQuantity" min="1" placeholder="e.g. 2">
           </div>
           <div class="sb-form-group">
             <label class="sb-label" for="deductStockReason">Reason <span class="sb-required">*</span></label>

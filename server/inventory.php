@@ -361,11 +361,13 @@ if ($method === 'POST') {
         }
     }
 
-    // 3. DEDUCT STOCK
+    // 3. DEDUCT STOCK (From Available Stock OR Allocated Batch Stock)
     if ($action === 'deduct_stock') {
         $inventory_id = intval($input['inventory_id'] ?? 0);
+        $deductSource = trim(strval($input['deduct_source'] ?? 'available'));
         $deductedQty = intval($input['quantity'] ?? 0);
         $reason = trim($input['reason'] ?? '');
+        $batch_id = intval($input['batch_id'] ?? 0);
 
         if ($inventory_id <= 0) {
             respondError('Valid inventory_id is required.', 400);
@@ -377,6 +379,10 @@ if ($method === 'POST') {
 
         if (empty($reason)) {
             $reason = 'Damaged/Expired equipment';
+        }
+
+        if (!in_array($deductSource, ['available', 'allocated'], true)) {
+            respondError('Invalid deduct_source specified. Must be "available" or "allocated".', 400);
         }
 
         try {
@@ -396,36 +402,110 @@ if ($method === 'POST') {
             $allocatedQty = calculateAllocatedQuantity($allocations);
             $availableQty = max(0, $currentTotal - $allocatedQty);
 
-            if ($deductedQty > $availableQty) {
-                $pdo->rollBack();
-                respondError("Cannot deduct {$deductedQty} items. Only {$availableQty} item(s) currently available in unallocated stock.", 400);
-            }
-
-            $newTotal = $currentTotal - $deductedQty;
-
             $stockHistory = safeDecodeJson($row['stock_history'], []);
-            $stockHistory[] = [
-                'type'       => 'Deducted',
-                'quantity'   => $deductedQty,
-                'reason'     => $reason,
-                'created_at' => date('Y-m-d H:i:s')
-            ];
+            $batchesMap = getBatchesMap($pdo);
 
-            $updateStmt = $pdo->prepare('
-                UPDATE vsa_inventory
-                SET total_quantity = ?, stock_history = ?, updated_at = NOW()
-                WHERE inventory_id = ?
-            ');
-            $updateStmt->execute([$newTotal, json_encode($stockHistory), $inventory_id]);
+            if ($deductSource === 'available') {
+                if ($deductedQty > $availableQty) {
+                    $pdo->rollBack();
+                    respondError("Cannot deduct {$deductedQty} items. Only {$availableQty} item(s) currently available in unallocated stock.", 400);
+                }
+
+                $newTotal = $currentTotal - $deductedQty;
+
+                $stockHistory[] = [
+                    'type'       => 'Deducted',
+                    'quantity'   => $deductedQty,
+                    'source'     => 'Available Stock',
+                    'reason'     => $reason,
+                    'created_at' => date('Y-m-d H:i:s')
+                ];
+
+                $updateStmt = $pdo->prepare('
+                    UPDATE vsa_inventory
+                    SET total_quantity = ?, stock_history = ?, updated_at = NOW()
+                    WHERE inventory_id = ?
+                ');
+                $updateStmt->execute([$newTotal, json_encode($stockHistory), $inventory_id]);
+
+                $msg = "Successfully deducted {$deductedQty} items from available stock.";
+            } else {
+                // Deduct from Allocated Stock
+                if ($batch_id <= 0) {
+                    $pdo->rollBack();
+                    respondError('Valid batch_id is required when deducting from allocated stock.', 400);
+                }
+
+                $foundBatchIndex = null;
+                $batchCurrentAlloc = 0;
+
+                foreach ($allocations as $idx => $alloc) {
+                    if (intval($alloc['batch_id'] ?? 0) === $batch_id) {
+                        $foundBatchIndex = $idx;
+                        $batchCurrentAlloc = intval($alloc['quantity'] ?? 0);
+                        break;
+                    }
+                }
+
+                if ($foundBatchIndex === null || $batchCurrentAlloc <= 0) {
+                    $pdo->rollBack();
+                    respondError('Selected batch does not have any equipment allocated for this item.', 400);
+                }
+
+                if ($deductedQty > $batchCurrentAlloc) {
+                    $pdo->rollBack();
+                    $batchName = $batchesMap[$batch_id]['batch_name'] ?? "Batch #{$batch_id}";
+                    respondError("Cannot deduct {$deductedQty} items from {$batchName}. Only {$batchCurrentAlloc} item(s) currently allocated.", 400);
+                }
+
+                // Reduce allocation or remove entry if remaining is 0
+                $remainingBatchQty = $batchCurrentAlloc - $deductedQty;
+                if ($remainingBatchQty > 0) {
+                    $allocations[$foundBatchIndex]['quantity'] = $remainingBatchQty;
+                } else {
+                    unset($allocations[$foundBatchIndex]);
+                }
+                $allocations = array_values($allocations);
+
+                $newTotal = $currentTotal - $deductedQty;
+                $newAllocatedQty = calculateAllocatedQuantity($allocations);
+
+                // Invariant assertions
+                if ($newTotal < 0 || $newAllocatedQty > $newTotal) {
+                    $pdo->rollBack();
+                    respondError('Deduction would result in inconsistent inventory state.', 400);
+                }
+
+                $batchName = $batchesMap[$batch_id]['batch_name'] ?? "Batch #{$batch_id}";
+
+                $stockHistory[] = [
+                    'type'       => 'Deducted',
+                    'quantity'   => $deductedQty,
+                    'source'     => 'Allocated Stock',
+                    'batch_id'   => $batch_id,
+                    'batch_name' => $batchName,
+                    'reason'     => $reason,
+                    'created_at' => date('Y-m-d H:i:s')
+                ];
+
+                $updateStmt = $pdo->prepare('
+                    UPDATE vsa_inventory
+                    SET total_quantity = ?, allocations = ?, stock_history = ?, updated_at = NOW()
+                    WHERE inventory_id = ?
+                ');
+                $updateStmt->execute([$newTotal, json_encode($allocations), json_encode($stockHistory), $inventory_id]);
+
+                $msg = "Successfully deducted {$deductedQty} items from {$batchName} allocation.";
+            }
 
             $pdo->commit();
 
-            $batchesMap = getBatchesMap($pdo);
+            // Re-fetch updated row to return fresh payload
             $stmt->execute([$inventory_id]);
             $updatedRow = $stmt->fetch();
 
             respondSuccess([
-                'message' => "Successfully deducted {$deductedQty} items from stock.",
+                'message' => $msg,
                 'item'    => formatItemPayload($updatedRow, $batchesMap)
             ]);
         } catch (Exception $e) {
