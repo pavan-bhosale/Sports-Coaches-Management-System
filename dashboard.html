@@ -125,7 +125,7 @@
                 <line x1="10" y1="12" x2="14" y2="12"></line>
               </svg>
             </span>
-            <span>Inventory & Gear</span>
+            <span>Inventory & Equipment</span>
           </a>
 
           <a href="#reports" class="nav-link" id="nav-reports">
@@ -268,29 +268,65 @@
           </div>
         </section>
 
-        <!-- ===== INVENTORY & GEAR SECTION ===== -->
+        <!-- ===== INVENTORY & EQUIPMENT SECTION ===== -->
         <section id="inventorySection" style="display:none;">
-          <div class="under-dev-container">
-            <div class="under-dev-card">
-              <div class="under-dev-glow"></div>
-              <div class="under-dev-icon-badge">
-                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="21 8 21 21 3 21 3 8"></polyline>
-                  <rect x="1" y="3" width="22" height="5"></rect>
-                  <line x1="10" y1="12" x2="14" y2="12"></line>
+          <!-- Action Bar -->
+          <div class="sb-action-bar inventory-action-bar">
+            <div class="inventory-controls-left">
+              <div class="sb-search-box">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
                 </svg>
+                <input type="text" id="inventorySearchInput" placeholder="Search equipment by name..." class="sb-search-input">
               </div>
-              <div class="under-dev-status-tag">
-                <span class="under-dev-pulse-dot"></span>
-                <span>Module in Progress</span>
+              <div class="inv-filter-group">
+                <select id="inventoryStockFilter" class="sb-input inv-stock-filter-select">
+                  <option value="all">All Stock Status</option>
+                  <option value="available">Available in Stock</option>
+                  <option value="allocated">Fully Allocated</option>
+                </select>
               </div>
-              <h2 class="under-dev-title">Under Development</h2>
-              <p class="under-dev-description">
-                The academy equipment, kit allocations, and gear inventory tracking module is currently under active development.
-              </p>
+              <button type="button" class="btn-sb-primary" id="btnAddNewInventory">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Add Item
+              </button>
+            </div>
+            <div class="status-indicator-pill">
+              <span class="live-dot"></span>
+              <span id="inventoryLiveCount">0 Equipment Items</span>
             </div>
           </div>
+
+          <!-- Inventory Cards Grid -->
+          <div class="inventory-cards-grid" id="inventoryCardsContainer" style="display:none;">
+            <!-- Populated by JS -->
+          </div>
+
+          <!-- Empty State (shown when 0 items) -->
+          <div id="inventoryEmptyState" class="batches-empty-state" style="display:none;">
+            <div class="batches-empty-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <polyline points="21 8 21 21 3 21 3 8"></polyline>
+                <rect x="1" y="3" width="22" height="5"></rect>
+                <line x1="10" y1="12" x2="14" y2="12"></line>
+              </svg>
+            </div>
+            <h3>No inventory items yet</h3>
+            <p>Click <strong>+ Add Item</strong> to create your first equipment record.</p>
+            <button type="button" class="btn-sb-primary" id="btnEmptyAddInventory" style="margin-top: 1rem;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Add Item
+            </button>
+          </div>
         </section>
+        <!-- ===== END INVENTORY & EQUIPMENT SECTION ===== -->
 
         <!-- ===== REPORTS & ANALYTICS SECTION ===== -->
         <section id="reportsSection" style="display:none;">
@@ -3007,6 +3043,304 @@
     </div>
     <!-- ===== END DELETE PAYMENT CYCLE CONFIRMATION MODAL ===== -->
 
+    <!-- ===== ADD INVENTORY ITEM MODAL ===== -->
+    <div class="sb-modal-overlay" id="addInventoryModal" style="display:none;">
+      <div class="sb-modal" style="max-width: 500px;">
+        <div class="sb-modal-header">
+          <div>
+            <div class="sb-modal-badge" style="background: rgba(16, 185, 129, 0.12); color: var(--color-primary); border-color: rgba(16, 185, 129, 0.3);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              New Equipment
+            </div>
+            <h2 class="sb-modal-title">Add Inventory Item</h2>
+            <p class="sb-modal-subtitle">Add academy training gear or equipment to stock</p>
+          </div>
+          <button type="button" class="modal-close-btn" id="closeAddInventoryModal">&times;</button>
+        </div>
+        <div class="sb-modal-body">
+          <div class="sb-form-group">
+            <label class="sb-label" for="addInvName">Item Name <span class="sb-required">*</span></label>
+            <input type="text" class="sb-input" id="addInvName" placeholder="e.g. Size 5 Footballs, Training Cones, Bibs">
+          </div>
+          <div class="sb-form-group">
+            <label class="sb-label" for="addInvInitialQty">Initial Stock Quantity</label>
+            <input type="number" class="sb-input" id="addInvInitialQty" value="0" min="0">
+          </div>
+        </div>
+        <div class="sb-modal-footer">
+          <button type="button" class="btn-sb-ghost" id="cancelAddInventory">Cancel</button>
+          <button type="button" class="btn-sb-primary" id="btnSubmitAddInventory">Create Item</button>
+        </div>
+      </div>
+    </div>
+    <!-- ===== END ADD INVENTORY ITEM MODAL ===== -->
+
+    <!-- ===== INVENTORY DETAILS MODAL ===== -->
+    <div class="sb-modal-overlay" id="inventoryDetailsModal" style="display:none;">
+      <div class="sb-modal" style="max-width: 680px;">
+        <div class="sb-modal-header">
+          <div>
+            <div class="sb-modal-badge" style="background: rgba(6, 182, 212, 0.12); color: var(--color-accent); border-color: rgba(6, 182, 212, 0.3);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              Equipment Details
+            </div>
+            <h2 class="sb-modal-title" id="invDetailTitle">Item Details</h2>
+            <p class="sb-modal-subtitle">Equipment Overview & Batch Allocations</p>
+          </div>
+          <button type="button" class="modal-close-btn" id="closeInventoryDetailsModal">&times;</button>
+        </div>
+
+        <div class="sb-modal-body" style="padding-top: 0.5rem;">
+          <!-- Metrics Overview -->
+          <div class="inv-detail-metrics-grid">
+            <div class="inv-detail-metric-card">
+              <span class="inv-detail-metric-num" id="invDetailTotal">0</span>
+              <span class="inv-detail-metric-lbl">Total Stock</span>
+            </div>
+            <div class="inv-detail-metric-card is-allocated">
+              <span class="inv-detail-metric-num" id="invDetailAllocated">0</span>
+              <span class="inv-detail-metric-lbl">Allocated</span>
+            </div>
+            <div class="inv-detail-metric-card is-available">
+              <span class="inv-detail-metric-num" id="invDetailAvailable">0</span>
+              <span class="inv-detail-metric-lbl">Available</span>
+            </div>
+          </div>
+
+          <!-- Quick Action Buttons -->
+          <div class="inv-detail-actions-bar">
+            <button type="button" class="btn-sb-primary inv-action-btn" id="btnDetailAddStock">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Stock
+            </button>
+            <button type="button" class="btn-sb-ghost inv-action-btn" id="btnDetailDeductStock">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Deduct Stock
+            </button>
+            <button type="button" class="btn-sb-primary inv-action-btn inv-btn-accent" id="btnDetailAllocate">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+              Allocate
+            </button>
+            <button type="button" class="btn-sb-ghost inv-action-btn" id="btnDetailScrollHistory">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Stock History
+            </button>
+          </div>
+
+          <!-- Batch Allocation Breakdown -->
+          <div class="inv-detail-section">
+            <h4 class="inv-detail-section-title">Allocated To Batches</h4>
+            <div class="inv-detail-alloc-list" id="invDetailAllocList">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <!-- Stock History Log -->
+          <div class="inv-detail-section" id="invDetailHistorySection">
+            <h4 class="inv-detail-section-title">Stock History</h4>
+            <div class="inv-history-table-wrapper">
+              <table class="inv-history-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Qty</th>
+                    <th>Reason</th>
+                  </tr>
+                </thead>
+                <tbody id="invDetailHistoryList">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="sb-modal-footer" style="justify-content: space-between;">
+          <button type="button" class="btn-sb-danger inv-btn-del" id="btnDetailDelete">Delete Item</button>
+          <button type="button" class="btn-sb-ghost" id="cancelInventoryDetails">Close</button>
+        </div>
+      </div>
+    </div>
+    <!-- ===== END INVENTORY DETAILS MODAL ===== -->
+
+    <!-- ===== ADD STOCK MODAL ===== -->
+    <div class="sb-modal-overlay" id="addStockModal" style="display:none; z-index: 1050;">
+      <div class="sb-modal" style="max-width: 440px;">
+        <div class="sb-modal-header">
+          <div>
+            <div class="sb-modal-badge" style="background: rgba(16, 185, 129, 0.12); color: var(--color-primary); border-color: rgba(16, 185, 129, 0.3);">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Stock
+            </div>
+            <h2 class="sb-modal-title">Add Stock</h2>
+            <p class="sb-modal-subtitle" id="addStockItemName">Item</p>
+          </div>
+          <button type="button" class="modal-close-btn" id="closeAddStockModal">&times;</button>
+        </div>
+        <div class="sb-modal-body">
+          <div class="sb-form-group">
+            <label class="sb-label" for="addStockQuantity">Quantity to Add <span class="sb-required">*</span></label>
+            <input type="number" class="sb-input" id="addStockQuantity" min="1" placeholder="e.g. 10">
+          </div>
+          <div class="sb-form-group">
+            <label class="sb-label" for="addStockReason">Reason / Notes</label>
+            <input type="text" class="sb-input" id="addStockReason" placeholder="e.g. New purchase, Donation">
+          </div>
+        </div>
+        <div class="sb-modal-footer">
+          <button type="button" class="btn-sb-ghost" id="cancelAddStock">Cancel</button>
+          <button type="button" class="btn-sb-primary" id="btnSubmitAddStock">Confirm Stock Addition</button>
+        </div>
+      </div>
+    </div>
+    <!-- ===== END ADD STOCK MODAL ===== -->
+
+    <!-- ===== DEDUCT STOCK MODAL ===== -->
+    <div class="sb-modal-overlay" id="deductStockModal" style="display:none; z-index: 1050;">
+      <div class="sb-modal" style="max-width: 440px;">
+        <div class="sb-modal-header">
+          <div>
+            <div class="sb-modal-badge" style="background: rgba(239, 68, 68, 0.12); color: var(--color-danger); border-color: rgba(239, 68, 68, 0.3);">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Deduct Stock
+            </div>
+            <h2 class="sb-modal-title">Deduct Stock</h2>
+            <p class="sb-modal-subtitle" id="deductStockItemName">Item</p>
+          </div>
+          <button type="button" class="modal-close-btn" id="closeDeductStockModal">&times;</button>
+        </div>
+        <div class="sb-modal-body">
+          <div class="inv-modal-hint-box">
+            <span>Available (unallocated) stock: <strong id="deductStockAvailable">0</strong></span>
+          </div>
+          <div class="sb-form-group">
+            <label class="sb-label" for="deductStockQuantity">Quantity to Deduct <span class="sb-required">*</span></label>
+            <input type="number" class="sb-input" id="deductStockQuantity" min="1" placeholder="e.g. 5">
+          </div>
+          <div class="sb-form-group">
+            <label class="sb-label" for="deductStockReason">Reason <span class="sb-required">*</span></label>
+            <input type="text" class="sb-input" id="deductStockReason" placeholder="e.g. Damaged equipment, Lost">
+          </div>
+        </div>
+        <div class="sb-modal-footer">
+          <button type="button" class="btn-sb-ghost" id="cancelDeductStock">Cancel</button>
+          <button type="button" class="btn-sb-danger" id="btnSubmitDeductStock">Confirm Deduction</button>
+        </div>
+      </div>
+    </div>
+    <!-- ===== END DEDUCT STOCK MODAL ===== -->
+
+    <!-- ===== ALLOCATE MODAL ===== -->
+    <div class="sb-modal-overlay" id="allocateModal" style="display:none; z-index: 1050;">
+      <div class="sb-modal" style="max-width: 460px;">
+        <div class="sb-modal-header">
+          <div>
+            <div class="sb-modal-badge" style="background: rgba(6, 182, 212, 0.15); color: var(--color-accent); border-color: rgba(6, 182, 212, 0.3);">
+              Allocate
+            </div>
+            <h2 class="sb-modal-title">Allocate Equipment</h2>
+            <p class="sb-modal-subtitle" id="allocateItemName">Item</p>
+          </div>
+          <button type="button" class="modal-close-btn" id="closeAllocateModal">&times;</button>
+        </div>
+        <div class="sb-modal-body">
+          <div class="inv-modal-hint-box">
+            <span>Available for allocation: <strong id="allocateAvailableStock">0</strong></span>
+          </div>
+          <div class="sb-form-group">
+            <label class="sb-label" for="allocateBatchSelect">Select Batch <span class="sb-required">*</span></label>
+            <select class="sb-input" id="allocateBatchSelect">
+              <option value="">Select Batch...</option>
+            </select>
+          </div>
+          <div class="sb-form-group">
+            <label class="sb-label" for="allocateQuantity">Quantity to Allocate <span class="sb-required">*</span></label>
+            <input type="number" class="sb-input" id="allocateQuantity" min="1" placeholder="e.g. 5">
+          </div>
+        </div>
+        <div class="sb-modal-footer">
+          <button type="button" class="btn-sb-ghost" id="cancelAllocate">Cancel</button>
+          <button type="button" class="btn-sb-primary" id="btnSubmitAllocate">Confirm Allocation</button>
+        </div>
+      </div>
+    </div>
+    <!-- ===== END ALLOCATE MODAL ===== -->
+
+    <!-- ===== DEALLOCATE MODAL ===== -->
+    <div class="sb-modal-overlay" id="deallocateModal" style="display:none; z-index: 1050;">
+      <div class="sb-modal" style="max-width: 460px;">
+        <div class="sb-modal-header">
+          <div>
+            <div class="sb-modal-badge" style="background: rgba(245, 158, 11, 0.15); color: var(--color-secondary); border-color: rgba(245, 158, 11, 0.3);">
+              Deallocate
+            </div>
+            <h2 class="sb-modal-title">Deallocate Equipment</h2>
+            <p class="sb-modal-subtitle" id="deallocateItemName">Item</p>
+          </div>
+          <button type="button" class="modal-close-btn" id="closeDeallocateModal">&times;</button>
+        </div>
+        <div class="sb-modal-body">
+          <div class="sb-form-group" id="deallocateBatchSelectGroup">
+            <label class="sb-label" for="deallocateBatchSelect">Select Batch <span class="sb-required">*</span></label>
+            <select class="sb-input" id="deallocateBatchSelect">
+              <option value="">Select allocated batch...</option>
+            </select>
+          </div>
+          <div class="inv-modal-hint-box" style="display: flex; flex-direction: column; gap: 0.25rem;">
+            <span id="deallocateBatchDisplay" style="font-size: 0.88rem; font-weight: 600; color: #fff;">Batch: —</span>
+            <span>Currently Allocated: <strong id="deallocateCurrentQty">0</strong></span>
+          </div>
+          <div class="sb-form-group">
+            <label class="sb-label" for="deallocateQuantity">Quantity <span class="sb-required">*</span></label>
+            <input type="number" class="sb-input" id="deallocateQuantity" min="1" placeholder="e.g. 2">
+          </div>
+        </div>
+        <div class="sb-modal-footer">
+          <button type="button" class="btn-sb-ghost" id="cancelDeallocate">Cancel</button>
+          <button type="button" class="btn-sb-primary" id="btnSubmitDeallocate">Deallocate</button>
+        </div>
+      </div>
+    </div>
+    <!-- ===== END DEALLOCATE MODAL ===== -->
+
+    <!-- ===== DELETE INVENTORY CONFIRM MODAL ===== -->
+    <div class="sb-modal-overlay" id="deleteInventoryModal" style="display:none; z-index: 1060;">
+      <div class="sb-modal" style="max-width: 420px;">
+        <div class="sb-modal-header">
+          <div>
+            <div class="sb-modal-badge" style="background: rgba(239, 68, 68, 0.12); color: var(--color-danger); border-color: rgba(239, 68, 68, 0.3);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              </svg>
+              Delete Item
+            </div>
+            <h2 class="sb-modal-title">Delete Inventory Item?</h2>
+            <p class="sb-modal-subtitle">Are you sure you want to delete <strong id="deleteInventoryItemName"></strong>?</p>
+          </div>
+          <button type="button" class="modal-close-btn" id="closeDeleteInventoryModal">&times;</button>
+        </div>
+        <div class="sb-modal-body" style="padding-top: 0;">
+          <p style="font-size: 0.86rem; color: var(--text-secondary); line-height: 1.5;">
+            This action cannot be undone. All equipment must be deallocated from batches before an item can be removed.
+          </p>
+        </div>
+        <div class="sb-modal-footer">
+          <button type="button" class="btn-sb-ghost" id="cancelDeleteInventory">Cancel</button>
+          <button type="button" class="btn-sb-danger" id="btnConfirmDeleteInventory">Yes, Delete Item</button>
+        </div>
+      </div>
+    </div>
+    <!-- ===== END DELETE INVENTORY MODAL ===== -->
+
   </div>
 
   <!-- Client UX Logic Scripts -->
@@ -3016,6 +3350,7 @@
   <script src="js/batches.js"></script>
   <script src="js/attendance.js"></script>
   <script src="js/fees.js"></script>
+  <script src="js/inventory.js"></script>
   <script src="js/navigation.js"></script>
   <script src="js/dashboard.js"></script>
 </body>

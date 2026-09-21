@@ -70,6 +70,15 @@ function navigateToSection(targetHref, showToastNotice = true) {
     return;
   }
 
+  // 3. Role-based Inventory & Equipment Access Protection (Super Admin Only)
+  if (targetHref === '#inventory' && !isSuperAdmin) {
+    if (showToastNotice && typeof showToast === 'function') {
+      showToast('Access denied. Inventory & Equipment is accessible to Super Admin only.', 'error');
+    }
+    navigateToSection('#overview', false);
+    return;
+  }
+
   if (targetHref === '#overview') {
     if (overviewSection) overviewSection.style.display = 'block';
     const dashboardTitles = {
@@ -80,9 +89,12 @@ function navigateToSection(targetHref, showToastNotice = true) {
     if (pageTitle) pageTitle.textContent = dashboardTitles[storedRole] || 'Super Admin Dashboard';
     if (currentSectionName) currentSectionName.textContent = 'Overview';
   } else if (targetHref === '#inventory') {
-    if (inventorySection) inventorySection.style.display = 'block';
-    if (pageTitle) pageTitle.textContent = 'Inventory & Gear';
-    if (currentSectionName) currentSectionName.textContent = 'Inventory & Gear';
+    if (inventorySection) {
+      inventorySection.style.display = 'block';
+      if (typeof fetchInventory === 'function') fetchInventory();
+    }
+    if (pageTitle) pageTitle.textContent = 'Inventory & Equipment';
+    if (currentSectionName) currentSectionName.textContent = 'Inventory & Equipment';
   } else if (targetHref === '#reports') {
     if (reportsSection) reportsSection.style.display = 'block';
     if (pageTitle) pageTitle.textContent = 'Reports & Analytics';
@@ -160,6 +172,11 @@ function handleHashRoute() {
     return;
   }
   if (currentHash === '#fees' && !isSuperAdmin) {
+    window.location.hash = '#overview';
+    navigateToSection('#overview', false);
+    return;
+  }
+  if (currentHash === '#inventory' && !isSuperAdmin) {
     window.location.hash = '#overview';
     navigateToSection('#overview', false);
     return;
@@ -288,6 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const navAttendanceEl = document.getElementById('nav-attendance');
   const navFeesEl = document.getElementById('nav-fees');
+  const navInventoryEl = document.getElementById('nav-inventory');
   const isSuperAdminUser = (storedRole === 'admin' || storedRole === 'superadmin');
   if (navAttendanceEl) {
     if (storedRole !== 'coach' && !isSuperAdminUser) {
@@ -301,6 +319,13 @@ document.addEventListener('DOMContentLoaded', () => {
       navFeesEl.style.display = 'none';
     } else {
       navFeesEl.style.display = '';
+    }
+  }
+  if (navInventoryEl) {
+    if (!isSuperAdminUser) {
+      navInventoryEl.style.display = 'none';
+    } else {
+      navInventoryEl.style.display = '';
     }
   }
 

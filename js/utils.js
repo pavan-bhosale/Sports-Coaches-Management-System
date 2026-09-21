@@ -15,6 +15,9 @@ const FEES_API       = (typeof window !== 'undefined' && window.location.port ==
   : (typeof window !== 'undefined' && window.location.origin && window.location.origin.startsWith('http')
       ? `${window.location.origin}/VAVA_sports/server/fees.php`
       : 'http://localhost/VAVA_sports/server/fees.php');
+const INVENTORY_API  = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+  ? 'http://localhost/VAVA_sports/server/inventory.php'
+  : 'server/inventory.php';
 
 // ============================================================================
 // 2. HOSTINGER PRODUCTION ENDPOINTS
@@ -26,6 +29,7 @@ const COACHES_API    = 'server/coaches.php';
 const BATCHES_API    = 'server/batches.php';
 const ATTENDANCE_API = 'server/attendance.php';
 const FEES_API       = 'server/fees.php';
+const INVENTORY_API  = 'server/inventory.php';
 */
 
 // Modal Stack & History Management for Mobile Back Button

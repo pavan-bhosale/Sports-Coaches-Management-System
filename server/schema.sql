@@ -140,3 +140,13 @@ CREATE TABLE IF NOT EXISTS vsa_payment_notifications (
     INDEX idx_due_status (status, scheduled_at)
 );
 
+-- Inventory & Equipment Table (Academy-Wide)
+CREATE TABLE IF NOT EXISTS vsa_inventory (
+    inventory_id INT AUTO_INCREMENT PRIMARY KEY,
+    item_name VARCHAR(150) NOT NULL UNIQUE,
+    total_quantity INT NOT NULL DEFAULT 0,
+    allocations JSON NULL,
+    stock_history JSON NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
