@@ -13,7 +13,6 @@
     selectedItem: null,
     selectedBatchForDealloc: null,
     searchQuery: '',
-    stockFilter: 'all',
     isLoading: false
   };
 
@@ -125,13 +124,6 @@
       );
     }
 
-    // 2. Stock Availability Filter
-    if (state.stockFilter === 'available') {
-      filtered = filtered.filter(item => item.available_quantity > 0);
-    } else if (state.stockFilter === 'allocated') {
-      filtered = filtered.filter(item => item.available_quantity === 0 && item.total_quantity > 0);
-    }
-
     // Update count pill
     if (countEl) {
       const totalCount = state.items.length;
@@ -145,9 +137,9 @@
 
       const emptyTitle = emptyState.querySelector('h3');
       const emptyDesc = emptyState.querySelector('p');
-      if (state.searchQuery || state.stockFilter !== 'all') {
+      if (state.searchQuery) {
         if (emptyTitle) emptyTitle.textContent = 'No matching equipment found';
-        if (emptyDesc) emptyDesc.innerHTML = 'Try adjusting your search terms or stock filters.';
+        if (emptyDesc) emptyDesc.innerHTML = 'Try adjusting your search terms.';
       } else {
         if (emptyTitle) emptyTitle.textContent = 'No inventory items yet';
         if (emptyDesc) emptyDesc.innerHTML = 'Click <strong>Add Item</strong> to create your first equipment record.';
@@ -549,7 +541,6 @@
     const btnAddNew = document.getElementById('btnAddNewInventory');
     const btnEmptyAdd = document.getElementById('btnEmptyAddInventory');
     const searchInput = document.getElementById('inventorySearchInput');
-    const stockFilter = document.getElementById('inventoryStockFilter');
 
     btnAddNew?.addEventListener('click', () => {
       document.getElementById('addInvName').value = '';
@@ -565,11 +556,6 @@
 
     searchInput?.addEventListener('input', (e) => {
       state.searchQuery = e.target.value.trim();
-      renderInventoryCards();
-    });
-
-    stockFilter?.addEventListener('change', (e) => {
-      state.stockFilter = e.target.value;
       renderInventoryCards();
     });
 

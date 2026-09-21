@@ -10094,48 +10094,27 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   flex: 1;
   min-width: 0;
 }
 
 .inventory-controls-left .sb-search-box {
-  flex: 1 1 240px;
+  flex: 1 1 auto;
   min-width: 180px;
-  max-width: 380px;
-}
-
-.inv-filter-group {
-  display: flex;
-  align-items: center;
-  flex: 0 0 auto;
-}
-
-.inv-stock-filter-select {
-  width: auto;
-  min-width: 150px;
-  background: var(--bg-surface-elevated);
-  border: 1px solid var(--border-glass);
-  color: var(--text-primary);
-  border-radius: var(--radius-sm);
-  padding: 0.55rem 0.85rem;
-  font-size: 0.84rem;
-  font-family: var(--font-body);
-  outline: none;
-  cursor: pointer;
-  height: 40px;
-  transition: border-color var(--transition-fast);
-}
-
-.inv-stock-filter-select:focus {
-  border-color: var(--color-primary);
+  max-width: 520px;
 }
 
 .inventory-controls-left .btn-sb-primary {
   height: 40px;
   padding: 0 1rem;
   font-size: 0.84rem;
-  flex-shrink: 0;
+  font-weight: 600;
+  width: auto !important;
+  max-width: fit-content !important;
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -10675,36 +10654,36 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
   .inventory-controls-left {
     display: flex !important;
-    flex-wrap: wrap !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
     gap: 0.5rem !important;
     width: 100% !important;
+    min-width: 0 !important;
   }
 
   .inventory-controls-left .sb-search-box {
-    flex: 1 1 100% !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    height: 38px !important;
-  }
-
-  .inv-filter-group {
     flex: 1 1 auto !important;
+    width: auto !important;
     min-width: 130px !important;
+    max-width: none !important;
+    height: 38px !important;
   }
 
-  .inv-stock-filter-select {
-    width: 100% !important;
-    min-width: 0 !important;
-    height: 38px !important;
-    font-size: 0.8rem !important;
-    padding: 0.4rem 0.75rem !important;
+  .inventory-controls-left .sb-search-input {
+    min-width: 60px !important;
   }
 
   .inventory-controls-left .btn-sb-primary {
     height: 38px !important;
     padding: 0 0.85rem !important;
     font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    width: auto !important;
+    max-width: fit-content !important;
     flex: 0 0 auto !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
   }
 
   .inventory-action-bar .status-indicator-pill {
@@ -11042,14 +11021,31 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* Mobile S (<= 360px) */
 @media (max-width: 360px) {
-  .inventory-controls-left .inv-filter-group {
-    width: 100% !important;
-    flex: 1 1 100% !important;
+  .inventory-controls-left {
+    gap: 0.35rem !important;
+  }
+
+  .inventory-controls-left .sb-search-box {
+    height: 36px !important;
+    padding: 0.35rem 0.55rem !important;
+    min-width: 110px !important;
+  }
+
+  .inventory-controls-left .sb-search-input {
+    font-size: 0.78rem !important;
+    min-width: 50px !important;
   }
 
   .inventory-controls-left .btn-sb-primary {
-    width: 100% !important;
-    justify-content: center !important;
+    height: 36px !important;
+    padding: 0 0.65rem !important;
+    font-size: 0.76rem !important;
+    gap: 0.25rem !important;
+    width: auto !important;
+    max-width: fit-content !important;
+    flex: 0 0 auto !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
   }
 
   .inventory-card {
