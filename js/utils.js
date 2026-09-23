@@ -3,34 +3,26 @@
  */
 
 // ============================================================================
-// 1. LOCALHOST DEVELOPMENT ENDPOINTS (Commented out for Hostinger deployment)
-// Uncomment the block below and comment out the Hostinger block when working on localhost:
+// AUTOMATIC ENVIRONMENT DETECTION & API ENDPOINTS
+// Resolves to full localhost paths on local development, and relative paths in production.
 // ============================================================================
-/*
-const STUDENTS_API   = 'http://localhost/VAVA_sports/server/students.php';
-const COACHES_API    = 'http://localhost/VAVA_sports/server/coaches.php';
-const BATCHES_API    = 'http://localhost/VAVA_sports/server/batches.php';
-const ATTENDANCE_API = 'http://localhost/VAVA_sports/server/attendance.php';
-const FEES_API       = (typeof window !== 'undefined' && window.location.port === '5500')
-  ? 'http://localhost/VAVA_sports/server/fees.php'
-  : (typeof window !== 'undefined' && window.location.origin && window.location.origin.startsWith('http')
-      ? `${window.location.origin}/VAVA_sports/server/fees.php`
-      : 'http://localhost/VAVA_sports/server/fees.php');
-const INVENTORY_API  = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
-  ? 'http://localhost/VAVA_sports/server/inventory.php'
-  : 'server/inventory.php';
-*/
+function getApiEndpoint(endpoint) {
+  const isLocal = typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
-// ============================================================================
-// 2. HOSTINGER PRODUCTION ENDPOINTS
-// Relative paths work automatically from index.html & dashboard.html on Hostinger
-// ============================================================================
-const STUDENTS_API   = 'server/students.php';
-const COACHES_API    = 'server/coaches.php';
-const BATCHES_API    = 'server/batches.php';
-const ATTENDANCE_API = 'server/attendance.php';
-const FEES_API       = 'server/fees.php';
-const INVENTORY_API  = 'server/inventory.php';
+  if (isLocal) {
+    return `http://localhost/VAVA_sports/server/${endpoint}.php`;
+  }
+  // Production / Hostinger
+  return `server/${endpoint}.php`;
+}
+
+const STUDENTS_API   = getApiEndpoint('students');
+const COACHES_API    = getApiEndpoint('coaches');
+const BATCHES_API    = getApiEndpoint('batches');
+const ATTENDANCE_API = getApiEndpoint('attendance');
+const FEES_API       = getApiEndpoint('fees');
+const INVENTORY_API  = getApiEndpoint('inventory');
 
 // Modal Stack & History Management for Mobile Back Button
 const activeModalStack = [];

@@ -74,11 +74,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const config = roleConfig[currentRole];
     
     try {
-      // Localhost Development Endpoint (Uncomment for local development):
-      // const res = await fetch('http://localhost/VAVA_sports/server/verify_login.php', {
+      // Automatic Environment Detection for Login Endpoint
+      const isLocal = typeof window !== 'undefined' &&
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+      const verifyUrl = isLocal ? 'http://localhost/VAVA_sports/server/verify_login.php' : 'server/verify_login.php';
 
-      // Hostinger Production Endpoint:
-      const res = await fetch('server/verify_login.php', {
+      const res = await fetch(verifyUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
