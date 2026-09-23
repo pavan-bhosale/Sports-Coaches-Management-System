@@ -14,9 +14,9 @@ $password = '';
 // 2. HOSTINGER PRODUCTION DATABASE CONFIGURATION
 // ============================================================================
 $host = 'localhost';
-$dbname = 'u547976014_cozmohintell';
-$username = 'u547976014_cozmohintell';
-$password = 'intelligence@2S';
+$dbname = 'u854506354_vavasports';
+$username = 'u854506354_vavasports';
+$password = 'Vava@456';
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
