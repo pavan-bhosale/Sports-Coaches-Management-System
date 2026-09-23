@@ -6,6 +6,7 @@
 // 1. LOCALHOST DEVELOPMENT ENDPOINTS (Commented out for Hostinger deployment)
 // Uncomment the block below and comment out the Hostinger block when working on localhost:
 // ============================================================================
+/*
 const STUDENTS_API   = 'http://localhost/VAVA_sports/server/students.php';
 const COACHES_API    = 'http://localhost/VAVA_sports/server/coaches.php';
 const BATCHES_API    = 'http://localhost/VAVA_sports/server/batches.php';
@@ -18,19 +19,18 @@ const FEES_API       = (typeof window !== 'undefined' && window.location.port ==
 const INVENTORY_API  = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
   ? 'http://localhost/VAVA_sports/server/inventory.php'
   : 'server/inventory.php';
+*/
 
 // ============================================================================
 // 2. HOSTINGER PRODUCTION ENDPOINTS
 // Relative paths work automatically from index.html & dashboard.html on Hostinger
 // ============================================================================
-/*
 const STUDENTS_API   = 'server/students.php';
 const COACHES_API    = 'server/coaches.php';
 const BATCHES_API    = 'server/batches.php';
 const ATTENDANCE_API = 'server/attendance.php';
 const FEES_API       = 'server/fees.php';
 const INVENTORY_API  = 'server/inventory.php';
-*/
 
 // Modal Stack & History Management for Mobile Back Button
 const activeModalStack = [];
