@@ -8,9 +8,13 @@
   <meta name="description"
     content="Central management dashboard for VAVA Sports Academy - Multi-branch operations, attendance, payments, and coach tracking.">
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml"
-    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2310b981'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>">
+  <!-- Favicon / Official VAVA Sports Academy Brand Asset -->
+  <link rel="icon" type="image/x-icon" href="favicon.ico?v=1">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png?v=1">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png?v=1">
+  <link rel="icon" type="image/png" sizes="48x48" href="favicon-48x48.png?v=1">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=1">
+  <link rel="manifest" href="site.webmanifest?v=1">
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,7 +24,7 @@
     rel="stylesheet">
 
   <!-- Stylesheets -->
-  <link rel="stylesheet" href="css/dashboard.css?v=6">
+  <link rel="stylesheet" href="css/dashboard.css?v=9">
 </head>
 
 <body>
@@ -31,20 +35,11 @@
     <!-- Sidebar Navigation -->
     <aside class="app-sidebar" id="appSidebar">
       <div class="sidebar-header">
-          <a href="dashboard.html" class="brand-logo">
-            <div class="brand-icon">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                  stroke-linejoin="round" />
-                <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                  stroke-linejoin="round" />
-                <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                  stroke-linejoin="round" />
-              </svg>
-            </div>
-            <div class="brand-text">VAVA <span>SPORTS</span></div>
-          </a>
-        </div>
+        <a href="dashboard.html" class="brand-logo" aria-label="VAVA Sports Academy">
+          <img src="images/vava-sports-academy-logo.png" alt="VAVA Sports Academy" class="brand-logo-img">
+          <img src="favicon-48x48.png" alt="VAVA Sports Academy" class="brand-logo-icon">
+        </a>
+      </div>
 
         <nav class="sidebar-nav" aria-label="Main Navigation">
           <div class="nav-section-title">Core Operations</div>
@@ -270,17 +265,72 @@
 
         <!-- ===== INVENTORY & EQUIPMENT SECTION ===== -->
         <section id="inventorySection" style="display:none;">
-          <!-- Action Bar -->
-          <div class="sb-action-bar inventory-action-bar">
-            <div class="inventory-controls-left">
-              <div class="sb-search-box">
+          <!-- Inventory View Segmented Control (Equipment View / Batch View) -->
+          <div class="inv-view-toggle-wrap">
+            <div class="inv-view-toggle" role="tablist" aria-label="Inventory View Toggle">
+              <button type="button" class="inv-view-tab active" id="tabEquipmentView" role="tab" aria-selected="true">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="11" cy="11" r="8" />
-                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                  <line x1="12" y1="22.08" x2="12" y2="12"></line>
                 </svg>
-                <input type="text" id="inventorySearchInput" placeholder="Search equipment by name..." class="sb-search-input">
+                <span>Equipment View</span>
+              </button>
+              <button type="button" class="inv-view-tab" id="tabBatchView" role="tab" aria-selected="false">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <span>Batch View</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- ===== CONTAINER 1: EQUIPMENT VIEW (EXISTING) ===== -->
+          <div id="inventoryEquipmentContainer">
+            <!-- Action Bar -->
+            <div class="sb-action-bar inventory-action-bar">
+              <div class="inventory-controls-left">
+                <div class="sb-search-box">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <input type="text" id="inventorySearchInput" placeholder="Search equipment by name..." class="sb-search-input">
+                </div>
+                <button type="button" class="btn-sb-primary" id="btnAddNewInventory">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                  Add Item
+                </button>
               </div>
-              <button type="button" class="btn-sb-primary" id="btnAddNewInventory">
+              <div class="status-indicator-pill">
+                <span class="live-dot"></span>
+                <span id="inventoryLiveCount">0 Equipment Items</span>
+              </div>
+            </div>
+
+            <!-- Inventory Cards Grid -->
+            <div class="inventory-cards-grid" id="inventoryCardsContainer" style="display:none;">
+              <!-- Populated by JS -->
+            </div>
+
+            <!-- Empty State (shown when 0 items) -->
+            <div id="inventoryEmptyState" class="batches-empty-state" style="display:none;">
+              <div class="batches-empty-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <polyline points="21 8 21 21 3 21 3 8"></polyline>
+                  <rect x="1" y="3" width="22" height="5"></rect>
+                  <line x1="10" y1="12" x2="14" y2="12"></line>
+                </svg>
+              </div>
+              <h3>No inventory items yet</h3>
+              <p>Click <strong>+ Add Item</strong> to create your first equipment record.</p>
+              <button type="button" class="btn-sb-primary" id="btnEmptyAddInventory" style="margin-top: 1rem;">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <line x1="12" y1="5" x2="12" y2="19" />
                   <line x1="5" y1="12" x2="19" y2="12" />
@@ -288,36 +338,44 @@
                 Add Item
               </button>
             </div>
-            <div class="status-indicator-pill">
-              <span class="live-dot"></span>
-              <span id="inventoryLiveCount">0 Equipment Items</span>
+          </div>
+          <!-- ===== END CONTAINER 1: EQUIPMENT VIEW ===== -->
+
+          <!-- ===== CONTAINER 2: BATCH VIEW (NEW) ===== -->
+          <div id="inventoryBatchContainer" style="display:none;">
+            <!-- Batch Search & Stat Row -->
+            <div class="inv-batch-search-row">
+              <div class="sb-search-box inv-batch-search-box">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <input type="text" id="batchSearchInput" placeholder="Search batches..." class="sb-search-input">
+              </div>
+              <div class="inv-batch-stat-box">
+                <span class="inv-batch-stat-num" id="batchLiveCount">0</span>
+                <span class="inv-batch-stat-lbl">Batches</span>
+              </div>
+            </div>
+
+            <!-- Batch Cards Container (Vertical Stack) -->
+            <div class="inv-batch-cards-list" id="inventoryBatchCardsContainer">
+              <!-- Populated by JS -->
+            </div>
+
+            <!-- Empty State (shown when 0 batches found) -->
+            <div id="batchEmptyState" class="batches-empty-state" style="display:none;">
+              <div class="batches-empty-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                </svg>
+              </div>
+              <h3>No batches found</h3>
+              <p id="batchEmptyMessage">No batches match your search criteria.</p>
             </div>
           </div>
-
-          <!-- Inventory Cards Grid -->
-          <div class="inventory-cards-grid" id="inventoryCardsContainer" style="display:none;">
-            <!-- Populated by JS -->
-          </div>
-
-          <!-- Empty State (shown when 0 items) -->
-          <div id="inventoryEmptyState" class="batches-empty-state" style="display:none;">
-            <div class="batches-empty-icon">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <polyline points="21 8 21 21 3 21 3 8"></polyline>
-                <rect x="1" y="3" width="22" height="5"></rect>
-                <line x1="10" y1="12" x2="14" y2="12"></line>
-              </svg>
-            </div>
-            <h3>No inventory items yet</h3>
-            <p>Click <strong>+ Add Item</strong> to create your first equipment record.</p>
-            <button type="button" class="btn-sb-primary" id="btnEmptyAddInventory" style="margin-top: 1rem;">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              Add Item
-            </button>
-          </div>
+          <!-- ===== END CONTAINER 2: BATCH VIEW ===== -->
         </section>
         <!-- ===== END INVENTORY & EQUIPMENT SECTION ===== -->
 
@@ -3144,6 +3202,61 @@
     </div>
     <!-- ===== END INVENTORY DETAILS MODAL ===== -->
 
+    <!-- ===== BATCH EQUIPMENT DETAILS MODAL ===== -->
+    <div class="sb-modal-overlay" id="batchEquipmentDetailsModal" style="display:none; z-index: 1050;">
+      <div class="sb-modal" style="max-width: 680px;">
+        <div class="sb-modal-header">
+          <div>
+            <div class="sb-modal-badge" style="background: rgba(16, 185, 129, 0.12); color: var(--color-primary); border-color: rgba(16, 185, 129, 0.3);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+              </svg>
+              Batch Inventory
+            </div>
+            <h2 class="sb-modal-title" id="batchDetailTitle">Batch</h2>
+            <p class="sb-modal-subtitle" id="batchDetailSubtitle">0 Students</p>
+          </div>
+          <button type="button" class="modal-close-btn" id="closeBatchEquipmentDetailsModal">&times;</button>
+        </div>
+
+        <div class="sb-modal-body" style="padding-top: 0.5rem;">
+          <!-- Metrics Overview -->
+          <div class="inv-detail-metrics-grid" style="grid-template-columns: 1fr 1fr;">
+            <div class="inv-detail-metric-card is-allocated">
+              <span class="inv-detail-metric-num" id="batchDetailTotalUnits">0</span>
+              <span class="inv-detail-metric-lbl">Total Units Allocated</span>
+            </div>
+            <div class="inv-detail-metric-card" style="border-color: rgba(6, 182, 212, 0.25);">
+              <span class="inv-detail-metric-num" id="batchDetailEquipmentTypes" style="color: #38bdf8;">0</span>
+              <span class="inv-detail-metric-lbl">Equipment Types</span>
+            </div>
+          </div>
+
+          <!-- Quick Action Bar -->
+          <div class="inv-detail-actions-bar" style="margin-top: 0.75rem; margin-bottom: 0.75rem;">
+            <button type="button" class="btn-sb-primary inv-action-btn" id="btnBatchDetailAllocate">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Allocate Equipment
+            </button>
+          </div>
+
+          <!-- Allocated Equipment Section -->
+          <div class="inv-detail-section">
+            <h4 class="inv-detail-section-title">Allocated Equipment</h4>
+            <div class="inv-detail-alloc-list" id="batchDetailAllocList">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+
+        <div class="sb-modal-footer" style="justify-content: flex-end;">
+          <button type="button" class="btn-sb-ghost" id="cancelBatchEquipmentDetails">Close</button>
+        </div>
+      </div>
+    </div>
+    <!-- ===== END BATCH EQUIPMENT DETAILS MODAL ===== -->
+
     <!-- ===== STOCK HISTORY MODAL ===== -->
     <div class="sb-modal-overlay" id="inventoryHistoryModal" style="display:none; z-index: 1060;">
       <div class="sb-modal inv-history-modal" style="max-width: 580px;">
@@ -3164,9 +3277,9 @@
             <table class="inv-history-table inv-history-table-clean">
               <thead>
                 <tr>
-                  <th style="width: 28%; min-width: 80px;">Date</th>
-                  <th style="width: 22%; min-width: 60px;">Change</th>
-                  <th style="width: 50%;">Reason</th>
+                  <th style="width: 25%; min-width: 75px;">Date</th>
+                  <th style="width: 20%; min-width: 55px;">Change</th>
+                  <th style="width: 55%;">Reason</th>
                 </tr>
               </thead>
               <tbody id="invDetailHistoryList">
@@ -3299,18 +3412,30 @@
           <button type="button" class="modal-close-btn" id="closeAllocateModal">&times;</button>
         </div>
         <div class="sb-modal-body">
-          <div class="inv-modal-hint-box">
+          <div class="inv-modal-hint-box" id="allocateHintBox">
             <span>Available for allocation: <strong id="allocateAvailableStock">0</strong></span>
           </div>
-          <div class="sb-form-group">
+          <!-- Mode 1: From Equipment View (select batch) -->
+          <div class="sb-form-group" id="allocateBatchSelectGroup">
             <label class="sb-label" for="allocateBatchSelect">Select Batch <span class="sb-required">*</span></label>
             <select class="sb-input" id="allocateBatchSelect">
               <option value="">Select Batch...</option>
             </select>
           </div>
+          <!-- Mode 2: From Batch View (select equipment) -->
+          <div class="sb-form-group" id="allocateEquipmentSelectGroup" style="display:none;">
+            <label class="sb-label" for="allocateEquipmentSelect">Select Equipment <span class="sb-required">*</span></label>
+            <select class="sb-input" id="allocateEquipmentSelect">
+              <option value="">Select Equipment...</option>
+            </select>
+          </div>
           <div class="sb-form-group">
             <label class="sb-label" for="allocateQuantity">Quantity to Allocate <span class="sb-required">*</span></label>
             <input type="number" class="sb-input" id="allocateQuantity" min="1" placeholder="e.g. 5">
+          </div>
+          <div class="sb-form-group">
+            <label class="sb-label" for="allocateReason">Reason for Allocation <span class="sb-required">*</span></label>
+            <input type="text" class="sb-input" id="allocateReason" placeholder="e.g. Training equipment allocation" maxlength="255">
           </div>
         </div>
         <div class="sb-modal-footer">
@@ -3397,7 +3522,7 @@
   <script src="js/batches.js?v=2"></script>
   <script src="js/attendance.js?v=2"></script>
   <script src="js/fees.js?v=2"></script>
-  <script src="js/inventory.js?v=2"></script>
+  <script src="js/inventory.js?v=3"></script>
   <script src="js/navigation.js?v=2"></script>
   <script src="js/dashboard.js?v=2"></script>
 </body>

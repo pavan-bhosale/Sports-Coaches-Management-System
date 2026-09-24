@@ -94,11 +94,20 @@ function calculateAllocatedQuantity(array $allocations) {
 
 // ── Helper: Fetch and index all batches from vsa_batches ────────────────────
 function getBatchesMap($pdo) {
-    $stmt = $pdo->query('SELECT batch_id, batch_name, batch_location, sport, status FROM vsa_batches ORDER BY batch_name ASC');
+    $stmt = $pdo->query('
+        SELECT b.batch_id, b.batch_name, b.batch_location, b.sport, b.status,
+               COUNT(DISTINCT s.student_id) AS student_count
+        FROM vsa_batches b
+        LEFT JOIN vsa_students s ON (s.batch_id = b.batch_id OR LOWER(TRIM(s.batch_name)) = LOWER(TRIM(b.batch_name)))
+        GROUP BY b.batch_id
+        ORDER BY b.batch_name ASC
+    ');
     $batches = $stmt->fetchAll();
     $map = [];
     foreach ($batches as $b) {
-        $map[intval($b['batch_id'])] = $b;
+        $b['batch_id'] = intval($b['batch_id']);
+        $b['student_count'] = intval($b['student_count'] ?? 0);
+        $map[$b['batch_id']] = $b;
     }
     return $map;
 }
@@ -187,9 +196,68 @@ if ($method === 'GET') {
             $items[] = formatItemPayload($r, $batchesMap);
         }
 
+        // Build enriched batch summaries for the Batch View
+        $enrichedBatches = [];
+        foreach ($batchesMap as $bId => $bInfo) {
+            $totalUnits = 0;
+            $typesCount = 0;
+            $lastDate = null;
+            $allocatedEquipment = [];
+
+            foreach ($rows as $r) {
+                $allocs = safeDecodeJson($r['allocations'], []);
+                $hist = safeDecodeJson($r['stock_history'], []);
+
+                foreach ($allocs as $al) {
+                    if (intval($al['batch_id'] ?? 0) === $bId && intval($al['quantity'] ?? 0) > 0) {
+                        $qty = intval($al['quantity']);
+                        $totalUnits += $qty;
+                        $typesCount++;
+
+                        // Find latest allocation date and reason in stock_history
+                        $itemAllocDate = null;
+                        $itemReason = null;
+                        for ($i = count($hist) - 1; $i >= 0; $i--) {
+                            if (isset($hist[$i]['batch_id']) && intval($hist[$i]['batch_id']) === $bId && ($hist[$i]['type'] === 'Allocated' || $hist[$i]['type'] === 'Allocation')) {
+                                $itemAllocDate = $hist[$i]['created_at'];
+                                $itemReason = $hist[$i]['reason'] ?? '';
+                                break;
+                            }
+                        }
+
+                        if (!$itemAllocDate) {
+                            $itemAllocDate = $r['updated_at'] ?: $r['created_at'];
+                        }
+                        if (!$itemReason) {
+                            $itemReason = 'Training equipment allocation';
+                        }
+
+                        if (!$lastDate || strtotime($itemAllocDate) > strtotime($lastDate)) {
+                            $lastDate = $itemAllocDate;
+                        }
+
+                        $allocatedEquipment[] = [
+                            'inventory_id'    => intval($r['inventory_id']),
+                            'item_name'       => $r['item_name'],
+                            'quantity'        => $qty,
+                            'total_quantity'  => intval($r['total_quantity']),
+                            'allocation_date' => $itemAllocDate,
+                            'reason'          => $itemReason
+                        ];
+                    }
+                }
+            }
+
+            $bInfo['total_allocated_units'] = $totalUnits;
+            $bInfo['equipment_types_count'] = $typesCount;
+            $bInfo['last_allocation_date']  = $lastDate;
+            $bInfo['allocated_equipment']   = $allocatedEquipment;
+            $enrichedBatches[] = $bInfo;
+        }
+
         respondSuccess([
             'items'   => $items,
-            'batches' => array_values($batchesMap)
+            'batches' => $enrichedBatches
         ]);
     } catch (PDOException $e) {
         respondError('Database error: ' . $e->getMessage(), 500);
@@ -519,6 +587,7 @@ if ($method === 'POST') {
         $inventory_id = intval($input['inventory_id'] ?? 0);
         $batch_id = intval($input['batch_id'] ?? 0);
         $allocQty = intval($input['quantity'] ?? 0);
+        $reason = trim(strval($input['reason'] ?? ''));
 
         if ($inventory_id <= 0 || $batch_id <= 0) {
             respondError('Valid inventory_id and batch_id are required.', 400);
@@ -526,6 +595,10 @@ if ($method === 'POST') {
 
         if ($allocQty <= 0) {
             respondError('Allocation quantity must be greater than 0.', 400);
+        }
+
+        if ($reason === '') {
+            respondError('Reason for allocation is required.', 400);
         }
 
         // Verify batch exists in vsa_batches
@@ -583,12 +656,27 @@ if ($method === 'POST') {
                 respondError('Allocation calculation error: allocated exceeds total.', 400);
             }
 
+            // Record complete stock history for allocation
+            $stockHistory = safeDecodeJson($row['stock_history'], []);
+            $stockHistory[] = [
+                'type'       => 'Allocated',
+                'quantity'   => $allocQty,
+                'batch_id'   => $batch_id,
+                'batch_name' => $batch['batch_name'],
+                'reason'     => $reason,
+                'created_at' => date('Y-m-d H:i:s')
+            ];
+
             $updateStmt = $pdo->prepare('
                 UPDATE vsa_inventory
-                SET allocations = ?, updated_at = NOW()
+                SET allocations = ?, stock_history = ?, updated_at = NOW()
                 WHERE inventory_id = ?
             ');
-            $updateStmt->execute([json_encode($allocations), $inventory_id]);
+            $updateStmt->execute([
+                json_encode($allocations),
+                json_encode($stockHistory),
+                $inventory_id
+            ]);
 
             $pdo->commit();
 
@@ -611,6 +699,7 @@ if ($method === 'POST') {
         $inventory_id = intval($input['inventory_id'] ?? 0);
         $batch_id = intval($input['batch_id'] ?? 0);
         $deallocQty = intval($input['quantity'] ?? 0);
+        $reason = trim(strval($input['reason'] ?? ''));
 
         if ($inventory_id <= 0 || $batch_id <= 0) {
             respondError('Valid inventory_id and batch_id are required.', 400);
@@ -662,12 +751,33 @@ if ($method === 'POST') {
                 $allocations[$foundIndex]['quantity'] = $newBatchQty;
             }
 
+            // Look up batch name for history record
+            $batchStmt = $pdo->prepare('SELECT batch_id, batch_name FROM vsa_batches WHERE batch_id = ?');
+            $batchStmt->execute([$batch_id]);
+            $batchRow = $batchStmt->fetch();
+            $batchName = $batchRow ? $batchRow['batch_name'] : "Batch #{$batch_id}";
+
+            // Record complete stock history for deallocation
+            $stockHistory = safeDecodeJson($row['stock_history'], []);
+            $stockHistory[] = [
+                'type'       => 'Deallocated',
+                'quantity'   => $deallocQty,
+                'batch_id'   => $batch_id,
+                'batch_name' => $batchName,
+                'reason'     => !empty($reason) ? $reason : 'Returned from batch',
+                'created_at' => date('Y-m-d H:i:s')
+            ];
+
             $updateStmt = $pdo->prepare('
                 UPDATE vsa_inventory
-                SET allocations = ?, updated_at = NOW()
+                SET allocations = ?, stock_history = ?, updated_at = NOW()
                 WHERE inventory_id = ?
             ');
-            $updateStmt->execute([json_encode($allocations), $inventory_id]);
+            $updateStmt->execute([
+                json_encode($allocations),
+                json_encode($stockHistory),
+                $inventory_id
+            ]);
 
             $pdo->commit();
 

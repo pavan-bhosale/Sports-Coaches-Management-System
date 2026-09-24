@@ -8,11 +8,15 @@
 
   // ── State ─────────────────────────────────────────────────────────────────
   const state = {
+    currentView: 'equipment', // 'equipment' | 'batch'
     items: [],
     batches: [],
     selectedItem: null,
+    selectedBatch: null,
     selectedBatchForDealloc: null,
+    allocateMode: 'equipment', // 'equipment' | 'batch'
     searchQuery: '',
+    batchSearchQuery: '',
     isLoading: false
   };
 
@@ -73,10 +77,6 @@
 
   // ── Fetch Inventory & Batches ─────────────────────────────────────────────
   async function fetchInventory() {
-    const container = document.getElementById('inventoryCardsContainer');
-    const emptyState = document.getElementById('inventoryEmptyState');
-    const countEl = document.getElementById('inventoryLiveCount');
-
     state.isLoading = true;
 
     try {
@@ -97,7 +97,17 @@
         }
       }
 
+      // If selected batch is currently open, refresh its data in place
+      if (state.selectedBatch) {
+        const freshBatch = state.batches.find(b => b.batch_id === state.selectedBatch.batch_id);
+        if (freshBatch) {
+          state.selectedBatch = freshBatch;
+          renderBatchDetails(freshBatch);
+        }
+      }
+
       renderInventoryCards();
+      renderBatchCards();
     } catch (err) {
       console.error('fetchInventory error:', err);
       notify(err.message || 'Error loading inventory.', 'error');
@@ -277,6 +287,161 @@
     if (el) el.style.display = 'none';
   }
 
+  // ── Format Helper: Short Month Date for Batch Card (e.g. 23 Sep 2026) ─────
+  function formatLastAllocDate(raw) {
+    if (!raw) return 'No equipment allocated yet';
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) return `Last allocation · ${raw}`;
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const day = d.getDate();
+    const month = months[d.getMonth()];
+    const year = d.getFullYear();
+    return `Last allocation · ${day} ${month} ${year}`;
+  }
+
+  // ── Inventory View Switcher (Equipment View / Batch View) ──────────────────
+  function switchInventoryView(view) {
+    state.currentView = view;
+    const tabEq = document.getElementById('tabEquipmentView');
+    const tabBatch = document.getElementById('tabBatchView');
+    const containerEq = document.getElementById('inventoryEquipmentContainer');
+    const containerBatch = document.getElementById('inventoryBatchContainer');
+
+    if (view === 'batch') {
+      tabEq?.classList.remove('active');
+      tabEq?.setAttribute('aria-selected', 'false');
+      tabBatch?.classList.add('active');
+      tabBatch?.setAttribute('aria-selected', 'true');
+
+      if (containerEq) containerEq.style.display = 'none';
+      if (containerBatch) containerBatch.style.display = 'block';
+
+      renderBatchCards();
+    } else {
+      tabBatch?.classList.remove('active');
+      tabBatch?.setAttribute('aria-selected', 'false');
+      tabEq?.classList.add('active');
+      tabEq?.setAttribute('aria-selected', 'true');
+
+      if (containerBatch) containerBatch.style.display = 'none';
+      if (containerEq) containerEq.style.display = 'block';
+
+      renderInventoryCards();
+    }
+  }
+
+  // ── Render Batch Cards (Batch View) ───────────────────────────────────────
+  function renderBatchCards() {
+    const container = document.getElementById('inventoryBatchCardsContainer');
+    const emptyState = document.getElementById('batchEmptyState');
+    const countEl = document.getElementById('batchLiveCount');
+    const emptyMsg = document.getElementById('batchEmptyMessage');
+    if (!container || !emptyState) return;
+
+    let filtered = state.batches;
+
+    // Search filter by batch name
+    if (state.batchSearchQuery) {
+      const q = state.batchSearchQuery.toLowerCase();
+      filtered = filtered.filter(b =>
+        b.batch_name.toLowerCase().includes(q)
+      );
+    }
+
+    if (countEl) {
+      countEl.textContent = filtered.length;
+    }
+
+    if (filtered.length === 0) {
+      container.innerHTML = '';
+      container.style.display = 'none';
+      emptyState.style.display = 'flex';
+      if (emptyMsg) {
+        emptyMsg.textContent = state.batchSearchQuery
+          ? 'No batches match your search query.'
+          : 'No batches configured yet.';
+      }
+      return;
+    }
+
+    emptyState.style.display = 'none';
+    container.style.display = 'flex';
+    container.innerHTML = '';
+
+    filtered.forEach(b => {
+      const card = document.createElement('div');
+      card.className = 'inv-batch-card';
+      card.dataset.batchId = b.batch_id;
+
+      const totalUnits = b.total_allocated_units || 0;
+      const typeCount = b.equipment_types_count || 0;
+      const unitsValClass = totalUnits > 0 ? 'is-green' : 'is-muted';
+      const typesValClass = typeCount > 0 ? 'is-cyan' : 'is-muted';
+      const lastAllocText = formatLastAllocDate(b.last_allocation_date);
+
+      card.innerHTML = `
+        <div class="inv-batch-card-main">
+          <div class="inv-batch-card-col-left">
+            <div class="inv-batch-card-name" title="${escapeHtml(b.batch_name)}">${escapeHtml(b.batch_name)}</div>
+            <div class="inv-batch-card-students">${b.student_count || 0} Students</div>
+          </div>
+
+          <div class="inv-batch-card-metrics">
+            <div class="inv-batch-metric-item">
+              <div class="inv-batch-icon-box">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                  <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
+              </div>
+              <div class="inv-batch-metric-content">
+                <div class="inv-batch-metric-val ${unitsValClass}">${totalUnits}</div>
+                <div class="inv-batch-metric-lbl">UNITS<br>ALLOCATED</div>
+              </div>
+            </div>
+
+            <div class="inv-batch-metric-item">
+              <div class="inv-batch-icon-box">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <rect x="3" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="14" width="7" height="7"></rect>
+                  <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+              </div>
+              <div class="inv-batch-metric-content">
+                <div class="inv-batch-metric-val ${typesValClass}">${typeCount}</div>
+                <div class="inv-batch-metric-lbl">EQUIPMENT<br>TYPES</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="inv-batch-card-arrow">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </div>
+        </div>
+
+        <div class="inv-batch-card-footer">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <span>${lastAllocText}</span>
+        </div>
+      `;
+
+      // Entire card (and arrow) is clickable
+      card.addEventListener('click', () => {
+        openBatchDetailsModal(b);
+      });
+
+      container.appendChild(card);
+    });
+  }
+
   // ── Details Modal ─────────────────────────────────────────────────────────
   function openInventoryDetails(item) {
     state.selectedItem = item;
@@ -338,6 +503,72 @@
     }
   }
 
+  // ── Batch Equipment Details Modal ─────────────────────────────────────────
+  function openBatchDetailsModal(batch) {
+    state.selectedBatch = batch;
+    renderBatchDetails(batch);
+    showModal('batchEquipmentDetailsModal');
+  }
+
+  function renderBatchDetails(batch) {
+    const titleEl = document.getElementById('batchDetailTitle');
+    const subEl = document.getElementById('batchDetailSubtitle');
+    const unitsEl = document.getElementById('batchDetailTotalUnits');
+    const typesEl = document.getElementById('batchDetailEquipmentTypes');
+    const allocListEl = document.getElementById('batchDetailAllocList');
+
+    if (titleEl) titleEl.textContent = batch.batch_name;
+    if (subEl) {
+      const loc = batch.batch_location ? ` · ${batch.batch_location}` : '';
+      subEl.textContent = `${batch.student_count || 0} Students${loc}`;
+    }
+    if (unitsEl) unitsEl.textContent = batch.total_allocated_units || 0;
+    if (typesEl) typesEl.textContent = batch.equipment_types_count || 0;
+
+    if (allocListEl) {
+      if (batch.allocated_equipment && batch.allocated_equipment.length > 0) {
+        allocListEl.innerHTML = batch.allocated_equipment.map(item => `
+          <div class="inv-detail-alloc-row">
+            <div class="inv-detail-alloc-batch">
+              <span class="inv-batch-icon">⚽</span>
+              <div>
+                <span class="inv-batch-title" title="${escapeHtml(item.item_name)}">${escapeHtml(item.item_name)}</span>
+                <span class="inv-batch-sub">
+                  Allocated: ${formatDateOnly(item.allocation_date)} · Reason: ${escapeHtml(item.reason || 'Training equipment')}
+                </span>
+              </div>
+            </div>
+            <div class="inv-detail-alloc-actions">
+              <span class="inv-qty-badge">${item.quantity} units</span>
+              <button type="button" class="btn-sb-ghost btn-batch-deallocate" data-inv-id="${item.inventory_id}" data-item-name="${escapeHtml(item.item_name)}" data-qty="${item.quantity}">
+                Deallocate
+              </button>
+            </div>
+          </div>
+        `).join('');
+
+        // Wire up row-level deallocate buttons inside Batch Details
+        allocListEl.querySelectorAll('.btn-batch-deallocate').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const invId = parseInt(btn.dataset.invId, 10);
+            const qty = parseInt(btn.dataset.qty, 10);
+            const matchingItem = state.items.find(i => i.inventory_id === invId);
+            if (matchingItem) {
+              openDeallocateModal(matchingItem, { batch_id: batch.batch_id, batch_name: batch.batch_name, quantity: qty });
+            }
+          });
+        });
+      } else {
+        allocListEl.innerHTML = `
+          <div class="inv-detail-empty-note">
+            No equipment currently allocated to this batch. Click <strong>Allocate Equipment</strong> below to assign gear.
+          </div>
+        `;
+      }
+    }
+  }
+
   // ── Dedicated Stock History Modal ──────────────────────────────────────────
   function openStockHistoryModal(item) {
     state.selectedItem = item;
@@ -353,24 +584,26 @@
         // Display newest first
         const historyCopy = [...item.stock_history].reverse();
         historyListEl.innerHTML = historyCopy.map(h => {
-          const isAdded = (h.type === 'Added' || h.type === 'Purchase' || h.type === 'Restock');
-          const changeText = isAdded ? `+${h.quantity}` : `-${h.quantity}`;
-          const changeClass = isAdded ? 'inv-change-pos' : 'inv-change-neg';
+          const isPos = (h.type === 'Added' || h.type === 'Purchase' || h.type === 'Restock' || h.type === 'Allocated');
+          const changePrefix = isPos ? '+' : '-';
+          const changeClass = isPos ? 'inv-change-pos' : 'inv-change-neg';
+          const changeText = `${changePrefix}${h.quantity}`;
           const dateOnly = formatDateOnly(h.created_at);
 
-          let sourceHtml = '';
-          if (h.source === 'Allocated Stock') {
-            const batchName = h.batch_name || (h.batch_id ? `Batch #${h.batch_id}` : 'Allocated Stock');
-            sourceHtml = `<span class="inv-history-source-badge is-batch" title="Deducted from ${escapeHtml(batchName)}">${escapeHtml(batchName)}</span> `;
-          } else if (h.source === 'Available Stock') {
-            sourceHtml = `<span class="inv-history-source-badge is-avail" title="Deducted from Available Stock">Available Stock</span> `;
+          // If entry is related to a batch, display compact batch badge before the reason text
+          let batchBadgeHtml = '';
+          const batchLabel = h.batch_name || (h.batch_id ? `Batch #${h.batch_id}` : '');
+          if (batchLabel) {
+            batchBadgeHtml = `<span class="inv-history-batch-tag" title="${escapeHtml(batchLabel)}">${escapeHtml(batchLabel)}</span>`;
           }
+
+          const reasonText = escapeHtml(h.reason || '—');
 
           return `
             <tr>
               <td><span class="inv-history-date">${dateOnly}</span></td>
               <td class="${changeClass}">${changeText}</td>
-              <td class="inv-history-reason">${sourceHtml}${escapeHtml(h.reason || '—')}</td>
+              <td class="inv-history-reason">${batchBadgeHtml}${reasonText}</td>
             </tr>
           `;
         }).join('');
@@ -485,19 +718,29 @@
     showModal('deductStockModal');
   }
 
-  // ── Allocate Modal ────────────────────────────────────────────────────────
+  // ── Allocate Modal (from Equipment View) ───────────────────────────────────
   function openAllocateModal(item) {
+    state.allocateMode = 'equipment';
     state.selectedItem = item;
     const nameEl = document.getElementById('allocateItemName');
     const availEl = document.getElementById('allocateAvailableStock');
+    const batchGroup = document.getElementById('allocateBatchSelectGroup');
+    const eqGroup = document.getElementById('allocateEquipmentSelectGroup');
     const selectEl = document.getElementById('allocateBatchSelect');
     const inputEl = document.getElementById('allocateQuantity');
+    const reasonEl = document.getElementById('allocateReason');
+
+    if (batchGroup) batchGroup.style.display = 'block';
+    if (eqGroup) eqGroup.style.display = 'none';
 
     if (nameEl) nameEl.textContent = item.item_name;
     if (availEl) availEl.textContent = item.available_quantity;
     if (inputEl) {
       inputEl.value = '';
       inputEl.max = item.available_quantity;
+    }
+    if (reasonEl) {
+      reasonEl.value = '';
     }
 
     if (selectEl) {
@@ -509,6 +752,63 @@
         opt.textContent = `${b.batch_name}${loc}`;
         selectEl.appendChild(opt);
       });
+    }
+
+    showModal('allocateModal');
+  }
+
+  // ── Allocate From Batch View ──────────────────────────────────────────────
+  function openAllocateFromBatchModal(batch) {
+    state.allocateMode = 'batch';
+    state.selectedBatch = batch;
+
+    const nameEl = document.getElementById('allocateItemName');
+    const availEl = document.getElementById('allocateAvailableStock');
+    const batchGroup = document.getElementById('allocateBatchSelectGroup');
+    const eqGroup = document.getElementById('allocateEquipmentSelectGroup');
+    const eqSelect = document.getElementById('allocateEquipmentSelect');
+    const inputEl = document.getElementById('allocateQuantity');
+    const reasonEl = document.getElementById('allocateReason');
+
+    if (batchGroup) batchGroup.style.display = 'none';
+    if (eqGroup) eqGroup.style.display = 'block';
+
+    if (nameEl) nameEl.textContent = `Batch: ${batch.batch_name}`;
+    if (availEl) availEl.textContent = '0';
+    if (inputEl) {
+      inputEl.value = '';
+      inputEl.max = 0;
+    }
+    if (reasonEl) reasonEl.value = '';
+
+    if (eqSelect) {
+      eqSelect.innerHTML = '<option value="">Select Equipment...</option>';
+      const availableItems = state.items.filter(i => i.available_quantity > 0);
+      if (availableItems.length > 0) {
+        availableItems.forEach(i => {
+          const opt = document.createElement('option');
+          opt.value = i.inventory_id;
+          opt.dataset.avail = i.available_quantity;
+          opt.textContent = `${i.item_name} (${i.available_quantity} available)`;
+          eqSelect.appendChild(opt);
+        });
+      } else {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.disabled = true;
+        opt.textContent = 'No equipment with available stock';
+        eqSelect.appendChild(opt);
+      }
+
+      eqSelect.onchange = () => {
+        const selectedOpt = eqSelect.options[eqSelect.selectedIndex];
+        const avail = parseInt(selectedOpt?.dataset?.avail || '0', 10);
+        if (availEl) availEl.textContent = avail;
+        if (inputEl) {
+          inputEl.max = avail;
+          if (avail > 0) inputEl.value = Math.min(1, avail);
+        }
+      };
     }
 
     showModal('allocateModal');
@@ -638,6 +938,27 @@
 
   // ── Event Listeners Initialization ────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
+    // Top View Toggle (Equipment View vs Batch View)
+    document.getElementById('tabEquipmentView')?.addEventListener('click', () => {
+      switchInventoryView('equipment');
+    });
+    document.getElementById('tabBatchView')?.addEventListener('click', () => {
+      switchInventoryView('batch');
+    });
+
+    // Batch Search Input
+    document.getElementById('batchSearchInput')?.addEventListener('input', (e) => {
+      state.batchSearchQuery = e.target.value.trim();
+      renderBatchCards();
+    });
+
+    // Batch Details Allocate Button
+    document.getElementById('btnBatchDetailAllocate')?.addEventListener('click', () => {
+      if (state.selectedBatch) {
+        openAllocateFromBatchModal(state.selectedBatch);
+      }
+    });
+
     // 1. Top Actions & Filters
     const btnAddNew = document.getElementById('btnAddNewInventory');
     const btnEmptyAdd = document.getElementById('btnEmptyAddInventory');
@@ -804,22 +1125,50 @@
       }
     });
 
-    // 6. Allocate Submit
+    // 6. Allocate Submit (Supports both Equipment View & Batch View flows)
     document.getElementById('btnSubmitAllocate')?.addEventListener('click', async () => {
-      if (!state.selectedItem) return;
-      const batchId = parseInt(document.getElementById('allocateBatchSelect')?.value || '0', 10);
-      const qty = parseInt(document.getElementById('allocateQuantity')?.value || '0', 10);
+      let inventoryId = 0;
+      let batchId = 0;
+      let availableLimit = 0;
 
-      if (!batchId) {
-        notify('Please select a batch.', 'error');
-        return;
+      if (state.allocateMode === 'batch') {
+        if (!state.selectedBatch) return;
+        batchId = state.selectedBatch.batch_id;
+        const eqSelect = document.getElementById('allocateEquipmentSelect');
+        inventoryId = parseInt(eqSelect?.value || '0', 10);
+        const selectedOpt = eqSelect?.options[eqSelect.selectedIndex];
+        availableLimit = parseInt(selectedOpt?.dataset?.avail || '0', 10);
+
+        if (!inventoryId) {
+          notify('Please select an equipment item to allocate.', 'error');
+          return;
+        }
+      } else {
+        if (!state.selectedItem) return;
+        inventoryId = state.selectedItem.inventory_id;
+        batchId = parseInt(document.getElementById('allocateBatchSelect')?.value || '0', 10);
+        availableLimit = state.selectedItem.available_quantity;
+
+        if (!batchId) {
+          notify('Please select a batch.', 'error');
+          return;
+        }
       }
+
+      const qty = parseInt(document.getElementById('allocateQuantity')?.value || '0', 10);
+      const reason = document.getElementById('allocateReason')?.value.trim() || '';
+
       if (isNaN(qty) || qty <= 0) {
         notify('Please enter a valid quantity greater than 0.', 'error');
         return;
       }
-      if (qty > state.selectedItem.available_quantity) {
-        notify(`Cannot allocate ${qty} items. Only ${state.selectedItem.available_quantity} items are available.`, 'error');
+      if (qty > availableLimit) {
+        notify(`Cannot allocate ${qty} items. Only ${availableLimit} items are available.`, 'error');
+        return;
+      }
+      if (!reason) {
+        notify('Please enter a reason for allocation.', 'error');
+        document.getElementById('allocateReason')?.focus();
         return;
       }
 
@@ -829,15 +1178,16 @@
           headers: getAuthHeaders(),
           body: JSON.stringify({
             action: 'allocate',
-            inventory_id: state.selectedItem.inventory_id,
+            inventory_id: inventoryId,
             batch_id: batchId,
-            quantity: qty
+            quantity: qty,
+            reason: reason
           })
         });
 
         notify(data.message || 'Equipment allocated successfully.', 'success');
         hideModal('allocateModal');
-        fetchInventory();
+        await fetchInventory();
       } catch (err) {
         notify(err.message || 'Error allocating equipment.', 'error');
       }
@@ -911,6 +1261,7 @@
     const modalPairs = [
       { close: 'closeAddInventoryModal', cancel: 'cancelAddInventory', modal: 'addInventoryModal' },
       { close: 'closeInventoryDetailsModal', cancel: 'cancelInventoryDetails', modal: 'inventoryDetailsModal' },
+      { close: 'closeBatchEquipmentDetailsModal', cancel: 'cancelBatchEquipmentDetails', modal: 'batchEquipmentDetailsModal' },
       { close: 'closeAddStockModal', cancel: 'cancelAddStock', modal: 'addStockModal' },
       { close: 'closeDeductStockModal', cancel: 'cancelDeductStock', modal: 'deductStockModal' },
       { close: 'closeAllocateModal', cancel: 'cancelAllocate', modal: 'allocateModal' },

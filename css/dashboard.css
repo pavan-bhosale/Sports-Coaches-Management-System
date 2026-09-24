@@ -140,6 +140,21 @@ html, body {
   align-items: center;
   gap: 0.75rem;
   text-decoration: none;
+  max-width: 100%;
+}
+
+.brand-logo-img {
+  display: block;
+  width: auto;
+  max-width: 205px;
+  max-height: 44px;
+  height: auto;
+  object-fit: contain;
+  transition: opacity var(--transition-fast);
+}
+
+.brand-logo-icon {
+  display: none;
 }
 
 .brand-icon {
@@ -373,12 +388,20 @@ html, body {
 }
 
 .dashboard-layout.sidebar-collapsed .brand-text,
+.dashboard-layout.sidebar-collapsed .brand-logo-img,
 .dashboard-layout.sidebar-collapsed .nav-section-title,
 .dashboard-layout.sidebar-collapsed .nav-link > span:not(.nav-icon),
 .dashboard-layout.sidebar-collapsed .nav-badge,
 .dashboard-layout.sidebar-collapsed .user-info,
 .dashboard-layout.sidebar-collapsed .logout-icon-btn {
   display: none !important;
+}
+
+.dashboard-layout.sidebar-collapsed .brand-logo-icon {
+  display: block !important;
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
 }
 
 .dashboard-layout.sidebar-collapsed .sidebar-header {
@@ -411,6 +434,14 @@ html, body {
   .main-wrapper {
     margin-left: 0 !important;
   }
+  .sidebar-header {
+    height: 68px !important;
+    padding: 0 1.25rem !important;
+  }
+  .brand-logo-img {
+    max-width: 195px;
+    max-height: 40px;
+  }
   .dashboard-layout.sidebar-mobile-open .app-sidebar {
     transform: translateX(0);
   }
@@ -421,6 +452,48 @@ html, body {
   .dashboard-layout.sidebar-mobile-open .user-info,
   .dashboard-layout.sidebar-mobile-open .logout-icon-btn {
     display: flex !important;
+  }
+  .dashboard-layout.sidebar-mobile-open .brand-logo-img {
+    display: block !important;
+  }
+  .dashboard-layout.sidebar-mobile-open .brand-logo-icon {
+    display: none !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar-header {
+    height: 64px !important;
+    padding: 0 1.1rem !important;
+  }
+  .brand-logo-img {
+    max-width: 180px;
+    max-height: 38px;
+  }
+}
+
+@media (max-width: 380px) {
+  .sidebar-header {
+    height: 60px !important;
+    padding: 0 1rem !important;
+  }
+  .brand-logo-img {
+    max-width: 168px;
+    max-height: 35px;
+  }
+}
+
+@media (max-width: 330px) {
+  .app-sidebar {
+    width: 250px !important;
+  }
+  .sidebar-header {
+    height: 56px !important;
+    padding: 0 0.75rem !important;
+  }
+  .brand-logo-img {
+    max-width: 150px;
+    max-height: 32px;
   }
 }
 
@@ -10813,6 +10886,22 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   border: 1px solid rgba(16, 185, 129, 0.25);
 }
 
+/* Stock History Batch Tag inside Reason column */
+.inv-history-batch-tag {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.25;
+  padding: 0.12rem 0.42rem;
+  border-radius: var(--radius-xs, 4px);
+  background: rgba(6, 182, 212, 0.14);
+  color: #38bdf8;
+  border: 1px solid rgba(6, 182, 212, 0.28);
+  margin-right: 0.4rem;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
 /* ==========================================================================
    RESPONSIVE BREAKPOINTS: TABLET, MOBILE L, MOBILE M, MOBILE S
    ========================================================================== */
@@ -11212,6 +11301,22 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     font-size: 0.72rem !important;
   }
 
+  .inv-history-source-badge {
+    white-space: normal !important;
+    word-break: break-word !important;
+    font-size: 0.65rem !important;
+    padding: 0.1rem 0.3rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .inv-history-batch-tag {
+    font-size: 0.64rem !important;
+    padding: 0.1rem 0.35rem !important;
+    margin-right: 0.3rem !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+  }
+
   .inv-modal-hint-box {
     padding: 0.5rem 0.75rem !important;
     font-size: 0.76rem !important;
@@ -11348,6 +11453,670 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     font-size: 0.68rem !important;
   }
 }
+
+/* ==========================================================================
+   INVENTORY & EQUIPMENT: BATCH VIEW STYLING
+   ========================================================================== */
+
+/* View Toggle Bar (Matches Attendance Module Segmented Control) */
+.inv-view-toggle-wrap {
+  display: flex;
+  margin: 0.45rem 0 0.85rem;
+  width: 100%;
+}
+
+.inv-view-toggle {
+  display: flex;
+  background: #0c1322;
+  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius-sm, 6px);
+  padding: 2px;
+  gap: 3px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 480px;
+}
+
+.inv-view-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  height: 36px;
+  padding: 0 0.65rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary, #94a3b8);
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.inv-view-tab svg {
+  stroke: currentColor;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  stroke-width: 2;
+  transition: stroke 0.2s ease;
+}
+
+.inv-view-tab:hover:not(.active) {
+  color: var(--text-primary, #ffffff);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.inv-view-tab.active {
+  background: #ffffff;
+  color: #080c14;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.inv-view-tab.active svg {
+  stroke: #080c14;
+}
+
+/* Batch Search & Stat Row */
+.inv-batch-search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  width: 100%;
+}
+
+.inv-batch-search-box {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #08101e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 0.6rem 0.9rem;
+  gap: 0.65rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.inv-batch-search-box:focus-within {
+  border-color: rgba(0, 208, 132, 0.5);
+  box-shadow: 0 0 0 2px rgba(0, 208, 132, 0.15);
+}
+
+.inv-batch-search-icon {
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.inv-batch-search-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.inv-batch-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #f8fafc;
+  font-size: 0.9rem;
+}
+
+.inv-batch-search-input::placeholder {
+  color: #64748b;
+}
+
+.inv-batch-stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #08101e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 0.45rem 1.15rem;
+  min-width: 84px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.inv-batch-stat-num {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #00D084;
+  line-height: 1.1;
+}
+
+.inv-batch-stat-lbl {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 500;
+  margin-top: 0.1rem;
+}
+
+/* Batch Cards Stack */
+.inv-batch-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.inv-batch-card {
+  background: #091222;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 1rem 1.25rem 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  position: relative;
+  text-decoration: none;
+}
+
+.inv-batch-card:hover {
+  border-color: rgba(0, 208, 132, 0.35);
+  background: #0c182c;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.inv-batch-card-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+}
+
+.inv-batch-card-col-left {
+  display: flex;
+  flex-direction: column;
+  min-width: 100px;
+  flex: 1 1 auto;
+}
+
+.inv-batch-card-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #f8fafc;
+  line-height: 1.2;
+}
+
+.inv-batch-card-students {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  margin-top: 0.25rem;
+  font-weight: 500;
+}
+
+.inv-batch-card-metrics {
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
+  flex-shrink: 0;
+}
+
+.inv-batch-metric-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.inv-batch-icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.inv-batch-icon-box svg {
+  width: 18px;
+  height: 18px;
+}
+
+.inv-batch-metric-content {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.inv-batch-metric-val {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #00D084;
+  line-height: 1.1;
+}
+
+.inv-batch-metric-val.is-cyan {
+  color: #38bdf8;
+}
+
+.inv-batch-metric-val.is-zero {
+  color: #64748b;
+}
+
+.inv-batch-metric-lbl {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+  line-height: 1.2;
+  margin-top: 0.2rem;
+}
+
+.inv-batch-metric-divider {
+  width: 1px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.07);
+  flex-shrink: 0;
+}
+
+.inv-batch-card-arrow {
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  margin-left: 0.35rem;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.inv-batch-card-arrow svg {
+  width: 16px;
+  height: 16px;
+}
+
+.inv-batch-card:hover .inv-batch-card-arrow {
+  transform: translateX(3px);
+  color: #00D084;
+}
+
+.inv-batch-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.inv-batch-footer-icon {
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.inv-batch-footer-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.inv-batch-footer-text {
+  line-height: 1.2;
+}
+
+/* Batch Equipment Details Modal */
+.batch-detail-top-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(8, 16, 30, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+  gap: 0.75rem;
+}
+
+.batch-detail-top-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.batch-detail-top-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.batch-detail-top-sub {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin-top: 0.15rem;
+}
+
+.batch-detail-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.15rem;
+}
+
+.batch-detail-metric-card {
+  background: rgba(8, 16, 30, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.batch-detail-metric-num {
+  font-family: var(--font-heading);
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #00D084;
+  line-height: 1.1;
+}
+
+.batch-detail-metric-num.is-cyan {
+  color: #38bdf8;
+}
+
+.batch-detail-metric-lbl {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+}
+
+.batch-equip-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(11, 20, 36, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 0.55rem;
+  gap: 0.75rem;
+}
+
+.batch-equip-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.batch-equip-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #f8fafc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.batch-equip-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.74rem;
+  color: #94a3b8;
+  margin-top: 0.2rem;
+  flex-wrap: wrap;
+}
+
+.batch-equip-reason-badge {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  font-size: 0.68rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.batch-equip-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-shrink: 0;
+}
+
+.batch-equip-qty-badge {
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  font-weight: 700;
+  background: rgba(0, 208, 132, 0.12);
+  color: #00D084;
+  border: 1px solid rgba(0, 208, 132, 0.25);
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   RESPONSIVE OVERRIDES FOR BATCH VIEW
+   ========================================================================== */
+
+/* Tablet & Smaller (<= 768px) */
+@media (max-width: 768px) {
+  .inv-view-toggle {
+    max-width: 100%;
+  }
+
+  #batchEquipmentDetailsModal.sb-modal-overlay {
+    padding: 0.5rem !important;
+    align-items: center !important;
+  }
+
+  #batchEquipmentDetailsModal .sb-modal {
+    width: calc(100vw - 1rem) !important;
+    max-width: 100% !important;
+    max-height: calc(100vh - 1rem) !important;
+    padding: 0 !important;
+    margin: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    border-radius: var(--radius-lg) !important;
+  }
+
+  #batchEquipmentDetailsModal .sb-modal-header {
+    padding: 0.85rem 1rem 0.5rem !important;
+    flex-shrink: 0 !important;
+  }
+
+  #batchEquipmentDetailsModal .sb-modal-body {
+    padding: 0.65rem 1rem 0.75rem !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    flex: 1 1 auto !important;
+  }
+
+  #batchEquipmentDetailsModal .sb-modal-footer {
+    padding: 0.65rem 1rem 0.85rem !important;
+    flex-shrink: 0 !important;
+  }
+}
+
+/* Mobile Devices (<= 480px) */
+@media (max-width: 480px) {
+  .inv-view-tab {
+    height: 35px;
+    font-size: 0.78rem;
+    padding: 0 0.55rem;
+    gap: 0.3rem;
+  }
+
+  .inv-view-tab svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .inv-batch-search-box {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .inv-batch-search-input {
+    font-size: 0.82rem;
+  }
+
+  .inv-batch-stat-box {
+    padding: 0.4rem 0.85rem;
+    min-width: 72px;
+  }
+
+  .inv-batch-stat-num {
+    font-size: 1.1rem;
+  }
+
+  .inv-batch-stat-lbl {
+    font-size: 0.65rem;
+  }
+
+  .inv-batch-card {
+    padding: 0.85rem 0.95rem 0.75rem;
+    gap: 0.55rem;
+  }
+
+  .inv-batch-card-name {
+    font-size: 0.95rem;
+  }
+
+  .inv-batch-card-students {
+    font-size: 0.76rem;
+  }
+
+  .inv-batch-card-metrics {
+    gap: 0.65rem;
+  }
+
+  .inv-batch-icon-box {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+  }
+
+  .inv-batch-icon-box svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .inv-batch-metric-val {
+    font-size: 1.1rem;
+  }
+
+  .inv-batch-metric-lbl {
+    font-size: 0.55rem;
+    letter-spacing: 0.02em;
+  }
+
+  .inv-batch-metric-divider {
+    height: 22px;
+  }
+
+  .inv-batch-card-footer {
+    font-size: 0.72rem;
+    padding-top: 0.45rem;
+  }
+}
+
+/* Ultra-compact screens (<= 360px) */
+@media (max-width: 360px) {
+  .inv-batch-card-main {
+    gap: 0.5rem;
+  }
+
+  .inv-batch-card-col-left {
+    min-width: 75px;
+  }
+
+  .inv-batch-card-metrics {
+    gap: 0.45rem;
+  }
+
+  .inv-batch-icon-box {
+    display: none;
+  }
+
+  .inv-batch-metric-val {
+    font-size: 1.02rem;
+  }
+
+  .inv-batch-metric-lbl {
+    font-size: 0.52rem;
+  }
+
+  .inv-batch-card-arrow {
+    margin-left: 0.15rem;
+  }
+}
+
+/* Mobile M & S Viewport Rules (<= 380px) */
+@media (max-width: 380px) {
+  .inv-view-toggle-wrap {
+    margin: 0.35rem 0 0.65rem;
+  }
+
+  .inv-view-tab {
+    height: 34px;
+    font-size: 0.76rem;
+    padding: 0 0.45rem;
+    gap: 0.25rem;
+  }
+
+  .inv-view-tab svg {
+    width: 13px;
+    height: 13px;
+  }
+}
+
+/* Mobile S Ultra-compact (<= 330px) */
+@media (max-width: 330px) {
+  .inv-view-toggle-wrap {
+    margin: 0.25rem 0 0.55rem;
+  }
+
+  .inv-view-toggle {
+    padding: 2px;
+    gap: 2px;
+  }
+
+  .inv-view-tab {
+    height: 32px;
+    font-size: 0.71rem;
+    padding: 0 0.2rem;
+    gap: 0.2rem;
+  }
+
+  .inv-view-tab svg {
+    width: 12px;
+    height: 12px;
+  }
+}
+
+
 
 
 
