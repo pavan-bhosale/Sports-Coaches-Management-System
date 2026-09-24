@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS vsa_students (
     fee_pending DECIMAL(12,2) DEFAULT 0.00,
     pending_months INT DEFAULT 0,
     payment_status VARCHAR(20) DEFAULT 'Pending',
+    student_note TEXT NULL,
     FOREIGN KEY (batch_id) REFERENCES vsa_batches(batch_id) ON DELETE SET NULL,
     FOREIGN KEY (coach_id) REFERENCES vsa_coaches(coach_id) ON DELETE SET NULL
 );

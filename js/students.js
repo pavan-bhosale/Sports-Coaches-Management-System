@@ -7,6 +7,40 @@ let studentToDeleteId = null;
 let activeProfileStudentId = null;
 let currentLoadedStudentData = null;
 
+// Auth helper functions for role-restricted student queries and note operations
+function getStudentAuthHeaders() {
+  const role = localStorage.getItem('vava_role') || 'admin';
+  const email = localStorage.getItem('vava_email') || '';
+  let coach_id = 0;
+  const userStr = localStorage.getItem('vava_user');
+  if (userStr) {
+    try {
+      const u = JSON.parse(userStr);
+      if (u.coach_id) coach_id = u.coach_id;
+    } catch(e) {}
+  }
+  return {
+    'Content-Type': 'application/json',
+    'X-VAVA-Role': role,
+    'X-VAVA-Email': email,
+    'X-VAVA-Coach-Id': String(coach_id)
+  };
+}
+
+function getStudentAuthQuery() {
+  const role = localStorage.getItem('vava_role') || 'admin';
+  const email = localStorage.getItem('vava_email') || '';
+  let coach_id = 0;
+  const userStr = localStorage.getItem('vava_user');
+  if (userStr) {
+    try {
+      const u = JSON.parse(userStr);
+      if (u.coach_id) coach_id = u.coach_id;
+    } catch(e) {}
+  }
+  return `role=${encodeURIComponent(role)}&email=${encodeURIComponent(email)}&coach_id=${encodeURIComponent(coach_id)}`;
+}
+
 function updateStudentsLiveCount(count) {
   const el = document.getElementById('studentsLiveCount');
   if (!el) return;
@@ -26,7 +60,8 @@ async function fetchStudents() {
   if (cardsContainer) cardsContainer.innerHTML = '';
 
   try {
-    const res = await fetch(STUDENTS_API);
+    const url = `${STUDENTS_API}?${getStudentAuthQuery()}`;
+    const res = await fetch(url, { headers: getStudentAuthHeaders() });
     const data = await res.json();
     if (requestId !== fetchStudentsRequestId) return;
     if (!data.success) throw new Error(data.error || 'Fetch failed.');
@@ -275,7 +310,8 @@ async function openStudentProfile(studentId) {
   if (!modal) return;
 
   try {
-    const res = await fetch(`${STUDENTS_API}?id=${studentId}`);
+    const url = `${STUDENTS_API}?id=${studentId}&${getStudentAuthQuery()}`;
+    const res = await fetch(url, { headers: getStudentAuthHeaders() });
     const data = await res.json();
     if (!data.success || !data.student) throw new Error('Student not found');
 
@@ -343,6 +379,9 @@ async function openStudentProfile(studentId) {
       initialsEl.style.display = 'block';
       if (btnDeletePhoto) btnDeletePhoto.style.display = 'none';
     }
+
+    // Render Student Note (single note per student directly on student record)
+    renderStudentNoteUI(student);
 
     openModal('studentProfileModal');
   } catch (err) {
@@ -815,4 +854,240 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
+
+  // Initialize Student Note Listeners
+  initStudentNoteListeners();
 });
+
+// ── Render Student Note UI (Single Note Per Student) ─────────────────────
+function renderStudentNoteUI(student) {
+  const container = document.getElementById('studentNoteSection');
+  if (!container) return;
+
+  const role = (localStorage.getItem('vava_role') || 'admin').toLowerCase();
+  const isSuperAdmin = (role === 'admin' || role === 'superadmin');
+  const isCoach = (role === 'coach');
+  const isStudent = (role === 'student');
+
+  if (isStudent) {
+    container.style.display = 'none';
+    return;
+  }
+  container.style.display = 'block';
+
+  const readOnlyBadge = document.getElementById('studentNoteReadOnlyBadge');
+  const headerActions = document.getElementById('studentNoteHeaderActions');
+  const noteView = document.getElementById('studentNoteView');
+  const noteText = document.getElementById('studentNoteText');
+  const deleteConfirm = document.getElementById('studentNoteDeleteConfirm');
+  const emptyState = document.getElementById('studentNoteEmpty');
+  const emptyText = document.getElementById('studentNoteEmptyText');
+  const btnOpenAdd = document.getElementById('btnOpenAddNote');
+  const formState = document.getElementById('studentNoteForm');
+  const noteInput = document.getElementById('studentNoteInput');
+  const charCount = document.getElementById('studentNoteCharCount');
+
+  // Reset transient form/confirmation states
+  if (deleteConfirm) deleteConfirm.style.display = 'none';
+  if (formState) formState.style.display = 'none';
+
+  const noteContent = (student && student.student_note) ? student.student_note.trim() : '';
+
+  if (isSuperAdmin) {
+    // Super Admin: READ-ONLY
+    if (readOnlyBadge) readOnlyBadge.style.display = 'inline-block';
+    if (headerActions) headerActions.innerHTML = '';
+
+    if (noteContent) {
+      if (noteView) noteView.style.display = 'block';
+      if (noteText) noteText.textContent = noteContent;
+      if (emptyState) emptyState.style.display = 'none';
+    } else {
+      if (noteView) noteView.style.display = 'none';
+      if (emptyState) emptyState.style.display = 'flex';
+      if (emptyText) emptyText.textContent = 'No note recorded for this student.';
+      if (btnOpenAdd) btnOpenAdd.style.display = 'none';
+    }
+    return;
+  }
+
+  // Coach: Active Management (Add, Edit, Delete)
+  if (readOnlyBadge) readOnlyBadge.style.display = 'none';
+
+  if (noteContent) {
+    // Note exists: show note view + Edit & Delete controls
+    if (emptyState) emptyState.style.display = 'none';
+    if (noteView) noteView.style.display = 'block';
+    if (noteText) noteText.textContent = noteContent;
+
+    if (headerActions) {
+      headerActions.innerHTML = `
+        <button type="button" class="btn-note-action" id="btnEditNote" title="Edit Note">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+          Edit
+        </button>
+        <button type="button" class="btn-note-action btn-note-delete" id="btnDeleteNote" title="Delete Note">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M10 11v6"/><path d="M14 11v6"/>
+          </svg>
+          Delete
+        </button>
+      `;
+
+      const btnEdit = document.getElementById('btnEditNote');
+      if (btnEdit) {
+        btnEdit.onclick = () => {
+          if (noteView) noteView.style.display = 'none';
+          if (formState) formState.style.display = 'block';
+          if (noteInput) {
+            noteInput.value = noteContent;
+            noteInput.focus();
+            if (charCount) charCount.textContent = `${noteInput.value.length}/1000`;
+          }
+        };
+      }
+
+      const btnDelete = document.getElementById('btnDeleteNote');
+      if (btnDelete) {
+        btnDelete.onclick = () => {
+          if (deleteConfirm) deleteConfirm.style.display = 'flex';
+        };
+      }
+    }
+  } else {
+    // No note yet: show Add Note button
+    if (headerActions) headerActions.innerHTML = '';
+    if (noteView) noteView.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'flex';
+    if (emptyText) emptyText.textContent = 'No note recorded for this student.';
+    if (btnOpenAdd) {
+      btnOpenAdd.style.display = 'inline-flex';
+      btnOpenAdd.onclick = () => {
+        if (emptyState) emptyState.style.display = 'none';
+        if (formState) formState.style.display = 'block';
+        if (noteInput) {
+          noteInput.value = '';
+          noteInput.focus();
+          if (charCount) charCount.textContent = '0/1000';
+        }
+      };
+    }
+  }
+}
+
+// ── Initialize Student Note Event Listeners ─────────────────────────────
+function initStudentNoteListeners() {
+  const noteInput = document.getElementById('studentNoteInput');
+  const charCount = document.getElementById('studentNoteCharCount');
+  if (noteInput && charCount) {
+    noteInput.addEventListener('input', () => {
+      charCount.textContent = `${noteInput.value.length}/1000`;
+    });
+  }
+
+  // Cancel Note Form
+  const btnCancelNote = document.getElementById('btnCancelNoteForm');
+  if (btnCancelNote) {
+    btnCancelNote.addEventListener('click', () => {
+      renderStudentNoteUI(currentLoadedStudentData);
+    });
+  }
+
+  // Save Note (Add or Edit)
+  const btnSaveNote = document.getElementById('btnSaveNote');
+  if (btnSaveNote) {
+    btnSaveNote.addEventListener('click', async () => {
+      const input = document.getElementById('studentNoteInput');
+      const val = input ? input.value.trim() : '';
+      if (!val) {
+        showToast('Note content cannot be empty.', 'error');
+        return;
+      }
+      if (!activeProfileStudentId) return;
+
+      btnSaveNote.disabled = true;
+      btnSaveNote.textContent = 'Saving...';
+
+      try {
+        const res = await fetch(STUDENTS_API, {
+          method: 'POST',
+          headers: getStudentAuthHeaders(),
+          body: JSON.stringify({
+            action: 'save_note',
+            student_id: activeProfileStudentId,
+            student_note: val
+          })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'Failed to save note.');
+        }
+
+        if (currentLoadedStudentData) {
+          currentLoadedStudentData.student_note = val;
+        }
+        renderStudentNoteUI(currentLoadedStudentData);
+        showToast(data.message || 'Note saved successfully.', 'success');
+      } catch (err) {
+        console.error('Save note error:', err);
+        showToast(err.message || 'Error saving note.', 'error');
+      } finally {
+        btnSaveNote.disabled = false;
+        btnSaveNote.textContent = 'Save Note';
+      }
+    });
+  }
+
+  // Cancel Delete
+  const btnCancelDelete = document.getElementById('btnCancelDeleteNote');
+  if (btnCancelDelete) {
+    btnCancelDelete.addEventListener('click', () => {
+      const deleteConfirm = document.getElementById('studentNoteDeleteConfirm');
+      if (deleteConfirm) deleteConfirm.style.display = 'none';
+    });
+  }
+
+  // Confirm Delete
+  const btnConfirmDelete = document.getElementById('btnConfirmDeleteNote');
+  if (btnConfirmDelete) {
+    btnConfirmDelete.addEventListener('click', async () => {
+      if (!activeProfileStudentId) return;
+
+      btnConfirmDelete.disabled = true;
+      btnConfirmDelete.textContent = 'Deleting...';
+
+      try {
+        const res = await fetch(STUDENTS_API, {
+          method: 'POST',
+          headers: getStudentAuthHeaders(),
+          body: JSON.stringify({
+            action: 'delete_note',
+            student_id: activeProfileStudentId
+          })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'Failed to delete note.');
+        }
+
+        if (currentLoadedStudentData) {
+          currentLoadedStudentData.student_note = null;
+        }
+        renderStudentNoteUI(currentLoadedStudentData);
+        showToast('Student note deleted successfully.', 'success');
+      } catch (err) {
+        console.error('Delete note error:', err);
+        showToast(err.message || 'Error deleting note.', 'error');
+      } finally {
+        btnConfirmDelete.disabled = false;
+        btnConfirmDelete.textContent = 'Delete';
+      }
+    });
+  }
+}
+
