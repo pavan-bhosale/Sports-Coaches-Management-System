@@ -5,34 +5,54 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  /* Core Brand Colors */
-  --color-primary: #10b981;          /* Emerald Pulse / Energy */
-  --color-primary-hover: #059669;
-  --color-primary-glow: rgba(16, 185, 129, 0.35);
+  /* Centralized Gold + Black Palette */
+  --bg-primary: #090B0D;
+  --bg-secondary: #0F1216;
+  --bg-card: #151A21;
+  --bg-elevated: #1B2028;
+
+  --border-primary: #272D35;
+
+  --gold-primary: #D4AF37;
+  --gold-bright: #F2C94C;
+  --gold-dark: #B8860B;
+
+  --text-primary: #F5F5F5;
+  --text-secondary: #A7AFBC;
+  --text-muted: #737C89;
+
+  --success: #22C55E;
+  --error: #EF4444;
+  --warning: #F59E0B;
+  --info: #38BDF8;
+
+  --brand-red: #B00000;
+
+  /* Mapped Aliases */
+  --color-primary: var(--gold-primary);
+  --color-primary-hover: var(--gold-bright);
+  --color-primary-glow: rgba(212, 175, 55, 0.28);
   
-  --color-accent: #06b6d4;           /* Electric Cyan */
-  --color-accent-glow: rgba(6, 182, 212, 0.3);
+  --color-accent: var(--gold-bright);
+  --color-accent-glow: rgba(242, 201, 76, 0.2);
   
-  --color-secondary: #f59e0b;        /* Athletic Amber */
-  --color-danger: #ef4444;           /* Alert Red */
+  --color-secondary: var(--warning);
+  --color-danger: var(--error);
   --color-danger-glow: rgba(239, 68, 68, 0.25);
-  --color-success: #10b981;
+  --color-success: var(--success);
   
-  /* Neutral Dark Theme Palette */
-  --bg-app: #080c14;                 /* Deep Stadium Night */
-  --bg-surface: #0f172a;             /* Card Background */
-  --bg-surface-elevated: #1e293b;    /* Input / Card Elevated */
-  --bg-glass: rgba(15, 23, 42, 0.82);
-  --bg-glass-card: rgba(30, 41, 59, 0.65);
-  --border-glass: rgba(255, 255, 255, 0.09);
-  --border-glass-hover: rgba(255, 255, 255, 0.18);
-  --border-focus: #10b981;
+  /* Neutral Dark Theme Surfaces */
+  --bg-app: var(--bg-primary);
+  --bg-surface: var(--bg-card);
+  --bg-surface-elevated: var(--bg-elevated);
+  --bg-glass: rgba(21, 26, 33, 0.88);
+  --bg-glass-card: rgba(27, 32, 40, 0.75);
+  --border-glass: var(--border-primary);
+  --border-glass-hover: rgba(212, 175, 55, 0.35);
+  --border-focus: var(--gold-primary);
   
   /* Text & Typography */
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --text-inverse: #080c14;
+  --text-inverse: #090B0D;
   
   /* Fonts */
   --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -42,7 +62,7 @@
   --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 8px;
-  --radius-lg: 10px; /* Reduced from 20px */
+  --radius-lg: 10px;
   --radius-xl: 14px;
   --radius-full: 9999px;
   
@@ -50,8 +70,8 @@
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 8px 24px -4px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-  --shadow-glow-primary: 0 0 25px rgba(16, 185, 129, 0.4);
-  --shadow-glow-accent: 0 0 25px rgba(6, 182, 212, 0.35);
+  --shadow-glow-primary: 0 0 25px rgba(212, 175, 55, 0.3);
+  --shadow-glow-accent: 0 0 25px rgba(242, 201, 76, 0.25);
   
   /* Transitions */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -90,9 +110,9 @@ html, body {
   overflow-x: hidden;
   box-sizing: border-box;
   background: 
-    radial-gradient(circle at 15% 25%, rgba(16, 185, 129, 0.12) 0%, transparent 45%),
-    radial-gradient(circle at 85% 75%, rgba(6, 182, 212, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.5) 0%, transparent 100%),
+    radial-gradient(circle at 15% 25%, rgba(212, 175, 55, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 85% 75%, rgba(184, 134, 11, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(15, 18, 22, 0.6) 0%, transparent 100%),
     var(--bg-app);
 }
 
@@ -112,7 +132,7 @@ html, body {
   background: var(--color-primary-glow);
   top: -120px;
   left: -120px;
-  opacity: 0.7;
+  opacity: 0.6;
 }
 
 .glow-2 {
@@ -121,7 +141,7 @@ html, body {
   background: var(--color-accent-glow);
   bottom: -150px;
   right: -120px;
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
 /* Master Responsive Two-Column Layout */
@@ -148,8 +168,8 @@ html, body {
   padding: clamp(2.5rem, 5vw, 4.5rem);
   position: relative;
   overflow: hidden;
-  background: linear-gradient(145deg, rgba(15, 23, 42, 0.85), rgba(8, 12, 20, 0.96));
-  border-right: 1px solid var(--border-glass);
+  background: linear-gradient(145deg, rgba(21, 26, 33, 0.95), rgba(9, 11, 13, 0.98));
+  border-right: 1px solid var(--border-primary);
 }
 
 .auth-showcase::after {
@@ -172,17 +192,25 @@ html, body {
 .showcase-header .brand-logo {
   display: inline-flex;
   align-items: center;
-  gap: 1rem;
   text-decoration: none;
   position: relative;
   z-index: 2;
+}
+
+.brand-logo-img {
+  width: auto;
+  max-width: 220px;
+  height: auto;
+  max-height: 52px;
+  object-fit: contain;
+  display: block;
 }
 
 .brand-icon-wrapper {
   width: 48px;
   height: 48px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  background: linear-gradient(135deg, var(--gold-dark) 0%, var(--gold-primary) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -197,7 +225,7 @@ html, body {
 .brand-icon-wrapper svg {
   width: 26px;
   height: 26px;
-  color: #ffffff;
+  color: #090B0D;
 }
 
 .brand-title {
@@ -212,7 +240,7 @@ html, body {
 }
 
 .brand-title span {
-  background: linear-gradient(90deg, #10b981, #06b6d4);
+  background: linear-gradient(90deg, var(--gold-primary), var(--gold-bright));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -231,9 +259,9 @@ html, body {
   gap: 0.6rem;
   padding: 0.4rem 1rem;
   border-radius: var(--radius-full);
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  color: var(--color-primary);
+  background: rgba(212, 175, 55, 0.12);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  color: var(--gold-primary);
   font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -246,8 +274,8 @@ html, body {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--color-primary);
-  box-shadow: 0 0 10px var(--color-primary);
+  background: var(--gold-primary);
+  box-shadow: 0 0 10px var(--gold-primary);
   animation: pulseDot 2s infinite;
 }
 
@@ -267,7 +295,7 @@ html, body {
 }
 
 .showcase-headline .highlight-text {
-  background: linear-gradient(135deg, #ffffff 40%, var(--color-accent) 100%);
+  background: linear-gradient(135deg, #ffffff 40%, var(--gold-bright) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -308,8 +336,8 @@ html, body {
   width: 38px;
   height: 38px;
   border-radius: var(--radius-sm);
-  background: rgba(16, 185, 129, 0.12);
-  color: var(--color-primary);
+  background: rgba(212, 175, 55, 0.12);
+  color: var(--gold-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -369,7 +397,7 @@ html, body {
 .mobile-brand-header {
   display: none; /* Desktop hidden, shown on mobile */
   align-items: center;
-  gap: 0.875rem;
+  justify-content: center;
   margin-bottom: 2rem;
 }
 
@@ -395,7 +423,7 @@ html, body {
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, #10b981, #06b6d4, #f59e0b);
+  background: linear-gradient(90deg, var(--gold-dark), var(--gold-primary), var(--gold-bright));
 }
 
 .card-header {
@@ -423,7 +451,7 @@ html, body {
 .role-selector {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  background: rgba(10, 15, 26, 0.7);
+  background: var(--bg-secondary);
   padding: 5px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-glass);
@@ -463,7 +491,7 @@ html, body {
 }
 
 .role-tab.active {
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .role-tab svg {
@@ -473,7 +501,7 @@ html, body {
 
 .role-tab.active svg {
   transform: scale(1.15);
-  color: var(--color-primary);
+  color: var(--gold-primary);
 }
 
 /* Role Active Pill Indicator */
@@ -483,8 +511,8 @@ html, body {
   left: 5px;
   bottom: 5px;
   width: calc(33.333% - 3.33px);
-  background: var(--bg-surface-elevated);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-sm);
   transition: transform var(--transition-spring);
@@ -497,8 +525,8 @@ html, body {
   align-items: center;
   gap: 0.625rem;
   padding: 0.625rem 0.875rem;
-  background: rgba(16, 185, 129, 0.07);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.22);
   border-radius: var(--radius-sm);
   margin-bottom: 1.5rem;
   font-size: 0.8125rem;
@@ -511,8 +539,8 @@ html, body {
 .hint-badge {
   display: inline-block;
   padding: 0.2rem 0.5rem;
-  background: var(--color-primary);
-  color: #080c14;
+  background: var(--gold-primary);
+  color: #090B0D;
   font-weight: 800;
   font-size: 0.6875rem;
   text-transform: uppercase;
@@ -585,7 +613,7 @@ html, body {
 .forgot-link {
   background: transparent;
   border: none;
-  color: var(--color-accent);
+  color: var(--gold-primary);
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
@@ -594,7 +622,7 @@ html, body {
 }
 
 .forgot-link:hover {
-  color: #ffffff;
+  color: var(--gold-bright);
   text-decoration: underline;
 }
 
@@ -639,12 +667,12 @@ html, body {
 
 .form-input:focus {
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
-  background: rgba(30, 41, 59, 0.9);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+  background: rgba(21, 26, 33, 0.95);
 }
 
 .input-wrapper:focus-within .input-icon {
-  color: var(--color-primary);
+  color: var(--gold-primary);
 }
 
 /* Password Toggle Eye Button */
@@ -728,7 +756,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: #090B0D;
   transition: all var(--transition-fast);
 }
 
@@ -739,8 +767,8 @@ html, body {
 }
 
 .custom-checkbox input:checked + .checkbox-box {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
+  background: var(--gold-primary);
+  border-color: var(--gold-primary);
 }
 
 .custom-checkbox input:checked + .checkbox-box svg {
@@ -762,7 +790,7 @@ html, body {
 }
 
 .security-badge svg {
-  color: var(--color-primary);
+  color: var(--gold-primary);
 }
 
 /* ==========================================================================
@@ -772,9 +800,9 @@ html, body {
   width: 100%;
   height: 52px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border: none;
-  color: #ffffff;
+  background: var(--gold-primary);
+  border: 1px solid var(--gold-primary);
+  color: #090B0D;
   font-family: var(--font-heading);
   font-size: 1rem;
   font-weight: 700;
@@ -784,11 +812,19 @@ html, body {
   justify-content: center;
   gap: 0.625rem;
   cursor: pointer;
-  box-shadow: 0 8px 24px -4px var(--color-primary-glow);
+  box-shadow: 0 8px 24px -4px rgba(212, 175, 55, 0.3);
   transition: all var(--transition-smooth);
   position: relative;
   overflow: hidden;
   margin-top: 0.5rem;
+}
+
+.submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px -4px rgba(212, 175, 55, 0.45);
+  background: var(--gold-bright);
+  border-color: var(--gold-bright);
+  color: #090B0D;
 }
 
 .submit-btn::before {
@@ -800,12 +836,6 @@ html, body {
   height: 100%;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
   transition: left 0.6s ease;
-}
-
-.submit-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 30px -4px rgba(16, 185, 129, 0.5);
-  background: linear-gradient(135deg, #14c78e 0%, #059669 100%);
 }
 
 .submit-btn:hover::before {
@@ -955,8 +985,8 @@ html, body {
   width: 48px;
   height: 48px;
   border-radius: var(--radius-md);
-  background: rgba(6, 182, 212, 0.12);
-  color: var(--color-accent);
+  background: rgba(212, 175, 55, 0.12);
+  color: var(--gold-primary);
   display: flex;
   align-items: center;
   justify-content: center;
