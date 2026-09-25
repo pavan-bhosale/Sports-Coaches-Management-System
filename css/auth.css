@@ -13,9 +13,40 @@
 
   --border-primary: #272D35;
 
-  --gold-primary: #D4AF37;
-  --gold-bright: #F2C94C;
-  --gold-dark: #B8860B;
+  /* Premium Metallic Gold System */
+  --gold-deep: #8C6814;
+  --gold-dark: #A77B18;
+  --gold-primary: #C9A227;
+  --gold-rich: #D4AF37;
+  --gold-highlight: #F4D76A;
+  --gold-shine: #FFF1A8;
+
+  /* Metallic Gradients */
+  --gradient-gold-metallic: linear-gradient(
+    135deg,
+    #A77B18 0%,
+    #C9A227 25%,
+    #F4D76A 50%,
+    #D4AF37 70%,
+    #A77B18 100%
+  );
+  --gradient-gold-hover: linear-gradient(
+    135deg,
+    #B88A1B 0%,
+    #D4AF37 25%,
+    #F8DF7A 50%,
+    #DDB63F 70%,
+    #A77B18 100%
+  );
+  --gradient-gold-subtle: linear-gradient(
+    135deg,
+    #8C6814 0%,
+    #C9A227 50%,
+    #D4AF37 100%
+  );
+
+  /* Legacy aliases mapped to refined tokens */
+  --gold-bright: var(--gold-highlight);
 
   --text-primary: #F5F5F5;
   --text-secondary: #A7AFBC;
@@ -30,11 +61,11 @@
 
   /* Mapped Aliases */
   --color-primary: var(--gold-primary);
-  --color-primary-hover: var(--gold-bright);
-  --color-primary-glow: rgba(212, 175, 55, 0.28);
+  --color-primary-hover: var(--gold-highlight);
+  --color-primary-glow: rgba(201, 162, 39, 0.18);
   
-  --color-accent: var(--gold-bright);
-  --color-accent-glow: rgba(242, 201, 76, 0.2);
+  --color-accent: var(--gold-highlight);
+  --color-accent-glow: rgba(201, 162, 39, 0.12);
   
   --color-secondary: var(--warning);
   --color-danger: var(--error);
@@ -48,7 +79,7 @@
   --bg-glass: rgba(21, 26, 33, 0.88);
   --bg-glass-card: rgba(27, 32, 40, 0.75);
   --border-glass: var(--border-primary);
-  --border-glass-hover: rgba(212, 175, 55, 0.35);
+  --border-glass-hover: rgba(201, 162, 39, 0.35);
   --border-focus: var(--gold-primary);
   
   /* Text & Typography */
@@ -70,8 +101,8 @@
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 8px 24px -4px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-  --shadow-glow-primary: 0 0 25px rgba(212, 175, 55, 0.3);
-  --shadow-glow-accent: 0 0 25px rgba(242, 201, 76, 0.25);
+  --shadow-glow-primary: 0 0 12px rgba(201, 162, 39, 0.18);
+  --shadow-glow-accent: 0 0 12px rgba(201, 162, 39, 0.12);
   
   /* Transitions */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -110,8 +141,8 @@ html, body {
   overflow-x: hidden;
   box-sizing: border-box;
   background: 
-    radial-gradient(circle at 15% 25%, rgba(212, 175, 55, 0.08) 0%, transparent 45%),
-    radial-gradient(circle at 85% 75%, rgba(184, 134, 11, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 15% 25%, rgba(201, 162, 39, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 85% 75%, rgba(140, 104, 20, 0.05) 0%, transparent 50%),
     radial-gradient(circle at 50% 50%, rgba(15, 18, 22, 0.6) 0%, transparent 100%),
     var(--bg-app);
 }
@@ -210,11 +241,11 @@ html, body {
   width: 48px;
   height: 48px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--gold-dark) 0%, var(--gold-primary) 100%);
+  background: var(--gradient-gold-metallic);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 20px -4px var(--color-primary-glow);
+  box-shadow: 0 4px 16px -2px rgba(201, 162, 39, 0.3);
   transition: transform var(--transition-bounce);
 }
 
@@ -240,7 +271,7 @@ html, body {
 }
 
 .brand-title span {
-  background: linear-gradient(90deg, var(--gold-primary), var(--gold-bright));
+  background: linear-gradient(90deg, var(--gold-primary), var(--gold-highlight));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -259,9 +290,9 @@ html, body {
   gap: 0.6rem;
   padding: 0.4rem 1rem;
   border-radius: var(--radius-full);
-  background: rgba(212, 175, 55, 0.12);
-  border: 1px solid rgba(212, 175, 55, 0.3);
-  color: var(--gold-primary);
+  background: rgba(201, 162, 39, 0.12);
+  border: 1px solid rgba(201, 162, 39, 0.3);
+  color: var(--gold-highlight);
   font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -275,7 +306,7 @@ html, body {
   height: 7px;
   border-radius: 50%;
   background: var(--gold-primary);
-  box-shadow: 0 0 10px var(--gold-primary);
+  box-shadow: 0 0 8px rgba(201, 162, 39, 0.6);
   animation: pulseDot 2s infinite;
 }
 
@@ -295,7 +326,7 @@ html, body {
 }
 
 .showcase-headline .highlight-text {
-  background: linear-gradient(135deg, #ffffff 40%, var(--gold-bright) 100%);
+  background: linear-gradient(135deg, #ffffff 40%, var(--gold-highlight) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -336,8 +367,8 @@ html, body {
   width: 38px;
   height: 38px;
   border-radius: var(--radius-sm);
-  background: rgba(212, 175, 55, 0.12);
-  color: var(--gold-primary);
+  background: rgba(201, 162, 39, 0.12);
+  color: var(--gold-highlight);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -423,7 +454,7 @@ html, body {
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--gold-dark), var(--gold-primary), var(--gold-bright));
+  background: linear-gradient(90deg, #8C6814, #C9A227, #F4D76A);
 }
 
 .card-header {
@@ -525,8 +556,8 @@ html, body {
   align-items: center;
   gap: 0.625rem;
   padding: 0.625rem 0.875rem;
-  background: rgba(212, 175, 55, 0.08);
-  border: 1px solid rgba(212, 175, 55, 0.22);
+  background: rgba(201, 162, 39, 0.08);
+  border: 1px solid rgba(201, 162, 39, 0.22);
   border-radius: var(--radius-sm);
   margin-bottom: 1.5rem;
   font-size: 0.8125rem;
@@ -539,13 +570,14 @@ html, body {
 .hint-badge {
   display: inline-block;
   padding: 0.2rem 0.5rem;
-  background: var(--gold-primary);
+  background: var(--gradient-gold-metallic);
   color: #090B0D;
   font-weight: 800;
   font-size: 0.6875rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   border-radius: var(--radius-xs);
+  border: 1px solid rgba(244, 215, 106, 0.35);
   flex-shrink: 0;
 }
 
@@ -622,7 +654,7 @@ html, body {
 }
 
 .forgot-link:hover {
-  color: var(--gold-bright);
+  color: var(--gold-highlight);
   text-decoration: underline;
 }
 
@@ -667,7 +699,7 @@ html, body {
 
 .form-input:focus {
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+  box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.2);
   background: rgba(21, 26, 33, 0.95);
 }
 
@@ -767,7 +799,7 @@ html, body {
 }
 
 .custom-checkbox input:checked + .checkbox-box {
-  background: var(--gold-primary);
+  background: var(--gradient-gold-metallic);
   border-color: var(--gold-primary);
 }
 
@@ -800,8 +832,8 @@ html, body {
   width: 100%;
   height: 52px;
   border-radius: var(--radius-md);
-  background: var(--gold-primary);
-  border: 1px solid var(--gold-primary);
+  background: var(--gradient-gold-metallic);
+  border: 1px solid rgba(244, 215, 106, 0.35);
   color: #090B0D;
   font-family: var(--font-heading);
   font-size: 1rem;
@@ -812,34 +844,41 @@ html, body {
   justify-content: center;
   gap: 0.625rem;
   cursor: pointer;
-  box-shadow: 0 8px 24px -4px rgba(212, 175, 55, 0.3);
+  box-shadow: 0 2px 8px rgba(201, 162, 39, 0.18);
   transition: all var(--transition-smooth);
   position: relative;
   overflow: hidden;
   margin-top: 0.5rem;
 }
 
+.submit-btn::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 55%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 241, 168, 0.28),
+    transparent
+  );
+  transform: skewX(-20deg);
+  pointer-events: none;
+  transition: left 0.5s ease;
+}
+
 .submit-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 30px -4px rgba(212, 175, 55, 0.45);
-  background: var(--gold-bright);
-  border-color: var(--gold-bright);
+  box-shadow: 0 4px 16px rgba(201, 162, 39, 0.28);
+  background: var(--gradient-gold-hover);
+  border-color: rgba(244, 215, 106, 0.55);
   color: #090B0D;
 }
 
-.submit-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.6s ease;
-}
-
-.submit-btn:hover::before {
-  left: 100%;
+.submit-btn:hover::after {
+  left: 140%;
 }
 
 .submit-btn:active {
@@ -985,8 +1024,8 @@ html, body {
   width: 48px;
   height: 48px;
   border-radius: var(--radius-md);
-  background: rgba(212, 175, 55, 0.12);
-  color: var(--gold-primary);
+  background: rgba(201, 162, 39, 0.12);
+  color: var(--gold-highlight);
   display: flex;
   align-items: center;
   justify-content: center;

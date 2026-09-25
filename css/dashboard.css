@@ -17,10 +17,37 @@
   /* Borders */
   --border-primary: #272D35;
 
-  /* Gold */
-  --gold-primary: #D4AF37;
-  --gold-bright: #F2C94C;
-  --gold-dark: #B8860B;
+  /* Gold - Refined Premium Metallic Palette */
+  --gold-deep: #8C6814;
+  --gold-dark: #A77B18;
+  --gold-primary: #C9A227;
+  --gold-rich: #D4AF37;
+  --gold-highlight: #F4D76A;
+  --gold-shine: #FFF1A8;
+
+  /* Metallic Gradients */
+  --gradient-gold-metallic: linear-gradient(
+    135deg,
+    #A77B18 0%,
+    #C9A227 25%,
+    #F4D76A 50%,
+    #D4AF37 70%,
+    #A77B18 100%
+  );
+  --gradient-gold-hover: linear-gradient(
+    135deg,
+    #B88A1B 0%,
+    #D4AF37 25%,
+    #F8DF7A 50%,
+    #DDB63F 70%,
+    #A77B18 100%
+  );
+  --gradient-gold-subtle: linear-gradient(
+    135deg,
+    #8C6814 0%,
+    #C9A227 50%,
+    #D4AF37 100%
+  );
 
   /* Text */
   --text-primary: #F5F5F5;
@@ -38,13 +65,13 @@
 
   /* Design System Aliases & Mappings */
   --color-primary: var(--gold-primary);
-  --color-primary-hover: var(--gold-bright);
+  --color-primary-hover: var(--gold-highlight);
   --color-primary-dark: var(--gold-dark);
-  --color-primary-glow: rgba(212, 175, 55, 0.25);
-  --color-primary-subtle: rgba(212, 175, 55, 0.12);
+  --color-primary-glow: rgba(201, 162, 39, 0.18);
+  --color-primary-subtle: rgba(201, 162, 39, 0.12);
   
-  --color-accent: var(--gold-bright);
-  --color-accent-glow: rgba(242, 201, 76, 0.2);
+  --color-accent: var(--gold-highlight);
+  --color-accent-glow: rgba(244, 215, 106, 0.15);
   
   --color-secondary: var(--warning);
   --color-danger: var(--error);
@@ -59,7 +86,7 @@
   --bg-surface-elevated: var(--bg-elevated);
   --bg-surface-glass: rgba(21, 26, 33, 0.88);
   --border-glass: var(--border-primary);
-  --border-glass-hover: rgba(212, 175, 55, 0.28);
+  --border-glass-hover: rgba(201, 162, 39, 0.32);
   --border-focus: var(--gold-primary);
 
   --text-inverse: #090B0D;
@@ -85,7 +112,7 @@
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
   --shadow-md: 0 8px 24px -4px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 20px 40px -10px rgba(0, 0, 0, 0.7);
-  --shadow-glow-primary: 0 0 16px rgba(212, 175, 55, 0.25);
+  --shadow-glow-primary: 0 0 12px rgba(201, 162, 39, 0.18);
   
   /* Transitions */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -116,8 +143,8 @@ html, body {
   display: flex;
   min-height: 100vh;
   background: 
-    radial-gradient(circle at 80% 10%, rgba(212, 175, 55, 0.04) 0%, transparent 40%),
-    radial-gradient(circle at 20% 90%, rgba(184, 134, 11, 0.03) 0%, transparent 45%),
+    radial-gradient(circle at 80% 10%, rgba(201, 162, 39, 0.04) 0%, transparent 40%),
+    radial-gradient(circle at 20% 90%, rgba(140, 104, 20, 0.03) 0%, transparent 45%),
     var(--bg-app);
 }
 
@@ -265,9 +292,14 @@ html, body {
 }
 
 .nav-link.active {
-  color: var(--gold-bright);
-  background: rgba(212, 175, 55, 0.1);
-  border: 1px solid rgba(212, 175, 55, 0.22);
+  color: var(--gold-highlight);
+  background: linear-gradient(
+    90deg,
+    rgba(201, 162, 39, 0.16),
+    rgba(201, 162, 39, 0.04)
+  );
+  border: 1px solid rgba(201, 162, 39, 0.22);
+  border-left: 3px solid var(--gold-primary);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
 }
 
@@ -301,9 +333,9 @@ html, body {
 }
 
 .badge-primary {
-  background: rgba(212, 175, 55, 0.15);
-  color: var(--gold-primary);
-  border: 1px solid rgba(212, 175, 55, 0.25);
+  background: rgba(201, 162, 39, 0.15);
+  color: var(--gold-highlight);
+  border: 1px solid rgba(201, 162, 39, 0.3);
 }
 
 .badge-warning {
@@ -337,7 +369,8 @@ html, body {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--gold-primary), var(--gold-dark));
+  background: var(--gradient-gold-metallic);
+  border: 1px solid rgba(244, 215, 106, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -347,6 +380,7 @@ html, body {
   flex-shrink: 0;
   overflow: hidden;
   user-select: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
 .avatar-wrapper img {
@@ -644,7 +678,7 @@ html, body {
 .search-input:focus {
   width: 290px;
   border-color: var(--gold-primary);
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.18);
+  box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.18);
 }
 
 .search-icon {
@@ -691,9 +725,9 @@ html, body {
   height: 40px;
   padding: 0 1.125rem;
   border-radius: var(--radius-sm);
-  background: var(--gold-primary);
+  background: var(--gradient-gold-metallic);
   color: #090B0D;
-  border: none;
+  border: 1px solid rgba(244, 215, 106, 0.35);
   font-family: var(--font-body);
   font-size: 0.875rem;
   font-weight: 700;
@@ -701,15 +735,18 @@ html, body {
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.25);
+  box-shadow: 0 2px 8px rgba(201, 162, 39, 0.18);
   transition: all var(--transition-normal);
+  position: relative;
+  overflow: hidden;
 }
 
 .btn-quick-add:hover {
-  background: var(--gold-bright);
+  background: var(--gradient-gold-hover);
   color: #090B0D;
+  border-color: rgba(255, 241, 168, 0.5);
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(212, 175, 55, 0.35);
+  box-shadow: 0 4px 14px rgba(201, 162, 39, 0.28);
 }
 
 /* ==========================================================================
@@ -766,9 +803,9 @@ html, body {
   gap: 0.5rem;
   padding: 0.35rem 0.875rem;
   border-radius: var(--radius-full);
-  background: rgba(212, 175, 55, 0.1);
-  border: 1px solid rgba(212, 175, 55, 0.25);
-  color: var(--gold-primary);
+  background: rgba(201, 162, 39, 0.1);
+  border: 1px solid rgba(201, 162, 39, 0.25);
+  color: var(--gold-highlight);
   font-size: 0.775rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -780,7 +817,7 @@ html, body {
   height: 6px;
   border-radius: 50%;
   background: var(--gold-primary);
-  box-shadow: 0 0 8px rgba(212, 175, 55, 0.5);
+  box-shadow: 0 0 8px rgba(201, 162, 39, 0.4);
   animation: pulseDot 2s infinite;
 }
 
@@ -817,8 +854,8 @@ html, body {
   width: 72px;
   height: 72px;
   border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, rgba(212, 175, 55, 0.14), rgba(184, 134, 11, 0.08));
-  border: 1px solid rgba(212, 175, 55, 0.25);
+  background: linear-gradient(135deg, rgba(201, 162, 39, 0.14), rgba(140, 104, 20, 0.08));
+  border: 1px solid rgba(201, 162, 39, 0.25);
   color: var(--gold-primary);
   display: flex;
   align-items: center;
@@ -861,9 +898,9 @@ html, body {
   gap: 0.5rem;
   padding: 0.25rem 0.75rem;
   border-radius: var(--radius-full);
-  background: rgba(212, 175, 55, 0.12);
-  border: 1px solid rgba(212, 175, 55, 0.25);
-  color: var(--gold-primary);
+  background: rgba(201, 162, 39, 0.12);
+  border: 1px solid rgba(201, 162, 39, 0.25);
+  color: var(--gold-highlight);
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -917,9 +954,9 @@ html, body {
   height: 42px;
   padding: 0 1.25rem;
   border-radius: var(--radius-sm);
-  background: var(--gold-primary);
+  background: var(--gradient-gold-metallic);
   color: #090B0D;
-  border: none;
+  border: 1px solid rgba(244, 215, 106, 0.35);
   font-family: var(--font-body);
   font-size: 0.875rem;
   font-weight: 700;
@@ -927,15 +964,55 @@ html, body {
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.25);
+  box-shadow: 0 2px 8px rgba(201, 162, 39, 0.18);
   transition: all var(--transition-normal);
+  position: relative;
+  overflow: hidden;
 }
 
 .btn-primary:hover {
-  background: var(--gold-bright);
+  background: var(--gradient-gold-hover);
   color: #090B0D;
+  border-color: rgba(255, 241, 168, 0.5);
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(212, 175, 55, 0.35);
+  box-shadow: 0 4px 14px rgba(201, 162, 39, 0.28);
+}
+
+/* Subtle Gold Metallic Shine on Hover (Restrained, Not Constantly Looping) */
+.btn-primary::after,
+.btn-quick-add::after,
+.btn-save-attendance::after,
+.btn-sb-primary::after,
+.reg-submit-btn::after,
+.btn-fees-new-payment::after,
+.btn-fees-modal-primary::after,
+.btn-note-save::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 55%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 241, 168, 0.28),
+    transparent
+  );
+  transform: skewX(-20deg);
+  pointer-events: none;
+  transition: left 0.6s ease;
+}
+
+.btn-primary:hover::after,
+.btn-quick-add:hover::after,
+.btn-save-attendance:hover::after,
+.btn-sb-primary:hover::after,
+.reg-submit-btn:hover::after,
+.btn-fees-new-payment:hover::after,
+.btn-fees-modal-primary:hover::after,
+.btn-note-save:hover::after {
+  left: 140%;
 }
 
 /* ==========================================================================
@@ -991,8 +1068,8 @@ html, body {
   justify-content: center;
 }
 
-.pill-primary { background: rgba(212, 175, 55, 0.12); color: var(--gold-primary); }
-.pill-accent { background: rgba(242, 201, 76, 0.12); color: var(--gold-bright); }
+.pill-primary { background: rgba(201, 162, 39, 0.12); color: var(--gold-highlight); }
+.pill-accent { background: rgba(244, 215, 106, 0.1); color: var(--gold-highlight); }
 .pill-danger { background: rgba(239, 68, 68, 0.12); color: var(--color-danger); }
 .pill-success { background: rgba(34, 197, 94, 0.12); color: var(--color-success); }
 
@@ -1413,21 +1490,27 @@ html, body {
   height: 36px;
   padding: 0 1rem;
   border-radius: var(--radius-sm);
-  background: var(--gold-primary);
+  background: var(--gradient-gold-metallic);
   color: #090B0D;
-  border: none;
+  border: 1px solid rgba(244, 215, 106, 0.35);
   font-weight: 700;
   font-size: 0.8125rem;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
   cursor: pointer;
+  box-shadow: 0 2px 8px rgba(201, 162, 39, 0.18);
   transition: all var(--transition-fast);
+  position: relative;
+  overflow: hidden;
 }
 
 .btn-save-attendance:hover {
-  background: var(--gold-bright);
+  background: var(--gradient-gold-hover);
   color: #090B0D;
+  border-color: rgba(255, 241, 168, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(201, 162, 39, 0.28);
 }
 
 /* ==========================================================================
@@ -1813,9 +1896,10 @@ html, body {
 }
 .sb-filter-tab:hover { color: var(--text-primary); background: var(--bg-surface-elevated); }
 .sb-filter-tab.active {
-  background: var(--gold-primary);
+  background: var(--gradient-gold-metallic);
   color: #090B0D;
-  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.25);
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
 /* Action Buttons */
@@ -1823,23 +1907,27 @@ html, body {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: var(--gold-primary);
+  background: var(--gradient-gold-metallic);
   color: #090B0D;
-  border: none;
+  border: 1px solid rgba(244, 215, 106, 0.35);
   border-radius: var(--radius-sm);
   padding: 0.6rem 1.1rem;
   font-size: 0.85rem;
   font-weight: 700;
   font-family: var(--font-body);
   cursor: pointer;
+  box-shadow: 0 2px 8px rgba(201, 162, 39, 0.18);
   transition: all var(--transition-fast);
   white-space: nowrap;
+  position: relative;
+  overflow: hidden;
 }
 .btn-sb-primary:hover {
-  background: var(--gold-bright);
+  background: var(--gradient-gold-hover);
   color: #090B0D;
+  border-color: rgba(255, 241, 168, 0.5);
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.35);
+  box-shadow: 0 4px 14px rgba(201, 162, 39, 0.28);
 }
 .btn-sb-secondary {
   display: inline-flex;
@@ -1970,7 +2058,7 @@ html, body {
   transition: all var(--transition-normal);
 }
 .sb-batch-card:hover {
-  border-color: rgba(212, 175, 55, 0.35);
+  border-color: rgba(201, 162, 39, 0.35);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
   transform: translateY(-2px);
 }
@@ -2057,7 +2145,7 @@ html, body {
   justify-content: center;
   transition: all var(--transition-fast);
 }
-.sb-icon-btn:hover { border-color: var(--gold-primary); color: var(--gold-primary); background: rgba(212, 175, 55, 0.08); }
+.sb-icon-btn:hover { border-color: var(--gold-primary); color: var(--gold-primary); background: rgba(201, 162, 39, 0.08); }
 .sb-icon-btn.sb-btn-danger:hover { border-color: var(--color-danger); color: var(--color-danger); background: rgba(239, 68, 68, 0.08); }
 
 /* Sport pills in table */
@@ -2121,9 +2209,9 @@ html, body {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  background: rgba(212, 175, 55, 0.12);
-  color: var(--gold-primary);
-  border: 1px solid rgba(212, 175, 55, 0.28);
+  background: rgba(201, 162, 39, 0.12);
+  color: var(--gold-highlight);
+  border: 1px solid rgba(201, 162, 39, 0.28);
   border-radius: var(--radius-full);
   padding: 0.3rem 0.75rem;
   font-size: 0.75rem;
@@ -2571,8 +2659,8 @@ html, body {
 .reg-input::placeholder { color: var(--text-muted); }
 .reg-input:focus {
   border-color: var(--gold-primary);
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.18);
-  background: rgba(212, 175, 55, 0.03);
+  box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.18);
+  background: rgba(201, 162, 39, 0.03);
 }
 .reg-input option { background: var(--bg-surface-elevated); color: var(--text-primary); }
 
@@ -2624,14 +2712,14 @@ input[type="date"].reg-input::-webkit-calendar-picker-indicator:hover {
   user-select: none;
 }
 .reg-gender-pill:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  border-color: var(--gold-primary);
+  color: var(--gold-highlight);
 }
 .reg-gender-option input[type="radio"]:checked + .reg-gender-pill {
-  background: rgba(16,185,129,0.12);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  box-shadow: 0 0 0 2px var(--color-primary-glow);
+  background: rgba(201, 162, 39, 0.12);
+  border-color: var(--gold-primary);
+  color: var(--gold-highlight);
+  box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.18);
 }
 
 /* ── Phone inputs ── */
@@ -2645,15 +2733,15 @@ input[type="date"].reg-input::-webkit-calendar-picker-indicator:hover {
   overflow: hidden;
 }
 .reg-phone-wrap:focus-within {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-glow);
+  border-color: var(--gold-primary);
+  box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.18);
 }
 .reg-phone-prefix {
   padding: 0.7rem 0.875rem;
   font-size: 0.875rem;
   font-weight: 700;
-  color: var(--color-primary);
-  background: rgba(16,185,129,0.08);
+  color: var(--gold-primary);
+  background: rgba(201, 162, 39, 0.08);
   border-right: 1.5px solid var(--border-glass);
   white-space: nowrap;
   flex-shrink: 0;
@@ -2689,23 +2777,26 @@ input[type="date"].reg-input::-webkit-calendar-picker-indicator:hover {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: var(--gold-primary);
+  background: var(--gradient-gold-metallic);
   color: #090B0D;
-  border: none;
+  border: 1px solid rgba(244, 215, 106, 0.35);
   border-radius: var(--radius-sm);
   padding: 0.7rem 1.5rem;
   font-size: 0.9rem;
   font-weight: 700;
   font-family: var(--font-body);
   cursor: pointer;
+  box-shadow: 0 2px 8px rgba(201, 162, 39, 0.18);
   transition: all var(--transition-fast);
-  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.25);
+  position: relative;
+  overflow: hidden;
 }
 .reg-submit-btn:hover {
-  background: var(--gold-bright);
+  background: var(--gradient-gold-hover);
   color: #090B0D;
+  border-color: rgba(255, 241, 168, 0.5);
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.35);
+  box-shadow: 0 4px 14px rgba(201, 162, 39, 0.28);
 }
 .reg-submit-btn:active { transform: translateY(0); }
 
@@ -3348,7 +3439,7 @@ input[type="date"].reg-input::-webkit-calendar-picker-indicator:hover {
   border-radius: 50%;
   border: 3px solid var(--gold-primary);
   overflow: hidden;
-  box-shadow: 0 0 25px rgba(212, 175, 55, 0.25);
+  box-shadow: 0 0 20px rgba(201, 162, 39, 0.18);
   background: var(--bg-secondary);
   display: flex;
   align-items: center;
@@ -3390,9 +3481,9 @@ input[type="date"].reg-input::-webkit-calendar-picker-indicator:hover {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  background: rgba(212, 175, 55, 0.1);
-  color: var(--gold-primary);
-  border: 1px solid rgba(212, 175, 55, 0.25);
+  background: rgba(201, 162, 39, 0.1);
+  color: var(--gold-highlight);
+  border: 1px solid rgba(201, 162, 39, 0.25);
   border-radius: 4px;
   padding: 0.2rem 0.55rem;
   font-size: 0.785rem;
@@ -4089,15 +4180,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .pill-batch {
-  background: rgba(212, 175, 55, 0.1);
-  border: 1px solid rgba(212, 175, 55, 0.25);
-  color: var(--gold-primary);
+  background: rgba(201, 162, 39, 0.1);
+  border: 1px solid rgba(201, 162, 39, 0.25);
+  color: var(--gold-highlight);
 }
 
 .pill-license {
-  background: rgba(242, 201, 76, 0.1);
-  border: 1px solid rgba(242, 201, 76, 0.25);
-  color: var(--gold-bright);
+  background: rgba(201, 162, 39, 0.1);
+  border: 1px solid rgba(201, 162, 39, 0.25);
+  color: var(--gold-highlight);
 }
 
 .coach-three-dots-btn {
@@ -5078,8 +5169,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .btn-attendance-batch-select.has-filter {
-  border-color: rgba(212, 175, 55, 0.4);
-  background: rgba(212, 175, 55, 0.1);
+  border-color: rgba(201, 162, 39, 0.4);
+  background: rgba(201, 162, 39, 0.1);
   color: #ffffff;
 }
 
@@ -5165,7 +5256,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 #attendanceSection.is-superadmin .btn-attendance-batch-select > svg:first-child {
   color: var(--gold-primary);
   flex-shrink: 0;
-  filter: drop-shadow(0 0 5px rgba(212, 175, 55, 0.25));
+  filter: drop-shadow(0 0 5px rgba(201, 162, 39, 0.25));
   transition: transform 0.2s ease, filter 0.2s ease;
 }
 
@@ -5191,9 +5282,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 #attendanceSection.is-superadmin .btn-attendance-date-select:hover,
 #attendanceSection.is-superadmin .btn-attendance-batch-select:hover {
   background: var(--bg-elevated);
-  border-color: rgba(212, 175, 55, 0.45);
+  border-color: rgba(201, 162, 39, 0.45);
   color: #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), 0 0 10px rgba(212, 175, 55, 0.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), 0 0 10px rgba(201, 162, 39, 0.12);
 }
 
 #attendanceSection.is-superadmin .btn-attendance-date-select:hover .date-dropdown-chevron,
@@ -5208,7 +5299,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   background: var(--bg-elevated);
   border-color: var(--gold-primary);
   color: #ffffff;
-  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2), 0 2px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.2), 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 #attendanceSection.is-superadmin .btn-attendance-batch-select.is-open .batch-dropdown-chevron {
@@ -5218,10 +5309,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 #attendanceSection.is-superadmin .btn-attendance-date-select.has-filter,
 #attendanceSection.is-superadmin .btn-attendance-batch-select.has-filter {
-  background: rgba(212, 175, 55, 0.12);
+  background: rgba(201, 162, 39, 0.12);
   border-color: var(--gold-primary);
   color: #ffffff;
-  box-shadow: 0 0 12px rgba(212, 175, 55, 0.18), inset 0 1px 0 rgba(212, 175, 55, 0.2);
+  box-shadow: 0 0 12px rgba(201, 162, 39, 0.18), inset 0 1px 0 rgba(201, 162, 39, 0.2);
 }
 
 #attendanceSection.is-superadmin .btn-attendance-date-select.has-filter .date-dropdown-chevron,
@@ -5309,7 +5400,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .btn-batch-reset-link:hover {
-  background: rgba(212, 175, 55, 0.12);
+  background: rgba(201, 162, 39, 0.12);
   color: var(--gold-primary);
 }
 
@@ -5342,7 +5433,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .batch-dropdown-item.active {
-  background: rgba(212, 175, 55, 0.14);
+  background: rgba(201, 162, 39, 0.14);
   color: var(--gold-primary);
   font-weight: 700;
 }
@@ -5379,9 +5470,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   gap: 0.35rem !important;
   padding: 0.22rem 0.55rem !important;
   border-radius: 999px !important;
-  background: rgba(212, 175, 55, 0.12) !important;
-  border: 1px solid rgba(212, 175, 55, 0.28) !important;
-  color: var(--gold-primary) !important;
+  background: rgba(201, 162, 39, 0.12) !important;
+  border: 1px solid rgba(201, 162, 39, 0.28) !important;
+  color: var(--gold-highlight) !important;
   font-size: 0.725rem !important;
   font-weight: 600 !important;
   width: fit-content !important;
@@ -5627,8 +5718,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* In Range */
 .cal-day-in-range {
-  background: rgba(212, 175, 55, 0.16) !important;
-  color: var(--gold-bright) !important;
+  background: rgba(201, 162, 39, 0.16) !important;
+  color: var(--gold-highlight) !important;
   font-weight: 600 !important;
   border-radius: 0 !important;
 }
@@ -6355,7 +6446,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .attendance-view-tab.active {
-  background: var(--gold-primary);
+  background: var(--gradient-gold-metallic);
   color: #090B0D;
   font-weight: 700;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
@@ -6373,18 +6464,19 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .attendance-students-search-box {
   display: flex;
   align-items: center;
-  background: #111a2e;
-  border: 1px solid var(--border-glass);
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
   border-radius: var(--radius-sm, 6px);
   height: 36px;
   padding: 0 0.75rem;
   gap: 0.5rem;
   box-sizing: border-box;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .attendance-students-search-box:focus-within {
-  border-color: #00e676;
+  border-color: var(--gold-primary);
+  box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.18);
 }
 
 .attendance-students-search-box svg {
@@ -8324,7 +8416,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .fees-filter-btn:hover {
-  border-color: rgba(212, 175, 55, 0.4);
+  border-color: rgba(201, 162, 39, 0.4);
   background: var(--bg-elevated);
 }
 
@@ -8387,8 +8479,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .fees-dropdown-item:hover,
 .fees-dropdown-item.active {
-  background: rgba(212, 175, 55, 0.12);
-  color: var(--gold-bright);
+  background: rgba(201, 162, 39, 0.12);
+  color: var(--gold-highlight);
   font-weight: 600;
 }
 
@@ -8396,9 +8488,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .btn-fees-new-payment {
   flex: 0 0 auto;
   height: 36px;
-  background: var(--gold-primary);
+  background: var(--gradient-gold-metallic);
   color: #090B0D;
-  border: 1px solid var(--gold-primary);
+  border: 1px solid rgba(244, 215, 106, 0.35);
   border-radius: 6px;
   padding: 0 0.85rem;
   font-size: 0.76rem;
@@ -8414,13 +8506,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   box-sizing: border-box;
   user-select: none;
   -webkit-appearance: none;
+  box-shadow: 0 2px 8px rgba(201, 162, 39, 0.18);
+  position: relative;
+  overflow: hidden;
 }
 
 .btn-fees-new-payment:hover {
-  background: var(--gold-bright);
-  border-color: var(--gold-bright);
-  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.32);
+  background: var(--gradient-gold-hover);
+  border-color: rgba(255, 241, 168, 0.5);
+  box-shadow: 0 4px 14px rgba(201, 162, 39, 0.28);
   transform: translateY(-1px);
+  color: #090B0D;
 }
 
 .btn-fees-new-payment:active {
@@ -8453,11 +8549,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   align-items: center;
   gap: 0.45rem;
   box-sizing: border-box;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 
 .fees-search-box:focus-within {
   border-color: var(--gold-primary);
+  box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.18);
   background: var(--bg-elevated);
 }
 
@@ -8544,9 +8641,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .fees-status-filter-btn.active {
-  background: var(--gold-primary);
+  background: var(--gradient-gold-metallic);
   color: #090B0D;
   font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
 .fees-count-sort-row {
@@ -8593,7 +8691,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .btn-fees-sort:hover {
   color: var(--text-primary);
-  border-color: rgba(212, 175, 55, 0.4);
+  border-color: rgba(201, 162, 39, 0.35);
   background: var(--bg-elevated);
 }
 
@@ -8633,8 +8731,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .fees-sort-item:hover,
 .fees-sort-item.active {
-  background: rgba(212, 175, 55, 0.12);
-  color: var(--gold-bright);
+  background: rgba(201, 162, 39, 0.12);
+  color: var(--gold-highlight);
   font-weight: 600;
 }
 
@@ -8664,7 +8762,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .fees-student-card:hover {
-  border-color: rgba(212, 175, 55, 0.35);
+  border-color: rgba(201, 162, 39, 0.35);
   background: var(--bg-elevated);
 }
 
@@ -8686,16 +8784,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   height: 36px;
   min-width: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--gold-dark), var(--gold-primary));
+  background: var(--gradient-gold-metallic);
+  border: 1px solid rgba(244, 215, 106, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 0.82rem;
   color: #090B0D;
   overflow: hidden;
   flex-shrink: 0;
-  border: 1px solid rgba(212, 175, 55, 0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
 .fees-student-avatar img {
@@ -8801,7 +8900,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .fees-student-card:hover .fees-card-arrow-btn {
-  color: var(--gold-primary);
+  color: var(--gold-highlight);
 }
 
 /* 6. Payment Detail Modal Styling */
@@ -9222,7 +9321,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .fees-new-payment-modal {
   border-radius: var(--radius-xl);
   overflow: hidden;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75), 0 0 40px rgba(212, 175, 55, 0.08);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75), 0 0 25px rgba(201, 162, 39, 0.08);
   border: 1px solid var(--border-primary);
   background: var(--bg-elevated);
 }
@@ -9248,13 +9347,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .fees-modal-select:hover {
-  border-color: rgba(212, 175, 55, 0.4);
+  border-color: rgba(201, 162, 39, 0.4);
   background: var(--bg-card);
 }
 
 .fees-modal-select:focus {
   border-color: var(--gold-primary);
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
+  box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.2);
   outline: none;
 }
 
@@ -9268,26 +9367,51 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
-  background: var(--gold-primary);
+  background: var(--gradient-gold-metallic);
   color: #090B0D;
-  border: 1px solid var(--gold-primary);
+  border: 1px solid rgba(244, 215, 106, 0.35);
   border-radius: var(--radius-sm);
   padding: 0.6rem 1.25rem;
   font-size: 0.85rem;
   font-weight: 700;
   font-family: var(--font-body);
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(201, 162, 39, 0.18);
   transition: all var(--transition-fast);
   text-decoration: none;
   box-sizing: border-box;
   white-space: nowrap;
 }
 
+.btn-fees-modal-primary::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 55%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 241, 168, 0.28),
+    transparent
+  );
+  transform: skewX(-20deg);
+  pointer-events: none;
+  transition: left 0.5s ease;
+}
+
 .btn-fees-modal-primary:hover {
-  background: var(--gold-bright);
-  border-color: var(--gold-bright);
-  box-shadow: 0 4px 16px rgba(212, 175, 55, 0.35);
+  background: var(--gradient-gold-hover);
+  border-color: rgba(244, 215, 106, 0.55);
+  box-shadow: 0 4px 14px rgba(201, 162, 39, 0.28);
   transform: translateY(-1px);
+}
+
+.btn-fees-modal-primary:hover::after {
+  left: 140%;
 }
 
 .btn-fees-modal-primary:disabled {
@@ -10067,7 +10191,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   transform: translateX(-50%);
   width: 280px;
   height: 140px;
-  background: radial-gradient(ellipse at center, rgba(212, 175, 55, 0.15) 0%, rgba(242, 201, 76, 0.08) 45%, transparent 70%);
+  background: radial-gradient(ellipse at center, rgba(201, 162, 39, 0.15) 0%, rgba(201, 162, 39, 0.05) 45%, transparent 70%);
   pointer-events: none;
   filter: blur(20px);
 }
@@ -10077,14 +10201,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: rgba(212, 175, 55, 0.09);
-  border: 1px solid rgba(212, 175, 55, 0.25);
-  color: var(--gold-primary);
+  background: rgba(201, 162, 39, 0.09);
+  border: 1px solid rgba(201, 162, 39, 0.25);
+  color: var(--gold-highlight);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 1.25rem;
-  box-shadow: 0 0 25px rgba(212, 175, 55, 0.2);
+  box-shadow: 0 0 20px rgba(201, 162, 39, 0.15);
   transition: transform var(--transition-normal);
 }
 
@@ -10274,8 +10398,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   width: 36px;
   height: 36px;
   border-radius: var(--radius-md);
-  background: rgba(212, 175, 55, 0.12);
-  color: var(--gold-primary);
+  background: rgba(201, 162, 39, 0.12);
+  color: var(--gold-highlight);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -10467,7 +10591,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .inv-quick-btn:hover {
   border-color: var(--gold-primary);
-  background: rgba(212, 175, 55, 0.15);
+  background: rgba(201, 162, 39, 0.15);
   color: #fff;
 }
 
@@ -11540,10 +11664,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .inv-view-tab.active {
-  background: var(--gold-primary);
+  background: var(--gradient-gold-metallic);
   color: #090B0D;
   font-weight: 700;
-  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.25);
+  border: 1px solid rgba(244, 215, 106, 0.35);
+  box-shadow: 0 2px 8px rgba(201, 162, 39, 0.18);
 }
 
 .inv-view-tab.active svg {
@@ -11574,7 +11699,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .inv-batch-search-box:focus-within {
   border-color: var(--gold-primary);
-  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.15);
+  box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.18);
 }
 
 .inv-batch-search-icon {
@@ -11620,7 +11745,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-family: var(--font-heading);
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--gold-primary);
+  color: var(--gold-highlight);
   line-height: 1.1;
 }
 
@@ -11654,7 +11779,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .inv-batch-card:hover {
-  border-color: rgba(212, 175, 55, 0.35);
+  border-color: rgba(201, 162, 39, 0.35);
   background: var(--bg-elevated);
   transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
@@ -11730,7 +11855,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-family: var(--font-heading);
   font-size: 1.25rem;
   font-weight: 800;
-  color: var(--gold-primary);
+  color: var(--gold-highlight);
   line-height: 1.1;
 }
 
@@ -11856,7 +11981,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-family: var(--font-heading);
   font-size: 1.45rem;
   font-weight: 800;
-  color: var(--gold-primary);
+  color: var(--gold-highlight);
   line-height: 1.1;
 }
 
@@ -11934,9 +12059,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-family: var(--font-heading);
   font-size: 0.82rem;
   font-weight: 700;
-  background: rgba(212, 175, 55, 0.12);
-  color: var(--gold-primary);
-  border: 1px solid rgba(212, 175, 55, 0.25);
+  background: rgba(201, 162, 39, 0.12);
+  color: var(--gold-highlight);
+  border: 1px solid rgba(201, 162, 39, 0.28);
   padding: 0.2rem 0.55rem;
   border-radius: 9999px;
   white-space: nowrap;
@@ -12273,17 +12398,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-size: 0.78rem;
   font-weight: 600;
   border-radius: var(--radius-sm, 6px);
-  background: rgba(212, 175, 55, 0.14);
-  color: var(--gold-primary);
-  border: 1px solid rgba(212, 175, 55, 0.28);
+  background: rgba(201, 162, 39, 0.14);
+  color: var(--gold-highlight);
+  border: 1px solid rgba(201, 162, 39, 0.28);
   cursor: pointer;
   transition: all var(--transition-fast, 0.2s ease);
 }
 
 .btn-note-add:hover {
-  background: rgba(212, 175, 55, 0.25);
-  border-color: rgba(212, 175, 55, 0.45);
-  color: var(--gold-bright);
+  background: rgba(201, 162, 39, 0.25);
+  border-color: rgba(201, 162, 39, 0.45);
+  color: var(--gold-shine);
 }
 
 .student-note-form {
@@ -12309,7 +12434,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .student-note-textarea:focus {
   outline: none;
   border-color: var(--gold-primary);
-  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+  box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.2);
 }
 
 .student-note-form-footer {
@@ -12353,15 +12478,20 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-size: 0.8rem;
   font-weight: 600;
   border-radius: var(--radius-sm, 6px);
-  background: var(--gold-primary);
+  background: var(--gradient-gold-metallic);
   color: #090B0D;
-  border: none;
+  border: 1px solid rgba(244, 215, 106, 0.35);
   cursor: pointer;
+  box-shadow: 0 2px 8px rgba(201, 162, 39, 0.18);
+  position: relative;
+  overflow: hidden;
   transition: all var(--transition-fast, 0.2s ease);
 }
 
 .btn-note-save:hover {
-  background: var(--gold-bright);
+  background: var(--gradient-gold-hover);
+  border-color: rgba(244, 215, 106, 0.55);
+  box-shadow: 0 4px 14px rgba(201, 162, 39, 0.28);
   color: #090B0D;
 }
 

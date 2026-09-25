@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
     admin: {
       title: 'Super Admin',
       hint: 'Full cross-branch control & financial oversight',
-      badgeColor: '#D4AF37',
+      badgeColor: '#C9A227',
     },
     coach: {
       title: 'Branch Coach',
