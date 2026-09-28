@@ -17,7 +17,15 @@ foreach ($rows as $r) {
     echo "ID: {$r['id']} | Batch ID: {$r['batch_id']} ({$r['batch_name']}) | Coach ID: {$r['coach_id']} ({$r['coach_name']}) | Created: {$r['created_at']}" . PHP_EOL;
 }
 
-echo PHP_EOL . "=== vsa_batches CURRENT coach_id ASSIGNMENTS ===" . PHP_EOL;
+echo "=== INBOUND FOREIGN KEYS TO vsa_batch_coaches ===" . PHP_EOL;
+$stmt = $pdo->query("
+    SELECT TABLE_NAME, COLUMN_NAME, CONSTRAINT_NAME
+    FROM information_schema.KEY_COLUMN_USAGE
+    WHERE REFERENCED_TABLE_SCHEMA = 'vava_sports' AND REFERENCED_TABLE_NAME = 'vsa_batch_coaches'
+");
+$inbound = $stmt->fetchAll(PDO::FETCH_ASSOC);
+echo "Inbound FK count: " . count($inbound) . PHP_EOL;
+print_r($inbound);
 $stmt = $pdo->query("SELECT b.batch_id, b.batch_name, b.coach_id, c.coach_name 
                      FROM vsa_batches b 
                      LEFT JOIN vsa_coaches c ON b.coach_id = c.coach_id 
