@@ -1,7 +1,10 @@
 <?php
 /**
  * VAVA Sports Academy - Batches API
- * Handles GET (fetch all), POST (create), PUT (update), DELETE (delete by id)
+ * Handles GET (fetch all with dynamic student count and coach assignment),
+ * POST (create batch with optional coach),
+ * PUT (update batch with optional coach),
+ * DELETE (delete batch by id)
  */
 
 header('Content-Type: application/json');
@@ -20,9 +23,33 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 // ── GET: fetch all batches ─────────────────────────────────────────────────
 if ($method === 'GET') {
-    $stmt = $pdo->query('SELECT batch_id, batch_name, batch_location, batch_time, sport, max_students, created_at FROM vsa_batches ORDER BY created_at DESC');
-    $batches = $stmt->fetchAll();
-    echo json_encode(['success' => true, 'batches' => $batches]);
+    try {
+        $stmt = $pdo->query('
+            SELECT 
+                b.batch_id, 
+                b.batch_name, 
+                b.batch_location, 
+                b.batch_time, 
+                COALESCE(b.sport, "Football") AS sport,
+                b.coach_id,
+                c.coach_name,
+                COUNT(DISTINCT s.student_id) AS student_count,
+                COUNT(DISTINCT s.student_id) AS current_students,
+                COUNT(DISTINCT s.student_id) AS max_students,
+                b.status,
+                b.created_at 
+            FROM vsa_batches b
+            LEFT JOIN vsa_coaches c ON b.coach_id = c.coach_id
+            LEFT JOIN vsa_students s ON (s.batch_id = b.batch_id OR (s.batch_id IS NULL AND LOWER(TRIM(s.batch_name)) = LOWER(TRIM(b.batch_name))))
+            GROUP BY b.batch_id
+            ORDER BY b.created_at DESC
+        ');
+        $batches = $stmt->fetchAll();
+        echo json_encode(['success' => true, 'batches' => $batches]);
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
+    }
     exit;
 }
 
@@ -33,32 +60,55 @@ if ($method === 'POST') {
     $batch_name     = trim($input['batch_name']     ?? '');
     $batch_location = trim($input['batch_location'] ?? '');
     $batch_time     = trim($input['batch_time']     ?? '');
-    $sport          = trim($input['sport']          ?? '');
-    $max_students   = intval($input['max_students'] ?? 0);
+    $sport          = trim($input['sport']          ?? 'Football');
+    if (!$sport) $sport = 'Football';
+    $coach_id       = intval($input['coach_id']     ?? 0);
 
-    if (!$batch_name || !$batch_location || !$batch_time || !$sport) {
+    if (!$batch_name || !$batch_location || !$batch_time) {
         http_response_code(400);
-        echo json_encode(['error' => 'All required fields must be filled.']);
+        echo json_encode(['error' => 'Batch Name, Location, and Time are required.']);
         exit;
     }
 
-    $stmt = $pdo->prepare(
-        'INSERT INTO vsa_batches (batch_name, batch_location, batch_time, sport, max_students) VALUES (?, ?, ?, ?, ?)'
-    );
-    $stmt->execute([$batch_name, $batch_location, $batch_time, $sport, $max_students]);
-    $newId = $pdo->lastInsertId();
+    try {
+        $stmt = $pdo->prepare(
+            'INSERT INTO vsa_batches (batch_name, batch_location, batch_time, sport, coach_id) VALUES (?, ?, ?, ?, ?)'
+        );
+        $stmt->execute([
+            $batch_name, 
+            $batch_location, 
+            $batch_time, 
+            $sport, 
+            $coach_id > 0 ? $coach_id : null
+        ]);
+        $newId = $pdo->lastInsertId();
 
-    echo json_encode([
-        'success' => true,
-        'batch' => [
-            'batch_id'       => $newId,
-            'batch_name'     => $batch_name,
-            'batch_location' => $batch_location,
-            'batch_time'     => $batch_time,
-            'sport'          => $sport,
-            'max_students'   => $max_students,
-        ]
-    ]);
+        $coachName = null;
+        if ($coach_id > 0) {
+            $cStmt = $pdo->prepare('SELECT coach_name FROM vsa_coaches WHERE coach_id = ?');
+            $cStmt->execute([$coach_id]);
+            $cRow = $cStmt->fetch();
+            if ($cRow) $coachName = $cRow['coach_name'];
+        }
+
+        echo json_encode([
+            'success' => true,
+            'batch' => [
+                'batch_id'       => $newId,
+                'batch_name'     => $batch_name,
+                'batch_location' => $batch_location,
+                'batch_time'     => $batch_time,
+                'sport'          => $sport,
+                'coach_id'       => $coach_id > 0 ? $coach_id : null,
+                'coach_name'     => $coachName,
+                'student_count'  => 0,
+                'current_students' => 0
+            ]
+        ]);
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Failed to create batch: ' . $e->getMessage()]);
+    }
     exit;
 }
 
@@ -70,32 +120,41 @@ if ($method === 'PUT') {
     $batch_name     = trim($input['batch_name']     ?? '');
     $batch_location = trim($input['batch_location'] ?? '');
     $batch_time     = trim($input['batch_time']     ?? '');
-    $sport          = trim($input['sport']          ?? '');
-    $max_students   = intval($input['max_students'] ?? 0);
+    $coach_id       = isset($input['coach_id']) && $input['coach_id'] !== '' ? intval($input['coach_id']) : 0;
 
-    if (!$batch_id || !$batch_name || !$batch_location || !$batch_time || !$sport) {
+    if (!$batch_id || !$batch_name || !$batch_location || !$batch_time) {
         http_response_code(400);
-        echo json_encode(['error' => 'All required fields must be filled.']);
+        echo json_encode(['error' => 'Batch ID, Name, Location, and Time are required.']);
         exit;
     }
 
-    $stmt = $pdo->prepare(
-        'UPDATE vsa_batches SET batch_name=?, batch_location=?, batch_time=?, sport=?, max_students=? WHERE batch_id=?'
-    );
-    $stmt->execute([$batch_name, $batch_location, $batch_time, $sport, $max_students, $batch_id]);
+    try {
+        $stmt = $pdo->prepare(
+            'UPDATE vsa_batches SET batch_name = ?, batch_location = ?, batch_time = ?, coach_id = ? WHERE batch_id = ?'
+        );
+        $stmt->execute([
+            $batch_name, 
+            $batch_location, 
+            $batch_time, 
+            $coach_id > 0 ? $coach_id : null, 
+            $batch_id
+        ]);
 
-    if ($stmt->rowCount() === 0) {
-        // rowCount may be 0 if data unchanged; treat as success if batch exists
-        $check = $pdo->prepare('SELECT batch_id FROM vsa_batches WHERE batch_id=?');
-        $check->execute([$batch_id]);
-        if (!$check->fetch()) {
-            http_response_code(404);
-            echo json_encode(['error' => 'Batch not found.']);
-            exit;
+        if ($stmt->rowCount() === 0) {
+            $check = $pdo->prepare('SELECT batch_id FROM vsa_batches WHERE batch_id = ?');
+            $check->execute([$batch_id]);
+            if (!$check->fetch()) {
+                http_response_code(404);
+                echo json_encode(['error' => 'Batch not found.']);
+                exit;
+            }
         }
-    }
 
-    echo json_encode(['success' => true]);
+        echo json_encode(['success' => true]);
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Failed to update batch: ' . $e->getMessage()]);
+    }
     exit;
 }
 
@@ -110,16 +169,21 @@ if ($method === 'DELETE') {
         exit;
     }
 
-    $stmt = $pdo->prepare('DELETE FROM vsa_batches WHERE batch_id = ?');
-    $stmt->execute([$batch_id]);
+    try {
+        $stmt = $pdo->prepare('DELETE FROM vsa_batches WHERE batch_id = ?');
+        $stmt->execute([$batch_id]);
 
-    if ($stmt->rowCount() === 0) {
-        http_response_code(404);
-        echo json_encode(['error' => 'Batch not found.']);
-        exit;
+        if ($stmt->rowCount() === 0) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Batch not found.']);
+            exit;
+        }
+
+        echo json_encode(['success' => true]);
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Failed to delete batch: ' . $e->getMessage()]);
     }
-
-    echo json_encode(['success' => true]);
     exit;
 }
 

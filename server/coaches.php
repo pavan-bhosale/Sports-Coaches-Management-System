@@ -24,10 +24,14 @@ if ($method === 'GET') {
     try {
         if ($id > 0) {
             $stmt = $pdo->prepare('
-                SELECT c.*, b.batch_name, b.sport AS batch_sport
+                SELECT c.*, 
+                       GROUP_CONCAT(DISTINCT b.batch_name ORDER BY b.batch_name ASC SEPARATOR ", ") AS batch_name,
+                       GROUP_CONCAT(DISTINCT b.batch_id ORDER BY b.batch_name ASC SEPARATOR ",") AS batch_ids,
+                       GROUP_CONCAT(DISTINCT b.sport SEPARATOR ", ") AS batch_sport
                 FROM vsa_coaches c
-                LEFT JOIN vsa_batches b ON c.batch_id = b.batch_id
+                LEFT JOIN vsa_batches b ON (b.coach_id = c.coach_id OR c.batch_id = b.batch_id)
                 WHERE c.coach_id = ?
+                GROUP BY c.coach_id
             ');
             $stmt->execute([$id]);
             $coach = $stmt->fetch();
@@ -39,9 +43,13 @@ if ($method === 'GET') {
             echo json_encode(['success' => true, 'coach' => $coach]);
         } else {
             $stmt = $pdo->query('
-                SELECT c.*, b.batch_name, b.sport AS batch_sport
+                SELECT c.*, 
+                       GROUP_CONCAT(DISTINCT b.batch_name ORDER BY b.batch_name ASC SEPARATOR ", ") AS batch_name,
+                       GROUP_CONCAT(DISTINCT b.batch_id ORDER BY b.batch_name ASC SEPARATOR ",") AS batch_ids,
+                       GROUP_CONCAT(DISTINCT b.sport SEPARATOR ", ") AS batch_sport
                 FROM vsa_coaches c
-                LEFT JOIN vsa_batches b ON c.batch_id = b.batch_id
+                LEFT JOIN vsa_batches b ON (b.coach_id = c.coach_id OR c.batch_id = b.batch_id)
+                GROUP BY c.coach_id
                 ORDER BY c.coach_id DESC
             ');
             $coaches = $stmt->fetchAll();
@@ -275,6 +283,10 @@ if ($method === 'DELETE') {
                 @unlink($oldFile);
             }
         }
+
+        // Unlink batches assigned to this coach
+        $stmtBatch = $pdo->prepare('UPDATE vsa_batches SET coach_id = NULL WHERE coach_id = ?');
+        $stmtBatch->execute([$coach_id]);
 
         $stmt = $pdo->prepare('DELETE FROM vsa_coaches WHERE coach_id = ?');
         $stmt->execute([$coach_id]);

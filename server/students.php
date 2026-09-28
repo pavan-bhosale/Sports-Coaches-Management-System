@@ -94,8 +94,9 @@ function resolveUser($pdo, $input = []) {
 /**
  * Check if a student record belongs to the coach\'s assigned batch
  */
-function isStudentInCoachBatch($student, $coach) {
+function isStudentInCoachBatch($student, $coach, $pdo = null) {
     if (!$student || !$coach) return false;
+    $coachId = intval($coach['coach_id'] ?? 0);
     $coachBatchId = intval($coach['batch_id'] ?? 0);
     $coachBatchName = strtolower(trim($coach['batch_name'] ?? ''));
 
@@ -108,6 +109,17 @@ function isStudentInCoachBatch($student, $coach) {
     if (!empty($coachBatchName) && !empty($studentBatchName) && $coachBatchName === $studentBatchName) {
         return true;
     }
+
+    if ($pdo && $coachId > 0) {
+        try {
+            $chk = $pdo->prepare('SELECT batch_id FROM vsa_batches WHERE coach_id = ? AND (batch_id = ? OR LOWER(TRIM(batch_name)) = ?)');
+            $chk->execute([$coachId, $studentBatchId, $studentBatchName]);
+            if ($chk->fetch()) {
+                return true;
+            }
+        } catch (Exception $e) {}
+    }
+
     return false;
 }
 
@@ -201,7 +213,7 @@ if ($method === 'GET') {
         }
 
         if ($user['role'] === 'coach') {
-            if (!isStudentInCoachBatch($student, $user['coach'])) {
+            if (!isStudentInCoachBatch($student, $user['coach'], $pdo)) {
                 http_response_code(403);
                 echo json_encode(['error' => 'Unauthorized: You can only view notes for students in your assigned batch.']);
                 exit;
@@ -231,7 +243,7 @@ if ($method === 'GET') {
             }
 
             if ($user['role'] === 'coach') {
-                if (!isStudentInCoachBatch($student, $user['coach'])) {
+                if (!isStudentInCoachBatch($student, $user['coach'], $pdo)) {
                     http_response_code(403);
                     echo json_encode(['error' => 'Unauthorized: This student does not belong to your assigned batch.']);
                     exit;
@@ -242,21 +254,24 @@ if ($method === 'GET') {
         } else {
             // Fetch all students (coach batch-restricted vs superadmin all)
             if ($user['role'] === 'coach') {
+                $coachId = intval($user['coach']['coach_id'] ?? 0);
                 $assignedBatchId = intval($user['coach']['batch_id'] ?? 0);
                 $assignedBatchName = trim($user['coach']['batch_name'] ?? '');
 
-                if ($assignedBatchId <= 0 && empty($assignedBatchName)) {
-                    echo json_encode(['success' => true, 'students' => []]);
-                    exit;
-                }
-
                 $stmt = $pdo->prepare('
-                    SELECT * FROM vsa_students
-                    WHERE (? > 0 AND batch_id = ?)
-                       OR (batch_name IS NOT NULL AND LOWER(TRIM(batch_name)) = LOWER(TRIM(?)))
-                    ORDER BY student_id DESC
+                    SELECT s.* FROM vsa_students s
+                    WHERE (s.batch_id IN (SELECT b.batch_id FROM vsa_batches b WHERE b.coach_id = ? OR b.batch_id = ?))
+                       OR (s.batch_name IN (SELECT b.batch_name FROM vsa_batches b WHERE b.coach_id = ? OR b.batch_id = ?))
+                       OR (? > 0 AND s.batch_id = ?)
+                       OR (s.batch_name IS NOT NULL AND LOWER(TRIM(s.batch_name)) = LOWER(TRIM(?)))
+                    ORDER BY s.student_id DESC
                 ');
-                $stmt->execute([$assignedBatchId, $assignedBatchId, $assignedBatchName]);
+                $stmt->execute([
+                    $coachId, $assignedBatchId,
+                    $coachId, $assignedBatchId,
+                    $assignedBatchId, $assignedBatchId,
+                    $assignedBatchName
+                ]);
                 $students = $stmt->fetchAll();
             } else {
                 $stmt = $pdo->query('SELECT * FROM vsa_students ORDER BY student_id DESC');

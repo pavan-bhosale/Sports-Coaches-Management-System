@@ -42,10 +42,9 @@ function resolveAuthenticatedUser($pdo, $input = []) {
                 c.coach_id,
                 c.coach_name,
                 c.coach_email,
-                c.batch_id,
-                COALESCE(NULLIF(c.batch_name, ""), b.batch_name, "Unassigned") AS batch_name
+                COALESCE(c.batch_id, (SELECT b.batch_id FROM vsa_batches b WHERE b.coach_id = c.coach_id LIMIT 1)) AS batch_id,
+                COALESCE(NULLIF(c.batch_name, ""), (SELECT b.batch_name FROM vsa_batches b WHERE b.coach_id = c.coach_id LIMIT 1), "Unassigned") AS batch_name
             FROM vsa_coaches c
-            LEFT JOIN vsa_batches b ON c.batch_id = b.batch_id
         ';
 
         if ($coach_id > 0) {
@@ -131,8 +130,16 @@ if ($method === 'GET') {
             exit;
         }
 
-        // Access Control: Coach can only access their assigned batch
-        if (!$isSuperadmin && $batch_id !== $coach_batch_id) {
+        // Access Control: Coach can only access their assigned batches
+        $isCoachBatch = ($batch_id === $coach_batch_id);
+        if (!$isCoachBatch && $coach_id > 0) {
+            $chk = $pdo->prepare('SELECT batch_id FROM vsa_batches WHERE batch_id = ? AND coach_id = ?');
+            $chk->execute([$batch_id, $coach_id]);
+            if ($chk->fetch()) {
+                $isCoachBatch = true;
+            }
+        }
+        if (!$isSuperadmin && !$isCoachBatch) {
             http_response_code(403);
             echo json_encode(['error' => 'Access denied. You can only view attendance for your assigned batch.']);
             exit;
@@ -176,8 +183,13 @@ if ($method === 'GET') {
                 $stmt = $pdo->query('SELECT batch_id, batch_name FROM vsa_batches ORDER BY batch_name ASC');
                 $batches = $stmt->fetchAll();
             } else {
-                $stmt = $pdo->prepare('SELECT batch_id, batch_name FROM vsa_batches WHERE batch_id = ?');
-                $stmt->execute([$coach_batch_id]);
+                $stmt = $pdo->prepare('
+                    SELECT DISTINCT batch_id, batch_name 
+                    FROM vsa_batches 
+                    WHERE coach_id = ? OR batch_id = ? 
+                    ORDER BY batch_name ASC
+                ');
+                $stmt->execute([$coach_id, $coach_batch_id]);
                 $batches = $stmt->fetchAll();
             }
             echo json_encode(['success' => true, 'batches' => $batches]);
@@ -475,13 +487,25 @@ if ($method === 'POST') {
             exit;
         }
 
-        // Automatically enforce coach\'s assigned batch_id
-        $batch_id = $coach_batch_id;
+        // Automatically enforce coach's assigned batch_id
+        $batch_id = intval($input['batch_id'] ?? 0);
+        if (!$batch_id) {
+            $batch_id = $coach_batch_id;
+        }
         $attendance_date = trim($input['attendance_date'] ?? '');
 
-        if (!$batch_id) {
+        $isCoachBatch = ($batch_id === $coach_batch_id);
+        if (!$isCoachBatch && $coach_id > 0) {
+            $chk = $pdo->prepare('SELECT batch_id FROM vsa_batches WHERE batch_id = ? AND coach_id = ?');
+            $chk->execute([$batch_id, $coach_id]);
+            if ($chk->fetch()) {
+                $isCoachBatch = true;
+            }
+        }
+
+        if (!$batch_id || !$isCoachBatch) {
             http_response_code(400);
-            echo json_encode(['error' => 'Coach has no assigned batch.']);
+            echo json_encode(['error' => 'Coach has no access to this batch.']);
             exit;
         }
 
@@ -527,12 +551,24 @@ if ($method === 'POST') {
                 $insertStmt->execute([$batch_id, $coach_id, $student['student_id'], $attendance_date, 'Absent']);
             }
 
+            // Fetch batch name and assigned coach name
+            $batchStmt = $pdo->prepare('
+                SELECT b.batch_id, b.batch_name, b.coach_id, c.coach_name 
+                FROM vsa_batches b 
+                LEFT JOIN vsa_coaches c ON b.coach_id = c.coach_id 
+                WHERE b.batch_id = ?
+            ');
+            $batchStmt->execute([$batch_id]);
+            $batchRow = $batchStmt->fetch();
+            $batchName = $batchRow['batch_name'] ?? ($coach['batch_name'] ?? '');
+            $coachName = $batchRow['coach_name'] ?? ($coach['coach_name'] ?? '');
+
             echo json_encode([
                 'success' => true,
                 'message' => 'Attendance sheet created successfully.',
                 'batch_id' => $batch_id,
-                'batch_name' => $coach['batch_name'] ?? '',
-                'coach_name' => $coach['coach_name'] ?? '',
+                'batch_name' => $batchName,
+                'coach_name' => $coachName,
                 'attendance_date' => $attendance_date
             ]);
         } catch (PDOException $e) {
@@ -557,7 +593,16 @@ if ($method === 'POST') {
         $attendance_date = trim($input['attendance_date'] ?? '');
         $records = $input['records'] ?? [];
 
-        if ($batch_id !== $coach_batch_id) {
+        $isCoachBatch = ($batch_id === $coach_batch_id);
+        if (!$isCoachBatch && $coach_id > 0) {
+            $chk = $pdo->prepare('SELECT batch_id FROM vsa_batches WHERE batch_id = ? AND coach_id = ?');
+            $chk->execute([$batch_id, $coach_id]);
+            if ($chk->fetch()) {
+                $isCoachBatch = true;
+            }
+        }
+
+        if (!$isCoachBatch) {
             http_response_code(403);
             echo json_encode(['error' => 'Access denied. You can only save attendance for your assigned batch.']);
             exit;

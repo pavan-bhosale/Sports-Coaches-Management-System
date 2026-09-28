@@ -1,9 +1,12 @@
 /**
  * VAVA Sports Academy - Batches Module
+ * Handles dynamic student counts, coach assignment, and coach conflict warnings.
  */
 
 let fetchBatchesRequestId = 0;
 let batchToDelete = null;
+let coachConflictConfirmCb = null;
+let coachConflictCancelCb = null;
 
 function updateLiveCount(count) {
   const el = document.getElementById('batchesLiveCount');
@@ -22,6 +25,68 @@ function getBatchInitials(name) {
     return (parts[0][0] + parts[1][0]).toUpperCase();
   }
   return name.trim().substring(0, 2).toUpperCase();
+}
+
+/**
+ * Check if a coach is already assigned to other batches (excluding currentBatchId).
+ */
+function checkCoachConflict(coachId, currentBatchId = null) {
+  if (!coachId || parseInt(coachId) <= 0) return [];
+  const cId = parseInt(coachId);
+  const curId = currentBatchId ? parseInt(currentBatchId) : null;
+
+  return (cachedBatchesList || []).filter(b => {
+    return parseInt(b.coach_id) === cId && (!curId || parseInt(b.batch_id) !== curId);
+  });
+}
+
+/**
+ * Display the Coach Already Assigned warning modal before saving batch.
+ */
+function showCoachConflictWarning(coachId, otherBatches, onConfirm, onCancel) {
+  const modal = document.getElementById('coachConflictModal');
+  if (!modal) {
+    // If modal element not found, proceed
+    if (typeof onConfirm === 'function') onConfirm();
+    return;
+  }
+
+  // Find coach name
+  let coachName = 'This coach';
+  const coachObj = (cachedCoachesList || []).find(c => parseInt(c.coach_id) === parseInt(coachId));
+  if (coachObj && coachObj.coach_name) {
+    coachName = coachObj.coach_name;
+  } else {
+    const editSel = document.getElementById('editBatchCoach');
+    const newSel = document.getElementById('newBatchCoach');
+    const activeSel = (modal.dataset.origin === 'add') ? newSel : editSel;
+    if (activeSel && activeSel.selectedOptions[0]) {
+      coachName = activeSel.selectedOptions[0].text;
+    }
+  }
+
+  const descEl = document.getElementById('coachConflictDesc');
+  if (descEl) {
+    descEl.innerHTML = `Coach <strong>${coachName}</strong> is already assigned to the following batch(es):`;
+  }
+
+  const listEl = document.getElementById('coachConflictBatchList');
+  if (listEl) {
+    listEl.innerHTML = otherBatches.map(b => {
+      const timeFmt = b.batch_time ? formatBatchTime(b.batch_time) : '';
+      return `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:0.35rem 0.5rem; background:rgba(255,255,255,0.04); border-radius:6px;">
+          <span style="font-weight:600; color:var(--text-primary); font-size:0.875rem;">${b.batch_name}</span>
+          ${timeFmt ? `<span style="color:var(--gold-highlight); font-size:0.825rem; font-weight:500;">${timeFmt}</span>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  coachConflictConfirmCb = onConfirm;
+  coachConflictCancelCb = onCancel;
+
+  openModal('coachConflictModal');
 }
 
 // ── Fetch & Render Batches (Table & Mobile Cards) ────────────────────────
@@ -43,8 +108,10 @@ async function fetchBatches() {
     if (!data.success) throw new Error(data.error || 'Fetch failed.');
 
     const batches = data.batches || [];
+    cachedBatchesList = batches;
     updateLiveCount(batches.length);
     populateBatchDropdowns();
+    populateCoachDropdowns();
 
     if (batches.length === 0) {
       tableWidget.style.display = 'none';
@@ -62,6 +129,10 @@ async function fetchBatches() {
       batches.forEach(batch => {
         const initials = getBatchInitials(batch.batch_name);
         const batchTimeFormatted = formatBatchTime(batch.batch_time);
+        const dynamicStudents = parseInt(batch.student_count ?? batch.current_students ?? 0);
+        const coachDisplay = batch.coach_name
+          ? `<span class="coach-batch-tag" style="font-size:0.835rem;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> ${batch.coach_name}</span>`
+          : `<span class="text-secondary" style="font-size:0.835rem;">Not Assigned</span>`;
 
         // 1. Desktop Table Row
         const tr = document.createElement('tr');
@@ -70,8 +141,8 @@ async function fetchBatches() {
           <td><span class="student-name">${batch.batch_name}</span></td>
           <td><span class="branch-tag">${batch.batch_location}</span></td>
           <td class="text-secondary" style="font-size:0.85rem;">${batchTimeFormatted}</td>
-          <td style="font-size:0.875rem;">${batch.max_students}</td>
-          <td><span class="batch-sport-pill">${batch.sport}</span></td>
+          <td>${coachDisplay}</td>
+          <td style="font-size:0.875rem; font-weight:600;">${dynamicStudents}</td>
           <td>
             <div class="batch-actions-wrap">
               <button class="batch-actions-btn" data-id="${batch.batch_id}" type="button">
@@ -84,9 +155,9 @@ async function fetchBatches() {
                 <button class="batch-action-item batch-edit-item" data-id="${batch.batch_id}"
                   data-name="${encodeURIComponent(batch.batch_name)}"
                   data-location="${encodeURIComponent(batch.batch_location)}"
-                  data-time="${batch.batch_time}"
-                  data-sport="${encodeURIComponent(batch.sport)}"
-                  data-students="${batch.max_students}">
+                  data-time="${batch.batch_time || ''}"
+                  data-coach-id="${batch.coach_id || ''}"
+                  data-coach-name="${encodeURIComponent(batch.coach_name || '')}">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -107,11 +178,13 @@ async function fetchBatches() {
         `;
         tableBody.appendChild(tr);
 
-        // 2. Mobile Card Element (Target Design - NO SPORT FIELD)
+        // 2. Mobile Card Element (No Sport, Dynamic Students, Coach Assignment)
         if (cardsContainer) {
           const card = document.createElement('div');
           card.className = 'batch-card-mobile';
           card.dataset.batchId = batch.batch_id;
+          const coachMobileDisplay = batch.coach_name || 'Not Assigned';
+
           card.innerHTML = `
             <div class="batch-card-top">
               <div class="batch-card-avatar bg-avatar-green">${initials}</div>
@@ -137,9 +210,9 @@ async function fetchBatches() {
                   <button class="batch-action-item batch-edit-item" data-id="${batch.batch_id}"
                     data-name="${encodeURIComponent(batch.batch_name)}"
                     data-location="${encodeURIComponent(batch.batch_location)}"
-                    data-time="${batch.batch_time}"
-                    data-sport="${encodeURIComponent(batch.sport)}"
-                    data-students="${batch.max_students}">
+                    data-time="${batch.batch_time || ''}"
+                    data-coach-id="${batch.coach_id || ''}"
+                    data-coach-name="${encodeURIComponent(batch.coach_name || '')}">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -174,12 +247,22 @@ async function fetchBatches() {
               <div class="batch-meta-col">
                 <div class="batch-meta-val">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                  <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;">${coachMobileDisplay}</span>
+                </div>
+                <div class="batch-meta-lbl">Coach</div>
+              </div>
+              <div class="batch-meta-col">
+                <div class="batch-meta-val">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                     <circle cx="9" cy="7" r="4"/>
                     <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
                     <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                   </svg>
-                  <span>${batch.max_students}</span>
+                  <span>${dynamicStudents}</span>
                 </div>
                 <div class="batch-meta-lbl">Students</div>
               </div>
@@ -204,55 +287,90 @@ async function fetchBatches() {
 // ── Batches Initialization & Event Listeners ──────────────
 document.addEventListener('DOMContentLoaded', () => {
   // Add Batch Modal Controls
-  const btnAddNewBatch    = document.getElementById('btnAddNewBatch');
+  const btnAddNewBatch     = document.getElementById('btnAddNewBatch');
   const closeAddBatchModal = document.getElementById('closeAddBatchModal');
-  const cancelAddBatch    = document.getElementById('cancelAddBatch');
-  const submitAddBatch    = document.getElementById('submitAddBatch');
-  const addBatchForm      = document.getElementById('addBatchForm');
+  const cancelAddBatch     = document.getElementById('cancelAddBatch');
+  const submitAddBatch     = document.getElementById('submitAddBatch');
+  const addBatchForm       = document.getElementById('addBatchForm');
 
-  if (btnAddNewBatch)     btnAddNewBatch.addEventListener('click', () => openModal('addBatchModal'));
+  if (btnAddNewBatch) {
+    btnAddNewBatch.addEventListener('click', async () => {
+      await populateCoachDropdowns();
+      const coachSel = document.getElementById('newBatchCoach');
+      if (coachSel) coachSel.value = '';
+      openModal('addBatchModal');
+    });
+  }
   if (closeAddBatchModal) closeAddBatchModal.addEventListener('click', () => closeModal('addBatchModal'));
-  if (cancelAddBatch)    cancelAddBatch.addEventListener('click', () => closeModal('addBatchModal'));
+  if (cancelAddBatch)     cancelAddBatch.addEventListener('click',    () => closeModal('addBatchModal'));
+
+  // Execute Add Batch API Request
+  async function executeCreateBatch(name, location, time, coachId) {
+    submitAddBatch.disabled = true;
+    submitAddBatch.innerHTML = 'Creating...';
+
+    try {
+      const res = await fetch(BATCHES_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          batch_name: name,
+          batch_location: location,
+          batch_time: time,
+          coach_id: coachId > 0 ? coachId : null
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        closeModal('addBatchModal');
+        if (addBatchForm) addBatchForm.reset();
+        showToast(`Batch "${name}" created successfully!`, 'success');
+        fetchBatches();
+      } else {
+        showToast(data.error || 'Failed to create batch.', 'error');
+      }
+    } catch (err) {
+      showToast('Connection error. Please try again.', 'error');
+      console.error('Create Batch Error:', err);
+    } finally {
+      submitAddBatch.disabled = false;
+      submitAddBatch.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Create Batch`;
+    }
+  }
 
   if (submitAddBatch) {
     submitAddBatch.addEventListener('click', async () => {
       const name     = document.getElementById('newBatchName')?.value.trim();
-      const location = document.getElementById('newBatchLocation')?.value;
+      const location = document.getElementById('newBatchLocation')?.value.trim();
       const time     = document.getElementById('newBatchTime')?.value;
-      const sport    = document.getElementById('newBatchSport')?.value;
-      const students = document.getElementById('newBatchStudents')?.value;
+      const coachSel = document.getElementById('newBatchCoach');
+      const coachId  = coachSel ? parseInt(coachSel.value) || 0 : 0;
 
-      if (!name || !location || !time || !sport || !students) {
+      if (!name || !location || !time) {
         showToast('Please fill all required fields.', 'error');
         return;
       }
 
-      submitAddBatch.disabled = true;
-      submitAddBatch.innerHTML = 'Creating...';
-
-      try {
-        const res  = await fetch(BATCHES_API, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ batch_name: name, batch_location: location,
-                                 batch_time: time, sport, max_students: parseInt(students) })
-        });
-        const data = await res.json();
-        if (data.success) {
-          closeModal('addBatchModal');
-          if (addBatchForm) addBatchForm.reset();
-          showToast(`Batch "${name}" created successfully!`, 'success');
-          fetchBatches();
-        } else {
-          showToast(data.error || 'Failed to create batch.', 'error');
+      // Check for coach conflict if a coach is selected
+      if (coachId > 0) {
+        const conflictBatches = checkCoachConflict(coachId, null);
+        if (conflictBatches.length > 0) {
+          const modal = document.getElementById('coachConflictModal');
+          if (modal) modal.dataset.origin = 'add';
+          showCoachConflictWarning(
+            coachId,
+            conflictBatches,
+            () => executeCreateBatch(name, location, time, coachId),
+            () => {
+              // Cancelled: do not proceed with save
+            }
+          );
+          return;
         }
-      } catch (err) {
-        showToast('Connection error. Please try again.', 'error');
-        console.error('Create Batch Error:', err);
-      } finally {
-        submitAddBatch.disabled = false;
-        submitAddBatch.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Create Batch`;
       }
+
+      // No conflict or no coach selected: proceed directly
+      await executeCreateBatch(name, location, time, coachId);
     });
   }
 
@@ -264,62 +382,132 @@ document.addEventListener('DOMContentLoaded', () => {
   if (closeEditBatchModal) closeEditBatchModal.addEventListener('click', () => closeModal('editBatchModal'));
   if (cancelEditBatch)     cancelEditBatch.addEventListener('click',     () => closeModal('editBatchModal'));
 
-  document.addEventListener('click', (e) => {
+  document.addEventListener('click', async (e) => {
     const editBtn = e.target.closest('.batch-edit-item');
     if (!editBtn) return;
 
     document.querySelectorAll('.batch-actions-menu.open').forEach(m => m.classList.remove('open'));
 
-    document.getElementById('editBatchId').value       = editBtn.dataset.id;
-    document.getElementById('editBatchName').value     = decodeURIComponent(editBtn.dataset.name);
-    document.getElementById('editBatchLocation').value = decodeURIComponent(editBtn.dataset.location);
-    document.getElementById('editBatchTime').value     = editBtn.dataset.time;
-    document.getElementById('editBatchSport').value    = decodeURIComponent(editBtn.dataset.sport);
-    document.getElementById('editBatchStudents').value = editBtn.dataset.students;
+    await populateCoachDropdowns();
+
+    const batchId = editBtn.dataset.id;
+    const batchName = decodeURIComponent(editBtn.dataset.name || '');
+    const batchLoc = decodeURIComponent(editBtn.dataset.location || '');
+    const batchTime = editBtn.dataset.time || '';
+    const coachId = editBtn.dataset.coachId || '';
+
+    document.getElementById('editBatchId').value       = batchId;
+    document.getElementById('editBatchName').value     = batchName;
+    document.getElementById('editBatchLocation').value = batchLoc;
+    document.getElementById('editBatchTime').value     = batchTime;
+
+    const editCoachSel = document.getElementById('editBatchCoach');
+    if (editCoachSel) {
+      editCoachSel.value = coachId || '';
+      editCoachSel.dataset.originalCoachId = coachId || '';
+    }
 
     openModal('editBatchModal');
   });
+
+  // Execute Edit Batch API Request
+  async function executeUpdateBatch(id, name, location, time, coachId) {
+    submitEditBatch.disabled = true;
+    submitEditBatch.innerHTML = 'Saving...';
+
+    try {
+      const res = await fetch(BATCHES_API, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          batch_id: parseInt(id),
+          batch_name: name,
+          batch_location: location,
+          batch_time: time,
+          coach_id: coachId > 0 ? coachId : null
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        closeModal('editBatchModal');
+        showToast(`Batch "${name}" updated successfully!`, 'success');
+        fetchBatches();
+      } else {
+        showToast(data.error || 'Failed to update batch.', 'error');
+      }
+    } catch (err) {
+      showToast('Connection error. Please try again.', 'error');
+      console.error('Edit Batch Error:', err);
+    } finally {
+      submitEditBatch.disabled = false;
+      submitEditBatch.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Save Changes`;
+    }
+  }
 
   if (submitEditBatch) {
     submitEditBatch.addEventListener('click', async () => {
       const id       = document.getElementById('editBatchId')?.value;
       const name     = document.getElementById('editBatchName')?.value.trim();
-      const location = document.getElementById('editBatchLocation')?.value;
+      const location = document.getElementById('editBatchLocation')?.value.trim();
       const time     = document.getElementById('editBatchTime')?.value;
-      const sport    = document.getElementById('editBatchSport')?.value;
-      const students = document.getElementById('editBatchStudents')?.value;
+      const coachSel = document.getElementById('editBatchCoach');
+      const coachId  = coachSel ? parseInt(coachSel.value) || 0 : 0;
+      const origCoachId = coachSel ? parseInt(coachSel.dataset.originalCoachId) || 0 : 0;
 
-      if (!name || !location || !time || !sport || !students) {
+      if (!id || !name || !location || !time) {
         showToast('Please fill all required fields.', 'error');
         return;
       }
 
-      submitEditBatch.disabled = true;
-      submitEditBatch.innerHTML = 'Saving...';
-
-      try {
-        const res  = await fetch(BATCHES_API, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ batch_id: parseInt(id), batch_name: name,
-                                 batch_location: location, batch_time: time,
-                                 sport, max_students: parseInt(students) })
-        });
-        const data = await res.json();
-        if (data.success) {
-          closeModal('editBatchModal');
-          showToast(`Batch "${name}" updated successfully!`, 'success');
-          fetchBatches();
-        } else {
-          showToast(data.error || 'Failed to update batch.', 'error');
+      // Check for coach conflict if coach is selected AND (it's newly changed or assigned elsewhere)
+      if (coachId > 0 && coachId !== origCoachId) {
+        const conflictBatches = checkCoachConflict(coachId, id);
+        if (conflictBatches.length > 0) {
+          const modal = document.getElementById('coachConflictModal');
+          if (modal) modal.dataset.origin = 'edit';
+          showCoachConflictWarning(
+            coachId,
+            conflictBatches,
+            () => executeUpdateBatch(id, name, location, time, coachId),
+            () => {
+              // Cancelled: revert dropdown to original coach assignment and do not save
+              if (coachSel) coachSel.value = origCoachId ? String(origCoachId) : '';
+            }
+          );
+          return;
         }
-      } catch (err) {
-        showToast('Connection error. Please try again.', 'error');
-        console.error('Edit Batch Error:', err);
-      } finally {
-        submitEditBatch.disabled = false;
-        submitEditBatch.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Save Changes`;
       }
+
+      // No conflict or unchanged: proceed directly
+      await executeUpdateBatch(id, name, location, time, coachId);
+    });
+  }
+
+  // Coach Conflict Modal Controls
+  const closeCoachConflictModal = document.getElementById('closeCoachConflictModal');
+  const cancelCoachConflict     = document.getElementById('cancelCoachConflict');
+  const confirmCoachConflict    = document.getElementById('confirmCoachConflict');
+
+  const closeConflict = () => {
+    closeModal('coachConflictModal');
+    if (typeof coachConflictCancelCb === 'function') {
+      coachConflictCancelCb();
+    }
+    coachConflictConfirmCb = null;
+    coachConflictCancelCb = null;
+  };
+
+  if (closeCoachConflictModal) closeCoachConflictModal.addEventListener('click', closeConflict);
+  if (cancelCoachConflict)     cancelCoachConflict.addEventListener('click', closeConflict);
+
+  if (confirmCoachConflict) {
+    confirmCoachConflict.addEventListener('click', () => {
+      closeModal('coachConflictModal');
+      if (typeof coachConflictConfirmCb === 'function') {
+        coachConflictConfirmCb();
+      }
+      coachConflictConfirmCb = null;
+      coachConflictCancelCb = null;
     });
   }
 
@@ -380,27 +568,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       document.querySelectorAll('#batchCardsContainer .batch-card-mobile').forEach(card => {
         card.style.display = card.textContent.toLowerCase().includes(term) ? '' : 'none';
-      });
-    });
-  }
-
-  // Sport Filter Tabs
-  const sbFilterTabs = document.getElementById('sbFilterTabs');
-  if (sbFilterTabs) {
-    sbFilterTabs.addEventListener('click', (e) => {
-      const tab = e.target.closest('.sb-filter-tab');
-      if (!tab) return;
-      sbFilterTabs.querySelectorAll('.sb-filter-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      const filter = tab.dataset.filter;
-      document.querySelectorAll('.sb-batch-card').forEach(card => {
-        card.style.display = (filter === 'all' || card.dataset.sport === filter) ? '' : 'none';
-      });
-      document.querySelectorAll('#studentsTableBody tr').forEach(row => {
-        const sport = row.querySelector('.sb-sport-pill');
-        if (!sport) return;
-        const sportClass = sport.className.split(' ').find(c => c !== 'sb-sport-pill');
-        row.style.display = (filter === 'all' || sportClass === filter) ? '' : 'none';
       });
     });
   }

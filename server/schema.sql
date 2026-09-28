@@ -7,13 +7,15 @@ CREATE TABLE IF NOT EXISTS vsa_batches (
     batch_name VARCHAR(100) NOT NULL,
     batch_time VARCHAR(50),
     batch_location VARCHAR(150),
-    sport VARCHAR(100),
+    sport VARCHAR(100) DEFAULT 'Football',
+    coach_id INT,
     max_students INT DEFAULT 0,
     current_students INT DEFAULT 0,
     monthly_fee DECIMAL(10,2) DEFAULT 0.00,
     total_payment_due DECIMAL(12,2) DEFAULT 0.00,
     status VARCHAR(20) DEFAULT 'Active',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (coach_id) REFERENCES vsa_coaches(coach_id) ON DELETE SET NULL
 );
 
 -- Coaches Table

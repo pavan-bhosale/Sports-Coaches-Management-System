@@ -309,8 +309,21 @@ async function populateCoachDropdowns() {
       select.innerHTML = html;
       if (currentVal) select.value = currentVal;
     });
+
+    // Batch form coach selects (by coach_id)
+    const batchCoachSelects = document.querySelectorAll('.batch-coach-select-input');
+    batchCoachSelects.forEach(select => {
+      const currentVal = select.value;
+      let html = '<option value="">No Coach</option>';
+      cachedCoachesList.forEach(c => {
+        const nameEscaped = c.coach_name.replace(/"/g, '&quot;');
+        html += `<option value="${c.coach_id}">${c.coach_name}</option>`;
+      });
+      select.innerHTML = html;
+      if (currentVal) select.value = currentVal;
+    });
   } catch (err) {
-    console.error('Error fetching coaches for student dropdown:', err);
+    console.error('Error fetching coaches for dropdown:', err);
   }
 }
 

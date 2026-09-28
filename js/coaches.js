@@ -63,7 +63,12 @@ async function fetchCoaches() {
         tr.dataset.coachId = coach.coach_id;
         let batchesHtml = '';
         if (coach.batch_name) {
-          batchesHtml = `<div class="coach-batch-list"><div class="coach-batch-tag"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${coach.batch_name}</div></div>`;
+          const bNames = coach.batch_name.split(',').map(s => s.trim()).filter(Boolean);
+          if (bNames.length > 0) {
+            batchesHtml = `<div class="coach-batch-list">${bNames.map(bn => `<div class="coach-batch-tag"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${bn}</div>`).join('')}</div>`;
+          } else {
+            batchesHtml = '<span class="text-secondary" style="font-size:0.835rem;">—</span>';
+          }
         } else {
           batchesHtml = '<span class="text-secondary" style="font-size:0.835rem;">—</span>';
         }
@@ -126,9 +131,17 @@ async function fetchCoaches() {
             : `<div class="coach-avatar-initials">${initials}</div>`;
           const avatarHtml = `<div class="coach-card-avatar">${avatarInnerHtml}</div>`;
 
-          const batchBadgeHtml = coach.batch_name
-            ? `<span class="coach-card-pill pill-batch"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ${coach.batch_name}</span>`
-            : `<span class="coach-card-pill pill-batch"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> No Batch</span>`;
+          let batchBadgeHtml = '';
+          if (coach.batch_name) {
+            const bNames = coach.batch_name.split(',').map(s => s.trim()).filter(Boolean);
+            if (bNames.length > 0) {
+              batchBadgeHtml = bNames.map(bn => `<span class="coach-card-pill pill-batch"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ${bn}</span>`).join('');
+            } else {
+              batchBadgeHtml = `<span class="coach-card-pill pill-batch pill-batch-empty"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> No Batch</span>`;
+            }
+          } else {
+            batchBadgeHtml = `<span class="coach-card-pill pill-batch pill-batch-empty"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> No Batch</span>`;
+          }
 
           card.innerHTML = `
             <div class="coach-card-top">
@@ -136,9 +149,7 @@ async function fetchCoaches() {
                 ${avatarHtml}
                 <div class="coach-card-info">
                   <a href="javascript:void(0)" class="coach-card-name coach-name-link" data-id="${coach.coach_id}">${coach.coach_name}</a>
-                  <div class="coach-card-email">${coach.coach_email || '—'}</div>
-                  <div class="coach-card-badges">
-                    ${batchBadgeHtml}
+                  <div class="coach-card-license-wrap">
                     <span class="coach-card-pill pill-license">${licenseLabel}</span>
                   </div>
                 </div>
@@ -168,6 +179,16 @@ async function fetchCoaches() {
                     Delete Coach
                   </button>
                 </div>
+              </div>
+            </div>
+
+            <div class="coach-card-batches-section">
+              <div class="coach-card-batches-title">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Assigned Batches
+              </div>
+              <div class="coach-card-batches-wrap coach-card-badges">
+                ${batchBadgeHtml}
               </div>
             </div>
 
@@ -289,7 +310,29 @@ async function openCoachProfile(coachId) {
     document.getElementById('viewCoachCity').textContent = coach.coach_city || '—';
     document.getElementById('viewCoachPostal').textContent = coach.coach_postal_code || '—';
     document.getElementById('viewCoachEmergName').textContent = coach.emergency_contact_name || '—';
-    document.getElementById('viewCoachBatchName').textContent = coach.batch_name || 'No Batch Assigned';
+
+    // Populate Multiple Batches
+    const batchesListEl = document.getElementById('viewCoachBatchesList');
+    if (batchesListEl) {
+      if (coach.batch_name) {
+        const bNames = coach.batch_name.split(',').map(s => s.trim()).filter(Boolean);
+        if (bNames.length > 0) {
+          batchesListEl.innerHTML = bNames.map(bn => `
+            <div class="coach-profile-batch-item">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <span>${bn}</span>
+            </div>
+          `).join('');
+        } else {
+          batchesListEl.innerHTML = `<span class="coach-detail-val" style="color:var(--text-muted); font-size:0.8125rem;">No Batch Assigned</span>`;
+        }
+      } else {
+        batchesListEl.innerHTML = `<span class="coach-detail-val" style="color:var(--text-muted); font-size:0.8125rem;">No Batch Assigned</span>`;
+      }
+    }
+    const legacyBatchEl = document.getElementById('viewCoachBatchName');
+    if (legacyBatchEl) legacyBatchEl.textContent = coach.batch_name || 'No Batch Assigned';
+
     document.getElementById('viewCoachMaxStudents').textContent = coach.max_students ? `${coach.max_students} Students` : '—';
 
     // Photo Rendering
@@ -402,9 +445,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const postal          = document.getElementById('coachPostal').value.trim();
       const emergencyName   = document.getElementById('coachEmergencyName').value.trim();
       const emergencyNumber = document.getElementById('coachEmergencyNumber').value.trim();
-      const batchSelectEl   = document.getElementById('coachBatchSelect');
-      const batchId         = batchSelectEl ? parseInt(batchSelectEl.value) || 0 : 0;
-
       submitAddCoach.disabled = true;
       submitAddCoach.innerHTML = 'Registering...';
 
@@ -423,8 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
             coach_city: city,
             coach_postal_code: postal,
             emergency_contact_name: emergencyName,
-            emergency_contact_number: emergencyNumber,
-            batch_id: batchId
+            emergency_contact_number: emergencyNumber
           })
         });
         const data = await res.json();
@@ -474,12 +513,6 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('editCoachPostal').value          = coach.coach_postal_code || '';
       document.getElementById('editCoachEmergencyName').value   = coach.emergency_contact_name || '';
       document.getElementById('editCoachEmergencyNumber').value = coach.emergency_contact_number || '';
-
-      await populateBatchDropdowns();
-      const batchSel = document.getElementById('editCoachBatchSelect');
-      if (batchSel) {
-        batchSel.value = coach.batch_id || 0;
-      }
 
       openEditCoachForm();
     } catch (err) {
@@ -535,9 +568,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const postal          = document.getElementById('editCoachPostal').value.trim();
       const emergencyName   = document.getElementById('editCoachEmergencyName').value.trim();
       const emergencyNumber = document.getElementById('editCoachEmergencyNumber').value.trim();
-      const batchSelectEl   = document.getElementById('editCoachBatchSelect');
-      const batchId         = batchSelectEl ? parseInt(batchSelectEl.value) || 0 : 0;
-
       submitEditCoach.disabled = true;
       submitEditCoach.innerHTML = 'Saving...';
 
