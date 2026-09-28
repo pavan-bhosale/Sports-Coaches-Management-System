@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cropper Test Suite</title>
+  <link rel="stylesheet" href="../css/cropper.min.css">
+  <style>
+    body { background: #090d16; color: #fff; font-family: sans-serif; margin: 0; padding: 20px; }
+    .crop-modal-box {
+      width: 420px;
+      max-width: 95vw;
+      margin: 20px auto;
+      background: #111827;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    .crop-stage-wrapper {
+      width: 100%;
+      height: 320px;
+      background: #000;
+      position: relative;
+      overflow: hidden;
+      border-radius: 8px;
+    }
+    .crop-stage-wrapper img {
+      max-width: 100%;
+      display: block;
+    }
+    .cropper-view-box {
+      outline: 2px solid #c9a227 !important;
+      outline-color: #c9a227 !important;
+    }
+    .cropper-line, .cropper-point {
+      display: none !important;
+    }
+    .cropper-modal {
+      background-color: rgba(9, 13, 22, 0.8) !important;
+    }
+    /* Circular guide overlay inside the square */
+    .cropper-view-box::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 1.5px dashed rgba(255, 255, 255, 0.65);
+      pointer-events: none;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .controls input[type="range"] {
+      flex: 1;
+    }
+  </style>
+  <script src="../js/cropper.min.js"></script>
+</head>
+<body>
+  <div class="crop-modal-box">
+    <div class="crop-stage-wrapper">
+      <img id="cropImage" src="" alt="Target">
+    </div>
+    <div class="controls">
+      <button id="btnZoomOut">-</button>
+      <input type="range" id="zoomRange" min="0" max="100" value="0">
+      <button id="btnZoomIn">+</button>
+      <button id="btnRotateLeft">RotL</button>
+      <button id="btnRotateRight">RotR</button>
+      <button id="btnReset">Reset</button>
+    </div>
+    <div style="margin-top: 15px; display: flex; justify-content: space-between;">
+      <button id="btnCancel">Cancel</button>
+      <button id="btnConfirm" style="background: #c9a227; color: #000; font-weight: bold; padding: 6px 16px; border: none; border-radius: 6px; cursor: pointer;">Confirm Crop</button>
+    </div>
+  </div>
+
+  <div id="results" style="max-width: 600px; margin: 20px auto; background: #1f2937; padding: 12px; border-radius: 8px;">
+    <h3>Results</h3>
+    <pre id="outputLog">Initialized</pre>
+  </div>
+
+  <script>
+    let cropperInstance = null;
+    let initialZoomRatio = 1;
+    let minZoomRatio = 1;
+    let maxZoomRatio = 3;
+
+    function getBestImageFormat() {
+      const c = document.createElement('canvas');
+      c.width = 1; c.height = 1;
+      const webpData = c.toDataURL('image/webp');
+      if (webpData.indexOf('data:image/webp') === 0) {
+        return { mime: 'image/webp', ext: 'webp', quality: 0.85 };
+      }
+      return { mime: 'image/jpeg', ext: 'jpg', quality: 0.85 };
+    }
+
+    function initCropper(src, onReady) {
+      if (cropperInstance) {
+        cropperInstance.destroy();
+        cropperInstance = null;
+      }
+      const img = document.getElementById('cropImage');
+      img.src = src;
+
+      cropperInstance = new Cropper(img, {
+        aspectRatio: 1,
+        viewMode: 1, // Cannot drag outside crop box, crop box cannot exceed image
+        dragMode: 'move', // Dragging moves the image underneath
+        autoCropArea: 0.9,
+        cropBoxMovable: false, // Crop box stays centered and fixed
+        cropBoxResizable: false, // Crop box cannot be resized
+        toggleDragModeOnDblclick: false,
+        center: false,
+        highlight: false,
+        background: false,
+        modal: true,
+        guides: true,
+        zoomable: true,
+        zoomOnTouch: true,
+        zoomOnWheel: true,
+        wheelZoomRatio: 0.08,
+        checkOrientation: true,
+        ready() {
+          const canvasData = cropperInstance.getCanvasData();
+          minZoomRatio = canvasData.width / canvasData.naturalWidth;
+          initialZoomRatio = minZoomRatio;
+          maxZoomRatio = minZoomRatio * 3.5;
+          const range = document.getElementById('zoomRange');
+          if (range) range.value = 0;
+          if (onReady) onReady();
+        },
+        zoom(e) {
+          const currentRatio = e.detail.ratio;
+          const range = document.getElementById('zoomRange');
+          if (range && maxZoomRatio > minZoomRatio) {
+            const pct = Math.max(0, Math.min(100, ((currentRatio - minZoomRatio) / (maxZoomRatio - minZoomRatio)) * 100));
+            range.value = pct;
+          }
+        }
+      });
+    }
+
+    document.getElementById('zoomRange').addEventListener('input', (e) => {
+      if (!cropperInstance) return;
+      const pct = parseFloat(e.target.value) / 100;
+      const targetRatio = minZoomRatio + pct * (maxZoomRatio - minZoomRatio);
+      cropperInstance.zoomTo(targetRatio);
+    });
+
+    document.getElementById('btnZoomIn').addEventListener('click', () => {
+      if (cropperInstance) cropperInstance.zoom(0.15);
+    });
+    document.getElementById('btnZoomOut').addEventListener('click', () => {
+      if (cropperInstance) cropperInstance.zoom(-0.15);
+    });
+    document.getElementById('btnRotateLeft').addEventListener('click', () => {
+      if (cropperInstance) cropperInstance.rotate(-90);
+    });
+    document.getElementById('btnRotateRight').addEventListener('click', () => {
+      if (cropperInstance) cropperInstance.rotate(90);
+    });
+    document.getElementById('btnReset').addEventListener('click', () => {
+      if (cropperInstance) {
+        cropperInstance.reset();
+        const range = document.getElementById('zoomRange');
+        if (range) range.value = 0;
+      }
+    });
+
+    function getCroppedAndOptimizedResult() {
+      if (!cropperInstance) return null;
+      const data = cropperInstance.getData();
+      const naturalCropSize = Math.round(data.width);
+      const TARGET = 600;
+
+      let croppedCanvas;
+      if (naturalCropSize >= TARGET) {
+        croppedCanvas = cropperInstance.getCroppedCanvas({
+          width: TARGET,
+          height: TARGET,
+          imageSmoothingEnabled: true,
+          imageSmoothingQuality: 'high'
+        });
+      } else {
+        croppedCanvas = cropperInstance.getCroppedCanvas({
+          imageSmoothingEnabled: true,
+          imageSmoothingQuality: 'high'
+        });
+      }
+
+      if (!croppedCanvas) return null;
+
+      const format = getBestImageFormat();
+      const dataUrl = croppedCanvas.toDataURL(format.mime, format.quality);
+      return {
+        width: croppedCanvas.width,
+        height: croppedCanvas.height,
+        mime: format.mime,
+        ext: format.ext,
+        dataUrl: dataUrl,
+        byteLength: Math.round(dataUrl.length * 0.75)
+      };
+    }
+
+    document.getElementById('btnConfirm').addEventListener('click', () => {
+      const res = getCroppedAndOptimizedResult();
+      document.getElementById('outputLog').textContent = JSON.stringify(res, (k, v) => k === 'dataUrl' ? v.substring(0, 40) + '...' : v, 2);
+    });
+
+    window.initCropper = initCropper;
+    window.getCroppedAndOptimizedResult = getCroppedAndOptimizedResult;
+  </script>
+</body>
+</html>

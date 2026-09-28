@@ -3425,7 +3425,7 @@ input[type="date"].reg-input::-webkit-calendar-picker-indicator:hover {
   }
 }
 
-/* ── Image Crop / Edit Modal Toolbar ── */
+/* ── Image Crop / Edit Modal Toolbar (WhatsApp-Style Cropper.js) ── */
 .crop-container {
   display: flex;
   flex-direction: column;
@@ -3433,63 +3433,49 @@ input[type="date"].reg-input::-webkit-calendar-picker-indicator:hover {
   gap: 1rem;
   padding: 1.25rem 1rem;
 }
-.crop-viewport {
-  width: 280px;
-  height: 280px;
-  max-width: 100%;
-  aspect-ratio: 1 / 1;
-  border-radius: 14px;
-  border: 2px solid var(--gold-primary);
+.crop-stage-wrapper {
+  width: 100%;
+  height: 320px;
+  max-height: 52vh;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 0 24px rgba(201, 162, 39, 0.22), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
   background: #090d16;
+  border: 1px solid var(--border-glass);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
-  cursor: grab;
-  user-select: none;
-  touch-action: none;
 }
-.crop-viewport.is-dragging {
-  cursor: grabbing;
-}
-.crop-viewport canvas {
+.crop-stage-wrapper img {
   display: block;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
+  max-width: 100%;
 }
-.crop-guide-overlay {
+/* WhatsApp-style Cropper.js square crop frame */
+.cropper-view-box {
+  outline: 2px solid var(--gold-primary) !important;
+  outline-color: var(--gold-primary) !important;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+}
+/* Subtle dashed circular guide indicating profile avatar boundary */
+.cropper-view-box::after {
+  content: '';
   position: absolute;
   inset: 0;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.crop-guide-circle {
-  width: 90%;
-  height: 90%;
   border-radius: 50%;
   border: 1.5px dashed rgba(255, 255, 255, 0.65);
-  box-shadow: 0 0 0 9999px rgba(10, 15, 29, 0.42);
+  pointer-events: none;
 }
-.crop-guide-grid {
-  position: absolute;
-  inset: 5%;
-  border-radius: 50%;
-  overflow: hidden;
-  opacity: 0.2;
+.cropper-line,
+.cropper-point {
+  display: none !important;
 }
-.crop-grid-line {
-  position: absolute;
-  background: #ffffff;
+.cropper-modal {
+  background-color: rgba(9, 13, 22, 0.82) !important;
 }
-.crop-grid-line.v1 { left: 33.33%; top: 0; bottom: 0; width: 1px; }
-.crop-grid-line.v2 { left: 66.66%; top: 0; bottom: 0; width: 1px; }
-.crop-grid-line.h1 { top: 33.33%; left: 0; right: 0; height: 1px; }
-.crop-grid-line.h2 { top: 66.66%; left: 0; right: 0; height: 1px; }
+.cropper-dashed {
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
 
 .crop-hint {
   display: flex;

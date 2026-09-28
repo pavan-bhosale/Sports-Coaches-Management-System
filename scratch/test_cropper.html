@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="../css/cropper.min.css">
+  <script src="../js/cropper.min.js"></script>
+  <style>
+    body { background: #0b0f19; color: #fff; font-family: sans-serif; padding: 20px; }
+    .crop-wrapper { width: 360px; height: 360px; background: #000; position: relative; margin: 0 auto; }
+    #testImg { max-width: 100%; display: block; }
+  </style>
+</head>
+<body>
+  <h2>Cropper.js Test Page</h2>
+  <div class="crop-wrapper">
+    <img id="testImg" src="../images/vava-sports-academy-logo.png" />
+  </div>
+  <div style="text-align: center; margin-top: 15px;">
+    <button id="btnCrop">Get Crop Info</button>
+  </div>
+  <pre id="output"></pre>
+  <script>
+    const img = document.getElementById('testImg');
+    let cropper = new Cropper(img, {
+      aspectRatio: 1,
+      viewMode: 1,
+      dragMode: 'move',
+      autoCropArea: 0.85,
+      cropBoxMovable: false,
+      cropBoxResizable: false,
+      toggleDragModeOnDblclick: false,
+      checkOrientation: true,
+      zoomable: true,
+      zoomOnWheel: true,
+      zoomOnTouch: true,
+      ready() {
+        document.getElementById('output').textContent = 'Cropper Ready! CropBox: ' + JSON.stringify(cropper.getCropBoxData());
+      }
+    });
+
+    document.getElementById('btnCrop').addEventListener('click', () => {
+      const canvas = cropper.getCroppedCanvas({ maxWidth: 600, maxHeight: 600 });
+      const dataUrl = canvas.toDataURL('image/webp', 0.85);
+      document.getElementById('output').textContent = 'Cropped: ' + canvas.width + 'x' + canvas.height + ' | DataURL length: ' + dataUrl.length + ' | Starts: ' + dataUrl.substring(0, 30);
+    });
+  </script>
+</body>
+</html>

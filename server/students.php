@@ -111,6 +111,69 @@ function isStudentInCoachBatch($student, $coach) {
     return false;
 }
 
+/**
+ * Save client-optimized student profile photo to uploads/students/
+ */
+function saveOptimizedStudentPhoto($pdo, $student_id, $image_data) {
+    if (!$student_id || empty($image_data)) return null;
+
+    $uploadDir = __DIR__ . '/../uploads/students/';
+    if (!file_exists($uploadDir)) {
+        mkdir($uploadDir, 0777, true);
+    }
+
+    if (preg_match('/^data:image\/(\w+);base64,/', $image_data, $type)) {
+        $image_data = substr($image_data, strpos($image_data, ',') + 1);
+        $ext = strtolower($type[1]);
+        if ($ext === 'jpeg') $ext = 'jpg';
+    } else {
+        $ext = 'jpg';
+    }
+
+    if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
+        $ext = 'jpg';
+    }
+
+    $decoded = base64_decode($image_data);
+    if ($decoded === false || strlen($decoded) === 0) {
+        return null;
+    }
+
+    $filename = 'student_' . $student_id . '_' . time() . '_' . rand(100, 999) . '.' . $ext;
+    $filepath = $uploadDir . $filename;
+    $relativePath = 'uploads/students/' . $filename;
+
+    if (file_put_contents($filepath, $decoded) === false) {
+        return null;
+    }
+
+    try {
+        // Fetch old photo path before updating
+        $stmtOld = $pdo->prepare('SELECT student_photo FROM vsa_students WHERE student_id = ?');
+        $stmtOld->execute([$student_id]);
+        $oldStudent = $stmtOld->fetch();
+
+        // Update database record
+        $stmt = $pdo->prepare('UPDATE vsa_students SET student_photo = ? WHERE student_id = ?');
+        $stmt->execute([$relativePath, $student_id]);
+
+        // Clean up old file only after new photo is safely stored and recorded
+        if ($oldStudent && !empty($oldStudent['student_photo'])) {
+            $oldFile = __DIR__ . '/../' . $oldStudent['student_photo'];
+            if (file_exists($oldFile) && realpath($oldFile) !== realpath($filepath)) {
+                @unlink($oldFile);
+            }
+        }
+
+        return $relativePath;
+    } catch (PDOException $e) {
+        if (file_exists($filepath)) {
+            @unlink($filepath);
+        }
+        return null;
+    }
+}
+
 $method = $_SERVER['REQUEST_METHOD'];
 
 // ── GET: fetch all students, single student by ID, or student note ──────────
@@ -324,64 +387,6 @@ if ($method === 'POST') {
         }
         exit;
     }
-
-/**
- * Save client-optimized student profile photo to uploads/students/
- */
-function saveOptimizedStudentPhoto($pdo, $student_id, $image_data) {
-    if (!$student_id || empty($image_data)) return null;
-
-    $uploadDir = __DIR__ . '/../uploads/students/';
-    if (!file_exists($uploadDir)) {
-        mkdir($uploadDir, 0777, true);
-    }
-
-    if (preg_match('/^data:image\/(\w+);base64,/', $image_data, $type)) {
-        $image_data = substr($image_data, strpos($image_data, ',') + 1);
-        $ext = strtolower($type[1]);
-        if ($ext === 'jpeg') $ext = 'jpg';
-    } else {
-        $ext = 'jpg';
-    }
-
-    if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
-        $ext = 'jpg';
-    }
-
-    $decoded = base64_decode($image_data);
-    if ($decoded === false || strlen($decoded) === 0) {
-        return null;
-    }
-
-    $filename = 'student_' . $student_id . '_' . time() . '_' . rand(100, 999) . '.' . $ext;
-    $filepath = $uploadDir . $filename;
-    $relativePath = 'uploads/students/' . $filename;
-
-    // Remove old photo only after successfully decoding new photo
-    try {
-        $stmtOld = $pdo->prepare('SELECT student_photo FROM vsa_students WHERE student_id = ?');
-        $stmtOld->execute([$student_id]);
-        $oldStudent = $stmtOld->fetch();
-        if ($oldStudent && !empty($oldStudent['student_photo'])) {
-            $oldFile = __DIR__ . '/../' . $oldStudent['student_photo'];
-            if (file_exists($oldFile)) {
-                @unlink($oldFile);
-            }
-        }
-    } catch (Exception $e) {}
-
-    if (file_put_contents($filepath, $decoded) === false) {
-        return null;
-    }
-
-    try {
-        $stmt = $pdo->prepare('UPDATE vsa_students SET student_photo = ? WHERE student_id = ?');
-        $stmt->execute([$relativePath, $student_id]);
-        return $relativePath;
-    } catch (PDOException $e) {
-        return null;
-    }
-}
 
     // ── 3. Handle Upload Photo
     if ($action === 'upload_photo') {
