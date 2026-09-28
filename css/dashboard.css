@@ -4723,13 +4723,18 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
   .student-card-mobile .batch-actions-wrap {
     cursor: default;
+    flex-shrink: 0;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
   }
 
   .student-card-header {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.55rem;
     width: 100%;
+    box-sizing: border-box;
   }
 
   .student-card-avatar {
@@ -4751,17 +4756,19 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     object-fit: cover;
   }
 
-  .student-card-info {
+  .student-card-mobile .student-card-info {
     flex: 1;
     min-width: 0;
     display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.45rem;
+    overflow: hidden;
   }
 
-  .student-card-name {
+  .student-card-mobile .student-card-name {
     font-family: var(--font-heading);
-    font-size: 0.95rem;
+    font-size: 0.92rem;
     font-weight: 700;
     color: var(--text-primary);
     text-decoration: none;
@@ -4769,32 +4776,33 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    flex-shrink: 0;
+    max-width: calc(100% - 55px);
   }
 
-  .student-card-name:hover {
+  .student-card-mobile .student-card-name:hover {
     color: var(--color-primary);
   }
 
-  .student-card-parent {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
   .student-batch-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.2rem 0.6rem;
+    display: inline-block;
+    vertical-align: middle;
+    text-align: center;
+    padding: 0.16rem 0.45rem;
     border-radius: var(--radius-full);
-    font-size: 0.725rem;
+    font-size: 0.685rem;
     font-weight: 600;
     background: rgba(0, 230, 153, 0.08);
     border: 1px solid rgba(0, 230, 153, 0.3);
     color: var(--color-primary);
     white-space: nowrap;
-    flex-shrink: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    line-height: 1.25;
+    box-sizing: border-box;
   }
 
   .student-three-dots-btn {

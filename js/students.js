@@ -517,10 +517,9 @@ async function fetchStudents() {
                 ${student.student_photo ? `<img src="${student.student_photo}?t=${Date.now()}" alt="Student Photo">` : initials}
               </div>
               <div class="student-card-info">
-                <a href="javascript:void(0)" class="student-card-name student-name-link" data-id="${student.student_id}">${student.student_name}</a>
-                <div class="student-card-parent">Parent: ${student.parent_name || '—'}</div>
+                <a href="javascript:void(0)" class="student-card-name student-name-link" data-id="${student.student_id}" title="${student.student_name}">${student.student_name}</a>
+                <span class="student-batch-badge" title="${batchDisplay}">${batchDisplay}</span>
               </div>
-              <span class="student-batch-badge">${batchDisplay}</span>
               <div class="batch-actions-wrap">
                 <button class="batch-actions-btn student-three-dots-btn" data-id="${student.student_id}" type="button" aria-label="Student Actions">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
