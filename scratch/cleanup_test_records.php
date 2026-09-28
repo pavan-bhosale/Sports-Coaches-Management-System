@@ -1,4 +1,4 @@
 <?php
-require_once 'server/db_connect.php';
-$deleted = $pdo->exec("DELETE FROM vsa_student_fees WHERE fee_month = '2026-10-01'");
-echo "Cleaned up $deleted October test records.\n";
+require_once __DIR__ . '/../server/db_connect.php';
+$pdo->exec("DELETE FROM vsa_students WHERE student_name LIKE 'Automated Test Player%'");
+echo "Done.\n";

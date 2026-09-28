@@ -319,6 +319,9 @@ async function openCoachProfile(coachId) {
 
 // ── Cropper Canvas Redraw Function ──────────────────────────
 function redrawCropCanvas() {
+  if (typeof window.redrawCropCanvas === 'function' && window.redrawCropCanvas !== redrawCropCanvas) {
+    return window.redrawCropCanvas();
+  }
   const canvas = document.getElementById('cropCanvas');
   if (!canvas || !rawCropImage) return;
   const ctx = canvas.getContext('2d');
@@ -327,15 +330,10 @@ function redrawCropCanvas() {
 
   ctx.clearRect(0, 0, cw, ch);
   ctx.save();
-
-  // Move origin to center
   ctx.translate(cw / 2, ch / 2);
-  // Apply Rotation
   ctx.rotate((cropRotation * Math.PI) / 180);
-  // Apply Flip
   ctx.scale(cropFlipH, cropFlipV);
 
-  // Calculate aspect ratio fit
   const imgW = rawCropImage.width;
   const imgH = rawCropImage.height;
   const scale = Math.max(cw / imgW, ch / imgH);
@@ -684,20 +682,36 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!file) return;
 
       activeProfileType = 'coach';
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          rawCropImage = img;
-          cropRotation = 0;
-          cropFlipH = 1;
-          cropFlipV = 1;
-          redrawCropCanvas();
-          openModal('cropPhotoModal');
-        };
-        img.src = event.target.result;
-      };
-      reader.readAsDataURL(file);
+      window.activeProfileType = 'coach';
+      if (typeof openPhotoCropper === 'function') {
+        openPhotoCropper(file, {
+          title: 'Crop Coach Picture',
+          badge: 'Coach Profile Picture',
+          confirmText: 'Save & Upload',
+          onConfirm: async (optimizedBase64) => {
+            if (!activeProfileCoachId) return;
+            const res = await fetch(COACHES_API, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'upload_photo',
+                coach_id: activeProfileCoachId,
+                image_data: optimizedBase64
+              })
+            });
+            const data = await res.json();
+            if (data.success) {
+              closeModal('cropPhotoModal');
+              showToast('Profile picture uploaded successfully!', 'success');
+              openCoachProfile(activeProfileCoachId);
+              fetchCoaches();
+            } else {
+              showToast(data.error || 'Failed to upload profile picture.', 'error');
+            }
+          }
+        });
+        return;
+      }
     });
   }
 
@@ -735,85 +749,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ── Image Cropper Controls ────────────────────────────────
-  const btnCropRotateLeft = document.getElementById('btnCropRotateLeft');
-  const btnCropRotateRight = document.getElementById('btnCropRotateRight');
-  const btnCropFlipH = document.getElementById('btnCropFlipH');
-  const btnCropFlipV = document.getElementById('btnCropFlipV');
-  const closeCropPhotoModal = document.getElementById('closeCropPhotoModal');
-  const cancelCropPhoto = document.getElementById('cancelCropPhoto');
-  const submitCropPhoto = document.getElementById('submitCropPhoto');
 
-  if (btnCropRotateLeft) btnCropRotateLeft.addEventListener('click', () => { cropRotation = (cropRotation - 90) % 360; redrawCropCanvas(); });
-  if (btnCropRotateRight) btnCropRotateRight.addEventListener('click', () => { cropRotation = (cropRotation + 90) % 360; redrawCropCanvas(); });
-  if (btnCropFlipH) btnCropFlipH.addEventListener('click', () => { cropFlipH *= -1; redrawCropCanvas(); });
-  if (btnCropFlipV) btnCropFlipV.addEventListener('click', () => { cropFlipV *= -1; redrawCropCanvas(); });
-
-  if (closeCropPhotoModal) closeCropPhotoModal.addEventListener('click', () => closeModal('cropPhotoModal'));
-  if (cancelCropPhoto) cancelCropPhoto.addEventListener('click', () => closeModal('cropPhotoModal'));
-
-  if (submitCropPhoto) {
-    submitCropPhoto.addEventListener('click', async () => {
-      const canvas = document.getElementById('cropCanvas');
-      if (!canvas) return;
-
-      const base64Image = canvas.toDataURL('image/jpeg', 0.9);
-      submitCropPhoto.disabled = true;
-      submitCropPhoto.textContent = 'Uploading...';
-
-      try {
-        const profileType = (typeof window.activeProfileType !== 'undefined') ? window.activeProfileType : activeProfileType;
-        if (profileType === 'student') {
-          const studentId = activeProfileStudentId || (typeof window.activeProfileStudentId !== 'undefined' ? window.activeProfileStudentId : null);
-          if (!studentId) return;
-          const res = await fetch(STUDENTS_API, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'upload_photo',
-              student_id: studentId,
-              image_data: base64Image
-            })
-          });
-          const data = await res.json();
-          if (data.success) {
-            closeModal('cropPhotoModal');
-            showToast('Profile picture uploaded successfully!', 'success');
-            openStudentProfile(studentId);
-            fetchStudents();
-          } else {
-            showToast(data.error || 'Failed to upload profile picture.', 'error');
-          }
-        } else {
-          if (!activeProfileCoachId) return;
-          const res = await fetch(COACHES_API, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'upload_photo',
-              coach_id: activeProfileCoachId,
-              image_data: base64Image
-            })
-          });
-          const data = await res.json();
-          if (data.success) {
-            closeModal('cropPhotoModal');
-            showToast('Profile picture uploaded successfully!', 'success');
-            openCoachProfile(activeProfileCoachId);
-            fetchCoaches();
-          } else {
-            showToast(data.error || 'Failed to upload profile picture.', 'error');
-          }
-        }
-      } catch (err) {
-        console.error('Upload Photo Error:', err);
-        showToast('Connection error. Could not upload photo.', 'error');
-      } finally {
-        submitCropPhoto.disabled = false;
-        submitCropPhoto.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Save & Upload`;
-      }
-    });
-  }
 
   // ── Coach Search Filter Listener ──────────────────────────
   const coachSearchInput = document.getElementById('coachSearchInput');

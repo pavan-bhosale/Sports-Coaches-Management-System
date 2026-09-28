@@ -325,10 +325,68 @@ if ($method === 'POST') {
         exit;
     }
 
+/**
+ * Save client-optimized student profile photo to uploads/students/
+ */
+function saveOptimizedStudentPhoto($pdo, $student_id, $image_data) {
+    if (!$student_id || empty($image_data)) return null;
+
+    $uploadDir = __DIR__ . '/../uploads/students/';
+    if (!file_exists($uploadDir)) {
+        mkdir($uploadDir, 0777, true);
+    }
+
+    if (preg_match('/^data:image\/(\w+);base64,/', $image_data, $type)) {
+        $image_data = substr($image_data, strpos($image_data, ',') + 1);
+        $ext = strtolower($type[1]);
+        if ($ext === 'jpeg') $ext = 'jpg';
+    } else {
+        $ext = 'jpg';
+    }
+
+    if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
+        $ext = 'jpg';
+    }
+
+    $decoded = base64_decode($image_data);
+    if ($decoded === false || strlen($decoded) === 0) {
+        return null;
+    }
+
+    $filename = 'student_' . $student_id . '_' . time() . '_' . rand(100, 999) . '.' . $ext;
+    $filepath = $uploadDir . $filename;
+    $relativePath = 'uploads/students/' . $filename;
+
+    // Remove old photo only after successfully decoding new photo
+    try {
+        $stmtOld = $pdo->prepare('SELECT student_photo FROM vsa_students WHERE student_id = ?');
+        $stmtOld->execute([$student_id]);
+        $oldStudent = $stmtOld->fetch();
+        if ($oldStudent && !empty($oldStudent['student_photo'])) {
+            $oldFile = __DIR__ . '/../' . $oldStudent['student_photo'];
+            if (file_exists($oldFile)) {
+                @unlink($oldFile);
+            }
+        }
+    } catch (Exception $e) {}
+
+    if (file_put_contents($filepath, $decoded) === false) {
+        return null;
+    }
+
+    try {
+        $stmt = $pdo->prepare('UPDATE vsa_students SET student_photo = ? WHERE student_id = ?');
+        $stmt->execute([$relativePath, $student_id]);
+        return $relativePath;
+    } catch (PDOException $e) {
+        return null;
+    }
+}
+
     // ── 3. Handle Upload Photo
     if ($action === 'upload_photo') {
         $student_id = intval($input['student_id'] ?? 0);
-        $image_data = $input['image_data'] ?? '';
+        $image_data = $input['image_data'] ?? $input['student_photo'] ?? '';
 
         if (!$student_id || !$image_data) {
             http_response_code(400);
@@ -347,56 +405,14 @@ if ($method === 'POST') {
             }
         }
 
-        $uploadDir = __DIR__ . '/../uploads/students/';
-        if (!file_exists($uploadDir)) {
-            mkdir($uploadDir, 0777, true);
-        }
-
-        if (preg_match('/^data:image\/(\w+);base64,/', $image_data, $type)) {
-            $image_data = substr($image_data, strpos($image_data, ',') + 1);
-            $ext = strtolower($type[1]);
-            if ($ext === 'jpeg') $ext = 'jpg';
-        } else {
-            $ext = 'jpg';
-        }
-
-        $image_data = base64_decode($image_data);
-        if ($image_data === false) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Base64 image decoding failed.']);
+        $savedPhoto = saveOptimizedStudentPhoto($pdo, $student_id, $image_data);
+        if (!$savedPhoto) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to save optimized photo on server.']);
             exit;
         }
 
-        $filename = 'student_' . $student_id . '_' . time() . '.' . $ext;
-        $filepath = $uploadDir . $filename;
-        $relativePath = 'uploads/students/' . $filename;
-
-        try {
-            $stmtOld = $pdo->prepare('SELECT student_photo FROM vsa_students WHERE student_id = ?');
-            $stmtOld->execute([$student_id]);
-            $oldStudent = $stmtOld->fetch();
-            if ($oldStudent && !empty($oldStudent['student_photo'])) {
-                $oldFile = __DIR__ . '/../' . $oldStudent['student_photo'];
-                if (file_exists($oldFile)) {
-                    @unlink($oldFile);
-                }
-            }
-        } catch (Exception $e) {}
-
-        if (file_put_contents($filepath, $image_data) === false) {
-            http_response_code(500);
-            echo json_encode(['error' => 'Failed to save image file on server.']);
-            exit;
-        }
-
-        try {
-            $stmt = $pdo->prepare('UPDATE vsa_students SET student_photo = ? WHERE student_id = ?');
-            $stmt->execute([$relativePath, $student_id]);
-            echo json_encode(['success' => true, 'student_photo' => $relativePath]);
-        } catch (PDOException $e) {
-            http_response_code(500);
-            echo json_encode(['error' => 'Failed to update database: ' . $e->getMessage()]);
-        }
+        echo json_encode(['success' => true, 'student_photo' => $savedPhoto]);
         exit;
     }
 
@@ -498,9 +514,16 @@ if ($method === 'POST') {
         ]);
         $newId = $pdo->lastInsertId();
 
+        $imageData = $input['image_data'] ?? $input['student_photo'] ?? '';
+        $savedPhoto = null;
+        if (!empty($imageData)) {
+            $savedPhoto = saveOptimizedStudentPhoto($pdo, $newId, $imageData);
+        }
+
         echo json_encode([
             'success' => true,
-            'student_id' => $newId
+            'student_id' => $newId,
+            'student_photo' => $savedPhoto
         ]);
     } catch (PDOException $e) {
         http_response_code(500);
@@ -592,7 +615,29 @@ if ($method === 'PUT') {
             }
         }
 
-        echo json_encode(['success' => true]);
+        $savedPhoto = null;
+        if (!empty($input['remove_photo'])) {
+            try {
+                $stmtOld = $pdo->prepare('SELECT student_photo FROM vsa_students WHERE student_id = ?');
+                $stmtOld->execute([$student_id]);
+                $old = $stmtOld->fetch();
+                if ($old && !empty($old['student_photo'])) {
+                    $oldFile = __DIR__ . '/../' . $old['student_photo'];
+                    if (file_exists($oldFile)) {
+                        @unlink($oldFile);
+                    }
+                }
+                $stmtClear = $pdo->prepare('UPDATE vsa_students SET student_photo = NULL WHERE student_id = ?');
+                $stmtClear->execute([$student_id]);
+            } catch (Exception $e) {}
+        } else {
+            $imageData = $input['image_data'] ?? $input['student_photo'] ?? '';
+            if (!empty($imageData)) {
+                $savedPhoto = saveOptimizedStudentPhoto($pdo, $student_id, $imageData);
+            }
+        }
+
+        echo json_encode(['success' => true, 'student_photo' => $savedPhoto]);
     } catch (PDOException $e) {
         http_response_code(500);
         echo json_encode(['error' => 'Failed to update student: ' . $e->getMessage()]);

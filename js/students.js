@@ -7,6 +7,498 @@ let studentToDeleteId = null;
 let activeProfileStudentId = null;
 let currentLoadedStudentData = null;
 
+// ── Shared Cropper & Image Optimizer State ──────────────────
+var rawCropImage = null;
+var cropRotation = 0;
+var cropFlipH = 1;
+var cropFlipV = 1;
+var cropZoom = 1;
+var cropPanX = 0;
+var cropPanY = 0;
+var activeCropCallback = null;
+var isDraggingCrop = false;
+var dragStartX = 0;
+var dragStartY = 0;
+var dragStartPanX = 0;
+var dragStartPanY = 0;
+var pinchStartDist = 0;
+var pinchStartZoom = 1;
+
+var regPendingStudentPhotoData = null;
+var editPendingStudentPhotoData = null;
+
+function clampCropPan() {
+  const canvas = document.getElementById('cropCanvas');
+  if (!canvas || !rawCropImage) return;
+  const cw = canvas.width;
+  const ch = canvas.height;
+
+  const isRotated90 = Math.abs(cropRotation % 180) === 90;
+  const effectiveW = isRotated90 ? rawCropImage.height : rawCropImage.width;
+  const effectiveH = isRotated90 ? rawCropImage.width : rawCropImage.height;
+
+  const baseScale = Math.max(cw / effectiveW, ch / effectiveH);
+  const totalScale = baseScale * cropZoom;
+  const renderedW = effectiveW * totalScale;
+  const renderedH = effectiveH * totalScale;
+
+  const maxPanX = Math.max(0, (renderedW - cw) / 2) + cw * 0.15;
+  const maxPanY = Math.max(0, (renderedH - ch) / 2) + ch * 0.15;
+
+  cropPanX = Math.max(-maxPanX, Math.min(maxPanX, cropPanX));
+  cropPanY = Math.max(-maxPanY, Math.min(maxPanY, cropPanY));
+}
+
+function setCropZoom(newZoom) {
+  cropZoom = Math.min(3, Math.max(1, newZoom));
+  const zoomRange = document.getElementById('cropZoomRange');
+  if (zoomRange) zoomRange.value = cropZoom.toFixed(2);
+  clampCropPan();
+  redrawCropCanvas();
+}
+
+function redrawCropCanvas() {
+  const canvas = document.getElementById('cropCanvas');
+  if (!canvas || !rawCropImage) return;
+  const ctx = canvas.getContext('2d');
+  const cw = canvas.width;
+  const ch = canvas.height;
+
+  ctx.clearRect(0, 0, cw, ch);
+  ctx.save();
+
+  ctx.translate(cw / 2 + cropPanX, ch / 2 + cropPanY);
+  ctx.rotate((cropRotation * Math.PI) / 180);
+  ctx.scale(cropFlipH, cropFlipV);
+
+  const isRotated90 = Math.abs(cropRotation % 180) === 90;
+  const effectiveW = isRotated90 ? rawCropImage.height : rawCropImage.width;
+  const effectiveH = isRotated90 ? rawCropImage.width : rawCropImage.height;
+
+  const baseScale = Math.max(cw / effectiveW, ch / effectiveH);
+  const totalScale = baseScale * cropZoom;
+  const drawW = rawCropImage.width * totalScale;
+  const drawH = rawCropImage.height * totalScale;
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(rawCropImage, -drawW / 2, -drawH / 2, drawW, drawH);
+  ctx.restore();
+}
+window.redrawCropCanvas = redrawCropCanvas;
+
+/**
+ * Generate client-side cropped, resized (max 800x800), compressed (JPEG 0.82) image
+ */
+function generateOptimizedProfilePhoto() {
+  const displayCanvas = document.getElementById('cropCanvas');
+  if (!displayCanvas || !rawCropImage) return null;
+
+  const cw = displayCanvas.width;
+  const ch = displayCanvas.height;
+
+  const isRotated90 = Math.abs(cropRotation % 180) === 90;
+  const effectiveW = isRotated90 ? rawCropImage.height : rawCropImage.width;
+  const effectiveH = isRotated90 ? rawCropImage.width : rawCropImage.height;
+
+  const baseScale = Math.max(cw / effectiveW, ch / effectiveH);
+  const totalScale = baseScale * cropZoom;
+
+  // Approximate physical dimensions of cropped area in original image
+  const sourceCropSize = cw / totalScale;
+
+  // Sensible max size: 800x800 pixels. Do not upscale if smaller.
+  const targetDim = Math.min(800, Math.max(280, Math.round(sourceCropSize)));
+
+  const exportCanvas = document.createElement('canvas');
+  exportCanvas.width = targetDim;
+  exportCanvas.height = targetDim;
+  const expCtx = exportCanvas.getContext('2d');
+
+  expCtx.imageSmoothingEnabled = true;
+  expCtx.imageSmoothingQuality = 'high';
+
+  const exportRatio = targetDim / cw;
+  expCtx.translate(targetDim / 2 + cropPanX * exportRatio, targetDim / 2 + cropPanY * exportRatio);
+  expCtx.rotate((cropRotation * Math.PI) / 180);
+  expCtx.scale(cropFlipH, cropFlipV);
+
+  const drawW = rawCropImage.width * totalScale * exportRatio;
+  const drawH = rawCropImage.height * totalScale * exportRatio;
+
+  expCtx.drawImage(rawCropImage, -drawW / 2, -drawH / 2, drawW, drawH);
+
+  // Compress to JPEG with 0.82 quality
+  return exportCanvas.toDataURL('image/jpeg', 0.82);
+}
+window.generateOptimizedProfilePhoto = generateOptimizedProfilePhoto;
+
+/**
+ * Validates selected file and opens the crop interface modal
+ */
+function openPhotoCropper(file, options = {}) {
+  if (!file) return;
+
+  const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!validTypes.includes(file.type.toLowerCase()) && !['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+    showToast('Unsupported file format. Please select a JPG, PNG, or WebP photo.', 'error');
+    return;
+  }
+
+  if (file.size > 25 * 1024 * 1024) {
+    showToast('Image file is too large (>25MB). Please select a smaller photo.', 'error');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    const img = new Image();
+    img.onload = () => {
+      rawCropImage = img;
+      window.rawCropImage = img;
+      cropRotation = 0;
+      cropFlipH = 1;
+      cropFlipV = 1;
+      cropZoom = 1;
+      cropPanX = 0;
+      cropPanY = 0;
+      activeCropCallback = options.onConfirm || null;
+
+      const titleEl = document.getElementById('cropModalTitle');
+      if (titleEl) titleEl.textContent = options.title || 'Crop & Adjust Image';
+
+      const badgeEl = document.getElementById('cropModalBadgeText');
+      if (badgeEl) badgeEl.textContent = options.badge || 'Profile Picture Editor';
+
+      const submitTextEl = document.getElementById('submitCropPhotoText');
+      if (submitTextEl) submitTextEl.textContent = options.confirmText || 'Confirm Crop';
+
+      const zoomRange = document.getElementById('cropZoomRange');
+      if (zoomRange) zoomRange.value = '1';
+
+      redrawCropCanvas();
+      openModal('cropPhotoModal');
+    };
+    img.onerror = () => {
+      showToast('Corrupted or invalid image file. Please try another image.', 'error');
+    };
+    img.src = event.target.result;
+  };
+  reader.onerror = () => {
+    showToast('Error reading selected image file.', 'error');
+  };
+  reader.readAsDataURL(file);
+}
+window.openPhotoCropper = openPhotoCropper;
+
+function clearRegPhotoPreview() {
+  regPendingStudentPhotoData = null;
+  const input = document.getElementById('regStudentPhotoInput');
+  if (input) input.value = '';
+  const img = document.getElementById('regStudentPhotoImg');
+  if (img) {
+    img.src = '';
+    img.style.display = 'none';
+  }
+  const initials = document.getElementById('regStudentPhotoInitials');
+  if (initials) initials.style.display = 'flex';
+  const removeBtn = document.getElementById('btnRemoveRegStudentPhoto');
+  if (removeBtn) removeBtn.style.display = 'none';
+  const chooseBtn = document.getElementById('btnChooseRegStudentPhoto');
+  if (chooseBtn) {
+    chooseBtn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+      </svg>
+      Choose Photo
+    `;
+  }
+}
+
+function clearEditPhotoPreview(existingPhotoUrl = null) {
+  editPendingStudentPhotoData = null;
+  const input = document.getElementById('editStudentPhotoInput');
+  if (input) input.value = '';
+  const img = document.getElementById('editStudentPhotoImg');
+  const initials = document.getElementById('editStudentPhotoInitials');
+  const removeBtn = document.getElementById('btnRemoveEditStudentPhoto');
+  const chooseBtn = document.getElementById('btnChooseEditStudentPhoto');
+
+  if (existingPhotoUrl) {
+    if (img) {
+      img.src = existingPhotoUrl + '?t=' + Date.now();
+      img.style.display = 'block';
+    }
+    if (initials) initials.style.display = 'none';
+    if (removeBtn) removeBtn.style.display = 'inline-flex';
+    if (chooseBtn) {
+      chooseBtn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+        </svg>
+        Change Photo
+      `;
+    }
+  } else {
+    if (img) {
+      img.src = '';
+      img.style.display = 'none';
+    }
+    if (initials) initials.style.display = 'flex';
+    if (removeBtn) removeBtn.style.display = 'none';
+    if (chooseBtn) {
+      chooseBtn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+        </svg>
+        Choose Photo
+      `;
+    }
+  }
+}
+
+function initPhotoCropperEvents() {
+  const viewport = document.getElementById('cropViewport');
+  const zoomRange = document.getElementById('cropZoomRange');
+  const btnZoomIn = document.getElementById('btnCropZoomIn');
+  const btnZoomOut = document.getElementById('btnCropZoomOut');
+  const btnReset = document.getElementById('btnCropReset');
+  const btnRotL = document.getElementById('btnCropRotateLeft');
+  const btnRotR = document.getElementById('btnCropRotateRight');
+  const btnFlipH = document.getElementById('btnCropFlipH');
+  const btnFlipV = document.getElementById('btnCropFlipV');
+  const cancelBtn = document.getElementById('cancelCropPhoto');
+  const closeBtn = document.getElementById('closeCropPhotoModal');
+  const submitBtn = document.getElementById('submitCropPhoto');
+
+  if (viewport) {
+    viewport.addEventListener('mousedown', (e) => {
+      if (!rawCropImage) return;
+      isDraggingCrop = true;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      dragStartPanX = cropPanX;
+      dragStartPanY = cropPanY;
+      viewport.classList.add('is-dragging');
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDraggingCrop) return;
+      cropPanX = dragStartPanX + (e.clientX - dragStartX);
+      cropPanY = dragStartPanY + (e.clientY - dragStartY);
+      clampCropPan();
+      redrawCropCanvas();
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (isDraggingCrop) {
+        isDraggingCrop = false;
+        viewport.classList.remove('is-dragging');
+      }
+    });
+
+    viewport.addEventListener('touchstart', (e) => {
+      if (!rawCropImage) return;
+      if (e.touches.length === 1) {
+        isDraggingCrop = true;
+        dragStartX = e.touches[0].clientX;
+        dragStartY = e.touches[0].clientY;
+        dragStartPanX = cropPanX;
+        dragStartPanY = cropPanY;
+        viewport.classList.add('is-dragging');
+      } else if (e.touches.length === 2) {
+        isDraggingCrop = false;
+        viewport.classList.remove('is-dragging');
+        pinchStartDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        pinchStartZoom = cropZoom;
+      }
+    }, { passive: false });
+
+    viewport.addEventListener('touchmove', (e) => {
+      if (!rawCropImage) return;
+      if (e.touches.length === 1 && isDraggingCrop) {
+        e.preventDefault();
+        cropPanX = dragStartPanX + (e.touches[0].clientX - dragStartX);
+        cropPanY = dragStartPanY + (e.touches[0].clientY - dragStartY);
+        clampCropPan();
+        redrawCropCanvas();
+      } else if (e.touches.length === 2) {
+        e.preventDefault();
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        if (pinchStartDist > 0) {
+          const ratio = dist / pinchStartDist;
+          setCropZoom(pinchStartZoom * ratio);
+        }
+      }
+    }, { passive: false });
+
+    viewport.addEventListener('touchend', (e) => {
+      if (e.touches.length === 0) {
+        isDraggingCrop = false;
+        viewport.classList.remove('is-dragging');
+      }
+    });
+
+    viewport.addEventListener('touchcancel', () => {
+      isDraggingCrop = false;
+      viewport.classList.remove('is-dragging');
+    });
+
+    viewport.addEventListener('wheel', (e) => {
+      if (!rawCropImage) return;
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 0.08 : -0.08;
+      setCropZoom(cropZoom + delta);
+    }, { passive: false });
+  }
+
+  if (zoomRange) {
+    zoomRange.addEventListener('input', (e) => {
+      setCropZoom(parseFloat(e.target.value));
+    });
+  }
+
+  if (btnZoomIn) {
+    btnZoomIn.addEventListener('click', () => setCropZoom(cropZoom + 0.15));
+  }
+  if (btnZoomOut) {
+    btnZoomOut.addEventListener('click', () => setCropZoom(cropZoom - 0.15));
+  }
+  if (btnReset) {
+    btnReset.addEventListener('click', () => {
+      cropZoom = 1;
+      cropPanX = 0;
+      cropPanY = 0;
+      cropRotation = 0;
+      cropFlipH = 1;
+      cropFlipV = 1;
+      if (zoomRange) zoomRange.value = '1';
+      redrawCropCanvas();
+    });
+  }
+
+  if (btnRotL) {
+    btnRotL.addEventListener('click', () => {
+      cropRotation = (cropRotation - 90) % 360;
+      clampCropPan();
+      redrawCropCanvas();
+    });
+  }
+  if (btnRotR) {
+    btnRotR.addEventListener('click', () => {
+      cropRotation = (cropRotation + 90) % 360;
+      clampCropPan();
+      redrawCropCanvas();
+    });
+  }
+  if (btnFlipH) {
+    btnFlipH.addEventListener('click', () => {
+      cropFlipH *= -1;
+      redrawCropCanvas();
+    });
+  }
+  if (btnFlipV) {
+    btnFlipV.addEventListener('click', () => {
+      cropFlipV *= -1;
+      redrawCropCanvas();
+    });
+  }
+
+  const closeCrop = () => closeModal('cropPhotoModal');
+  if (cancelBtn) cancelBtn.addEventListener('click', closeCrop);
+  if (closeBtn) closeBtn.addEventListener('click', closeCrop);
+
+  if (submitBtn) {
+    submitBtn.addEventListener('click', async () => {
+      const optimizedBase64 = generateOptimizedProfilePhoto();
+      if (!optimizedBase64) {
+        showToast('Image processing failed. Please try again.', 'error');
+        return;
+      }
+
+      if (typeof activeCropCallback === 'function') {
+        const cb = activeCropCallback;
+        activeCropCallback = null;
+        closeModal('cropPhotoModal');
+        cb(optimizedBase64);
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = 'Uploading...';
+
+      try {
+        const profileType = (typeof window.activeProfileType !== 'undefined') ? window.activeProfileType : 'student';
+        if (profileType === 'student') {
+          const studentId = activeProfileStudentId || (typeof window.activeProfileStudentId !== 'undefined' ? window.activeProfileStudentId : null);
+          if (!studentId) {
+            closeModal('cropPhotoModal');
+            return;
+          }
+          const res = await fetch(STUDENTS_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'upload_photo',
+              student_id: studentId,
+              image_data: optimizedBase64
+            })
+          });
+          const data = await res.json();
+          if (data.success) {
+            closeModal('cropPhotoModal');
+            showToast('Profile picture uploaded successfully!', 'success');
+            openStudentProfile(studentId);
+            fetchStudents();
+          } else {
+            showToast(data.error || 'Failed to upload profile picture.', 'error');
+          }
+        } else {
+          const coachId = (typeof activeProfileCoachId !== 'undefined') ? activeProfileCoachId : null;
+          if (!coachId) {
+            closeModal('cropPhotoModal');
+            return;
+          }
+          const res = await fetch(COACHES_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'upload_photo',
+              coach_id: coachId,
+              image_data: optimizedBase64
+            })
+          });
+          const data = await res.json();
+          if (data.success) {
+            closeModal('cropPhotoModal');
+            showToast('Profile picture uploaded successfully!', 'success');
+            if (typeof openCoachProfile === 'function') openCoachProfile(coachId);
+            if (typeof fetchCoaches === 'function') fetchCoaches();
+          } else {
+            showToast(data.error || 'Failed to upload profile picture.', 'error');
+          }
+        }
+      } catch (err) {
+        console.error('Upload Photo Error:', err);
+        showToast('Connection error. Could not upload photo.', 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <span id="submitCropPhotoText">Confirm Crop</span>
+        `;
+      }
+    });
+  }
+}
+
 // Auth helper functions for role-restricted student queries and note operations
 function getStudentAuthHeaders() {
   const role = localStorage.getItem('vava_role') || 'admin';
@@ -267,12 +759,14 @@ async function fetchStudents() {
 function openRegForm() {
   populateBatchDropdowns();
   populateCoachDropdowns();
+  clearRegPhotoPreview();
   openModal('addStudentModal');
 }
 
 function closeRegForm() {
   closeModal('addStudentModal');
   clearRegErrors();
+  clearRegPhotoPreview();
 }
 
 function clearRegErrors() {
@@ -290,6 +784,7 @@ function openEditStudentForm() {
 function closeEditStudentForm() {
   closeModal('editStudentModal');
   clearEditStudentErrors();
+  clearEditPhotoPreview(null);
 }
 
 function clearEditStudentErrors() {
@@ -468,6 +963,10 @@ document.addEventListener('DOMContentLoaded', () => {
         school_name: document.getElementById('regSchool').value.trim()
       };
 
+      if (regPendingStudentPhotoData) {
+        payload.image_data = regPendingStudentPhotoData;
+      }
+
       submitAddStudent.disabled = true;
       submitAddStudent.innerHTML = 'Registering...';
 
@@ -481,6 +980,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.success) {
           closeRegForm();
           document.getElementById('addStudentForm').reset();
+          clearRegPhotoPreview();
           showToast(`Student "${payload.student_name}" registered successfully!`, 'success');
           fetchStudents();
         } else {
@@ -545,6 +1045,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('editRegEmail').value = (s.student_email && !s.student_email.endsWith('@vavasports.local')) ? s.student_email : '';
       document.getElementById('editRegSchool').value = s.school_name || '';
 
+      clearEditPhotoPreview(s.student_photo || null);
       openEditStudentForm();
     } catch (err) {
       console.error('Error parsing student data:', err);
@@ -622,6 +1123,12 @@ document.addEventListener('DOMContentLoaded', () => {
         school_name: document.getElementById('editRegSchool').value.trim()
       };
 
+      if (editPendingStudentPhotoData === 'REMOVE') {
+        payload.remove_photo = true;
+      } else if (editPendingStudentPhotoData) {
+        payload.image_data = editPendingStudentPhotoData;
+      }
+
       try {
         const res = await fetch(STUDENTS_API, {
           method: 'PUT',
@@ -631,6 +1138,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
         if (data.success) {
           closeEditStudentForm();
+          clearEditPhotoPreview(null);
           showToast(`Student "${payload.student_name}" updated successfully!`, 'success');
           fetchStudents();
         } else {
@@ -782,28 +1290,187 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Initialize Photo Cropper Engine & Controls
+  initPhotoCropperEvents();
+
+  // Registration Form Photo Picker
+  const btnChooseRegPhoto = document.getElementById('btnChooseRegStudentPhoto');
+  const btnRemoveRegPhoto = document.getElementById('btnRemoveRegStudentPhoto');
+  const regPhotoInput = document.getElementById('regStudentPhotoInput');
+
+  if (btnChooseRegPhoto && regPhotoInput) {
+    btnChooseRegPhoto.addEventListener('click', () => {
+      regPhotoInput.value = '';
+      regPhotoInput.click();
+    });
+  }
+
+  if (regPhotoInput) {
+    regPhotoInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      openPhotoCropper(file, {
+        title: 'Crop Student Photo',
+        badge: 'New Student Profile Photo',
+        confirmText: 'Confirm Crop',
+        onConfirm: (optimizedBase64) => {
+          regPendingStudentPhotoData = optimizedBase64;
+          const img = document.getElementById('regStudentPhotoImg');
+          const initials = document.getElementById('regStudentPhotoInitials');
+          const removeBtn = document.getElementById('btnRemoveRegStudentPhoto');
+          const chooseBtn = document.getElementById('btnChooseRegStudentPhoto');
+
+          if (img) {
+            img.src = optimizedBase64;
+            img.style.display = 'block';
+          }
+          if (initials) initials.style.display = 'none';
+          if (removeBtn) removeBtn.style.display = 'inline-flex';
+          if (chooseBtn) {
+            chooseBtn.innerHTML = `
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+              </svg>
+              Change Photo
+            `;
+          }
+        }
+      });
+    });
+  }
+
+  if (btnRemoveRegPhoto) {
+    btnRemoveRegPhoto.addEventListener('click', () => {
+      clearRegPhotoPreview();
+    });
+  }
+
+  // Edit Student Form Photo Picker
+  const btnChooseEditPhoto = document.getElementById('btnChooseEditStudentPhoto');
+  const btnRemoveEditPhoto = document.getElementById('btnRemoveEditStudentPhoto');
+  const editPhotoInput = document.getElementById('editStudentPhotoInput');
+
+  if (btnChooseEditPhoto && editPhotoInput) {
+    btnChooseEditPhoto.addEventListener('click', () => {
+      editPhotoInput.value = '';
+      editPhotoInput.click();
+    });
+  }
+
+  if (editPhotoInput) {
+    editPhotoInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      openPhotoCropper(file, {
+        title: 'Crop Student Photo',
+        badge: 'Edit Student Profile Photo',
+        confirmText: 'Confirm Crop',
+        onConfirm: (optimizedBase64) => {
+          editPendingStudentPhotoData = optimizedBase64;
+          const img = document.getElementById('editStudentPhotoImg');
+          const initials = document.getElementById('editStudentPhotoInitials');
+          const removeBtn = document.getElementById('btnRemoveEditStudentPhoto');
+          const chooseBtn = document.getElementById('btnChooseEditStudentPhoto');
+
+          if (img) {
+            img.src = optimizedBase64;
+            img.style.display = 'block';
+          }
+          if (initials) initials.style.display = 'none';
+          if (removeBtn) removeBtn.style.display = 'inline-flex';
+          if (chooseBtn) {
+            chooseBtn.innerHTML = `
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+              </svg>
+              Change Photo
+            `;
+          }
+        }
+      });
+    });
+  }
+
+  if (btnRemoveEditPhoto) {
+    btnRemoveEditPhoto.addEventListener('click', () => {
+      editPendingStudentPhotoData = 'REMOVE';
+      const img = document.getElementById('editStudentPhotoImg');
+      const initials = document.getElementById('editStudentPhotoInitials');
+      const chooseBtn = document.getElementById('btnChooseEditStudentPhoto');
+      if (img) {
+        img.src = '';
+        img.style.display = 'none';
+      }
+      if (initials) initials.style.display = 'flex';
+      btnRemoveEditPhoto.style.display = 'none';
+      if (chooseBtn) {
+        chooseBtn.innerHTML = `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+          </svg>
+          Choose Photo
+        `;
+      }
+    });
+  }
+
+  // Student Profile Modal Photo Picker
   if (studentPhotoFileInput) {
     studentPhotoFileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
-      if (typeof activeProfileType !== 'undefined') {
-        window.activeProfileType = 'student';
-      }
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          if (typeof rawCropImage !== 'undefined') window.rawCropImage = img;
-          if (typeof cropRotation !== 'undefined') window.cropRotation = 0;
-          if (typeof cropFlipH !== 'undefined') window.cropFlipH = 1;
-          if (typeof cropFlipV !== 'undefined') window.cropFlipV = 1;
-          if (typeof redrawCropCanvas === 'function') redrawCropCanvas();
-          openModal('cropPhotoModal');
-        };
-        img.src = event.target.result;
-      };
-      reader.readAsDataURL(file);
+      activeProfileType = 'student';
+      window.activeProfileType = 'student';
+
+      openPhotoCropper(file, {
+        title: 'Crop Student Profile Picture',
+        badge: 'Student Profile Picture',
+        confirmText: 'Save & Upload',
+        onConfirm: async (optimizedBase64) => {
+          if (!activeProfileStudentId) return;
+
+          const submitBtn = document.getElementById('submitCropPhoto');
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = 'Uploading...';
+          }
+
+          try {
+            const res = await fetch(STUDENTS_API, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'upload_photo',
+                student_id: activeProfileStudentId,
+                image_data: optimizedBase64
+              })
+            });
+            const data = await res.json();
+            if (data.success) {
+              closeModal('cropPhotoModal');
+              showToast('Profile picture uploaded successfully!', 'success');
+              openStudentProfile(activeProfileStudentId);
+              fetchStudents();
+            } else {
+              showToast(data.error || 'Failed to upload profile picture.', 'error');
+            }
+          } catch (err) {
+            console.error('Upload Photo Error:', err);
+            showToast('Connection error. Could not upload photo.', 'error');
+          } finally {
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.innerHTML = `
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                <span id="submitCropPhotoText">Confirm Crop</span>
+              `;
+            }
+          }
+        }
+      });
     });
   }
 
