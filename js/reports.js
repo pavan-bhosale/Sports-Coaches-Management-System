@@ -313,12 +313,12 @@
             </div>
 
             <!-- Content Area (Metrics, Charts, Table, Secondary Views) -->
-            <div id="previewContentArea">
+            <div id="previewContentArea" class="report-content-area">
               <!-- Summary KPI Metrics Cards -->
               <div class="report-metrics-grid" id="previewMetricsGrid"></div>
 
               <!-- Visual Analytics / Chart -->
-              <div class="report-chart-section" id="previewChartSection" style="margin-top: 1.5rem; display:none;">
+              <div class="report-chart-section" id="previewChartSection" style="display:none;">
                 <div class="report-chart-header">
                   <span class="report-chart-title">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -335,7 +335,7 @@
               </div>
 
               <!-- Detailed Table Section -->
-              <div class="report-table-section" id="previewTableSection" style="margin-top: 1.5rem;">
+              <div class="report-table-section" id="previewTableSection">
                 <div class="report-table-header">
                   <span class="report-table-title" id="previewTableTitle">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -359,10 +359,10 @@
               </div>
 
               <!-- Secondary Section (Batch Summary / Compact Breakdown / Movement History) -->
-              <div id="previewSecondarySection" style="margin-top: 1.5rem; display: none;"></div>
+              <div id="previewSecondarySection" style="display: none;"></div>
 
               <!-- Notes & Definitions -->
-              <div class="report-notes-box" id="previewNotesBox" style="margin-top: 1.5rem;">
+              <div class="report-notes-box" id="previewNotesBox">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="10"></circle>
                   <line x1="12" y1="16" x2="12" y2="12"></line>
@@ -939,9 +939,10 @@
     tbody.innerHTML = rows.map(r => `
       <tr>
         ${r.map((cell, idx) => {
-          let cellStr = cell !== null && cell !== undefined ? String(cell) : '—';
+          const rawStr = cell !== null && cell !== undefined ? String(cell) : '—';
+          let cellStr = rawStr;
           let alignClass = '';
-          if (idx === 0) alignClass = 'style="font-weight: 500;"';
+          if (idx === 0) alignClass = 'style="font-weight: 600; color: var(--text-primary);"';
           if (cellStr === 'Active' || cellStr === 'Paid' || cellStr === 'Present') {
             cellStr = `<span class="report-badge badge-active">${escapeHtml(cellStr)}</span>`;
           } else if (cellStr === 'Inactive' || cellStr === 'Absent' || cellStr === 'Overdue') {
@@ -951,7 +952,7 @@
           } else {
             cellStr = escapeHtml(cellStr);
           }
-          return `<td ${alignClass}>${cellStr}</td>`;
+          return `<td ${alignClass} title="${escapeHtml(rawStr)}">${cellStr}</td>`;
         }).join('')}
       </tr>
     `).join('');
@@ -988,7 +989,20 @@
               <tbody>
                 ${data.batch_summary.rows.map(r => `
                   <tr>
-                    ${r.map((c, i) => `<td ${i === 0 ? 'style="font-weight: 500;"' : ''}>${escapeHtml(String(c))}</td>`).join('')}
+                    ${r.map((c, i) => {
+                      const isCount = i === r.length - 1;
+                      const countNum = Number(c);
+                      const isBold = i === 0 ? 'style="font-weight: 600; color: var(--text-primary);"' : '';
+                      const rawStr = String(c !== null && c !== undefined ? c : '—');
+                      let content = escapeHtml(rawStr);
+                      if (isCount) {
+                        content = countNum > 0
+                          ? `<span class="report-count-badge active">${countNum}</span>`
+                          : `<span class="report-count-badge">${countNum}</span>`;
+                        return `<td style="text-align: right;" title="${countNum} enrolled">${content}</td>`;
+                      }
+                      return `<td ${isBold} title="${escapeHtml(rawStr)}">${content}</td>`;
+                    }).join('')}
                   </tr>
                 `).join('')}
               </tbody>
