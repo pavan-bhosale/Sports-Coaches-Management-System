@@ -483,8 +483,10 @@ if ($method === 'POST') {
     $gender                   = trim($input['gender']                   ?? '');
     $blood_group              = trim($input['blood_group']              ?? '');
     $branch_name              = trim($input['branch_name']              ?? '');
-    $coach_name               = trim($input['coach_name']               ?? '');
+    $raw_batch_id             = intval($input['batch_id']               ?? 0);
     $batch_name               = trim($input['batch_name']               ?? '');
+    $coach_id                 = intval($input['coach_id']               ?? 0);
+    $coach_name               = trim($input['coach_name']               ?? '');
     $address                  = trim($input['address']                  ?? '');
     $city                     = trim($input['city']                     ?? '');
     $postal_code              = trim($input['postal_code']              ?? '');
@@ -512,6 +514,46 @@ if ($method === 'POST') {
         exit;
     }
 
+    // Validate batch existence and resolve batch_id / batch_name / coach_id
+    $batch_id = null;
+    if ($raw_batch_id > 0) {
+        $bStmt = $pdo->prepare('
+            SELECT b.batch_id, b.batch_name, b.coach_id, c.coach_name 
+            FROM vsa_batches b
+            LEFT JOIN vsa_coaches c ON b.coach_id = c.coach_id
+            WHERE b.batch_id = ?
+        ');
+        $bStmt->execute([$raw_batch_id]);
+        $bRow = $bStmt->fetch(PDO::FETCH_ASSOC);
+        if (!$bRow) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Selected batch does not exist.']);
+            exit;
+        }
+        $batch_id = intval($bRow['batch_id']);
+        $batch_name = $bRow['batch_name'];
+        if (!empty($bRow['coach_id'])) {
+            $coach_id = intval($bRow['coach_id']);
+            if (empty($coach_name)) {
+                $coach_name = $bRow['coach_name'] ?? '';
+            }
+        }
+    } else {
+        $batch_id = null;
+        if (empty($batch_name) || $batch_name === '0') {
+            $batch_name = 'No Batch';
+        }
+    }
+
+    if ($coach_id <= 0 && !empty($coach_name)) {
+        $cStmt = $pdo->prepare('SELECT coach_id FROM vsa_coaches WHERE LOWER(TRIM(coach_name)) = LOWER(TRIM(?))');
+        $cStmt->execute([$coach_name]);
+        $cRow = $cStmt->fetch(PDO::FETCH_ASSOC);
+        if ($cRow) {
+            $coach_id = intval($cRow['coach_id']);
+        }
+    }
+
     // Auto-generate email if empty to satisfy UNIQUE constraint
     if (!$student_email) {
         $slug = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $student_name));
@@ -522,13 +564,13 @@ if ($method === 'POST') {
         $stmt = $pdo->prepare(
             'INSERT INTO vsa_students (
                 student_name, student_email, school_name, student_phone, address, date_of_birth, joined_date, status,
-                parent_name, gender, blood_group, branch_name, coach_name, batch_name, city, postal_code,
+                parent_name, gender, blood_group, branch_name, coach_id, coach_name, batch_id, batch_name, city, postal_code,
                 father_contact_number, mother_contact_number, emergency_contact_number, whatsapp_number, student_note
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $student_name, $student_email, $school_name ?: null, $student_phone, $address, $date_of_birth ?: null, $joined_date, $status,
-            $parent_name, $gender, $blood_group, $branch_name, $coach_name, $batch_name, $city, $postal_code,
+            $parent_name, $gender, $blood_group, $branch_name, ($coach_id > 0 ? $coach_id : null), $coach_name, ($batch_id > 0 ? $batch_id : null), $batch_name, $city, $postal_code,
             $father_contact_number, $mother_contact_number ?: null, $emergency_contact_number, $whatsapp_number,
             $student_note ?: null
         ]);
@@ -564,8 +606,10 @@ if ($method === 'PUT') {
     $gender                   = trim($input['gender']                   ?? '');
     $blood_group              = trim($input['blood_group']              ?? '');
     $branch_name              = trim($input['branch_name']              ?? '');
-    $coach_name               = trim($input['coach_name']               ?? '');
+    $raw_batch_id             = intval($input['batch_id']               ?? 0);
     $batch_name               = trim($input['batch_name']               ?? '');
+    $coach_id                 = intval($input['coach_id']               ?? 0);
+    $coach_name               = trim($input['coach_name']               ?? '');
     $address                  = trim($input['address']                  ?? '');
     $city                     = trim($input['city']                     ?? '');
     $postal_code              = trim($input['postal_code']              ?? '');
@@ -584,6 +628,46 @@ if ($method === 'PUT') {
         exit;
     }
 
+    // Validate batch existence and resolve batch_id / batch_name / coach_id
+    $batch_id = null;
+    if ($raw_batch_id > 0) {
+        $bStmt = $pdo->prepare('
+            SELECT b.batch_id, b.batch_name, b.coach_id, c.coach_name 
+            FROM vsa_batches b
+            LEFT JOIN vsa_coaches c ON b.coach_id = c.coach_id
+            WHERE b.batch_id = ?
+        ');
+        $bStmt->execute([$raw_batch_id]);
+        $bRow = $bStmt->fetch(PDO::FETCH_ASSOC);
+        if (!$bRow) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Selected batch does not exist.']);
+            exit;
+        }
+        $batch_id = intval($bRow['batch_id']);
+        $batch_name = $bRow['batch_name'];
+        if (!empty($bRow['coach_id'])) {
+            $coach_id = intval($bRow['coach_id']);
+            if (empty($coach_name)) {
+                $coach_name = $bRow['coach_name'] ?? '';
+            }
+        }
+    } else {
+        $batch_id = null;
+        if (empty($batch_name) || $batch_name === '0') {
+            $batch_name = 'No Batch';
+        }
+    }
+
+    if ($coach_id <= 0 && !empty($coach_name)) {
+        $cStmt = $pdo->prepare('SELECT coach_id FROM vsa_coaches WHERE LOWER(TRIM(coach_name)) = LOWER(TRIM(?))');
+        $cStmt->execute([$coach_name]);
+        $cRow = $cStmt->fetch(PDO::FETCH_ASSOC);
+        if ($cRow) {
+            $coach_id = intval($cRow['coach_id']);
+        }
+    }
+
     if ($student_email && !filter_var($student_email, FILTER_VALIDATE_EMAIL)) {
         http_response_code(400);
         echo json_encode(['error' => 'Invalid email address format.']);
@@ -595,14 +679,14 @@ if ($method === 'PUT') {
             $stmt = $pdo->prepare(
                 'UPDATE vsa_students SET
                     student_name = ?, student_email = ?, school_name = ?, student_phone = ?, address = ?, date_of_birth = ?, status = ?,
-                    parent_name = ?, gender = ?, blood_group = ?, branch_name = ?, coach_name = ?, batch_name = ?,
+                    parent_name = ?, gender = ?, blood_group = ?, branch_name = ?, coach_id = ?, coach_name = ?, batch_id = ?, batch_name = ?,
                     city = ?, postal_code = ?, father_contact_number = ?, mother_contact_number = ?,
                     emergency_contact_number = ?, whatsapp_number = ?
                  WHERE student_id = ?'
             );
             $stmt->execute([
                 $student_name, $student_email, $school_name ?: null, $student_phone, $address, $date_of_birth ?: null, $status,
-                $parent_name, $gender, $blood_group, $branch_name, $coach_name, $batch_name,
+                $parent_name, $gender, $blood_group, $branch_name, ($coach_id > 0 ? $coach_id : null), $coach_name, ($batch_id > 0 ? $batch_id : null), $batch_name,
                 $city, $postal_code, $father_contact_number, $mother_contact_number ?: null,
                 $emergency_contact_number, $whatsapp_number,
                 $student_id
@@ -611,14 +695,14 @@ if ($method === 'PUT') {
             $stmt = $pdo->prepare(
                 'UPDATE vsa_students SET
                     student_name = ?, school_name = ?, student_phone = ?, address = ?, date_of_birth = ?, status = ?,
-                    parent_name = ?, gender = ?, blood_group = ?, branch_name = ?, coach_name = ?, batch_name = ?,
+                    parent_name = ?, gender = ?, blood_group = ?, branch_name = ?, coach_id = ?, coach_name = ?, batch_id = ?, batch_name = ?,
                     city = ?, postal_code = ?, father_contact_number = ?, mother_contact_number = ?,
                     emergency_contact_number = ?, whatsapp_number = ?
                  WHERE student_id = ?'
             );
             $stmt->execute([
                 $student_name, $school_name ?: null, $student_phone, $address, $date_of_birth ?: null, $status,
-                $parent_name, $gender, $blood_group, $branch_name, $coach_name, $batch_name,
+                $parent_name, $gender, $blood_group, $branch_name, ($coach_id > 0 ? $coach_id : null), $coach_name, ($batch_id > 0 ? $batch_id : null), $batch_name,
                 $city, $postal_code, $father_contact_number, $mother_contact_number ?: null,
                 $emergency_contact_number, $whatsapp_number,
                 $student_id

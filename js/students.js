@@ -765,6 +765,34 @@ document.addEventListener('DOMContentLoaded', () => {
   if (closeAddStudentBtn) closeAddStudentBtn.addEventListener('click', closeRegForm);
   if (cancelAddStudent) cancelAddStudent.addEventListener('click', closeRegForm);
 
+  const regBatchSelect = document.getElementById('regBatch');
+  if (regBatchSelect) {
+    regBatchSelect.addEventListener('change', () => {
+      const bId = parseInt(regBatchSelect.value, 10);
+      if (bId > 0 && Array.isArray(cachedBatchesList)) {
+        const found = cachedBatchesList.find(b => parseInt(b.batch_id, 10) === bId);
+        if (found && found.coach_name) {
+          const regCoachEl = document.getElementById('regCoach');
+          if (regCoachEl) regCoachEl.value = found.coach_name;
+        }
+      }
+    });
+  }
+
+  const editRegBatchSelect = document.getElementById('editRegBatch');
+  if (editRegBatchSelect) {
+    editRegBatchSelect.addEventListener('change', () => {
+      const bId = parseInt(editRegBatchSelect.value, 10);
+      if (bId > 0 && Array.isArray(cachedBatchesList)) {
+        const found = cachedBatchesList.find(b => parseInt(b.batch_id, 10) === bId);
+        if (found && found.coach_name) {
+          const editCoachEl = document.getElementById('editRegCoach');
+          if (editCoachEl) editCoachEl.value = found.coach_name;
+        }
+      }
+    });
+  }
+
   const regValidations = [
     { id: 'regFullName',    check: v => v.trim().length > 0,            errId: 'err-regFullName' },
     { id: 'regParentName',  check: v => v.trim().length > 0,            errId: 'err-regParentName' },
@@ -812,6 +840,20 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const regBatchEl = document.getElementById('regBatch');
+      const selectedBatchId = regBatchEl ? parseInt(regBatchEl.value, 10) : 0;
+      let selectedBatchName = 'No Batch';
+      let selectedCoachId = null;
+      let selectedCoachName = document.getElementById('regCoach') ? document.getElementById('regCoach').value : '';
+
+      if (selectedBatchId > 0 && Array.isArray(cachedBatchesList)) {
+        const foundBatch = cachedBatchesList.find(b => parseInt(b.batch_id, 10) === selectedBatchId);
+        if (foundBatch) {
+          selectedBatchName = foundBatch.batch_name;
+          if (foundBatch.coach_id) selectedCoachId = parseInt(foundBatch.coach_id, 10);
+          if (foundBatch.coach_name && !selectedCoachName) selectedCoachName = foundBatch.coach_name;
+        }
+      }
+
       const payload = {
         student_name: document.getElementById('regFullName').value.trim(),
         parent_name: document.getElementById('regParentName').value.trim(),
@@ -819,8 +861,10 @@ document.addEventListener('DOMContentLoaded', () => {
         gender: genderSelected.value,
         blood_group: document.getElementById('regBloodGroup').value,
         branch_name: document.getElementById('regBranch').value,
-        batch_name: regBatchEl ? regBatchEl.value : 'No Batch',
-        coach_name: document.getElementById('regCoach').value,
+        batch_id: selectedBatchId > 0 ? selectedBatchId : null,
+        batch_name: selectedBatchName,
+        coach_id: selectedCoachId,
+        coach_name: selectedCoachName,
         address: document.getElementById('regAddressLine').value.trim(),
         city: document.getElementById('regCity').value.trim(),
         postal_code: document.getElementById('regPostal').value.trim(),
@@ -900,7 +944,20 @@ document.addEventListener('DOMContentLoaded', () => {
       await populateCoachDropdowns();
 
       const editBatchEl = document.getElementById('editRegBatch');
-      if (editBatchEl) editBatchEl.value = s.batch_name || 'No Batch';
+      if (editBatchEl) {
+        if (s.batch_id && parseInt(s.batch_id, 10) > 0) {
+          editBatchEl.value = String(s.batch_id);
+        } else if (s.batch_name && s.batch_name !== 'No Batch') {
+          const matches = (cachedBatchesList || []).filter(b => b.batch_name.trim().toLowerCase() === s.batch_name.trim().toLowerCase());
+          if (matches.length === 1) {
+            editBatchEl.value = String(matches[0].batch_id);
+          } else {
+            editBatchEl.value = '0';
+          }
+        } else {
+          editBatchEl.value = '0';
+        }
+      }
       const editCoachEl = document.getElementById('editRegCoach');
       if (editCoachEl) editCoachEl.value = s.coach_name || '';
 
@@ -971,6 +1028,20 @@ document.addEventListener('DOMContentLoaded', () => {
       submitEditStudent.innerHTML = 'Saving...';
 
       const editBatchEl = document.getElementById('editRegBatch');
+      const selectedBatchId = editBatchEl ? parseInt(editBatchEl.value, 10) : 0;
+      let selectedBatchName = 'No Batch';
+      let selectedCoachId = null;
+      let selectedCoachName = document.getElementById('editRegCoach') ? document.getElementById('editRegCoach').value : '';
+
+      if (selectedBatchId > 0 && Array.isArray(cachedBatchesList)) {
+        const foundBatch = cachedBatchesList.find(b => parseInt(b.batch_id, 10) === selectedBatchId);
+        if (foundBatch) {
+          selectedBatchName = foundBatch.batch_name;
+          if (foundBatch.coach_id) selectedCoachId = parseInt(foundBatch.coach_id, 10);
+          if (foundBatch.coach_name && !selectedCoachName) selectedCoachName = foundBatch.coach_name;
+        }
+      }
+
       const payload = {
         student_id: parseInt(document.getElementById('editStudentId').value),
         student_name: document.getElementById('editRegFullName').value.trim(),
@@ -979,8 +1050,10 @@ document.addEventListener('DOMContentLoaded', () => {
         gender: genderSelected.value,
         blood_group: document.getElementById('editRegBloodGroup').value,
         branch_name: document.getElementById('editRegBranch').value,
-        batch_name: editBatchEl ? editBatchEl.value : 'No Batch',
-        coach_name: document.getElementById('editRegCoach').value,
+        batch_id: selectedBatchId > 0 ? selectedBatchId : null,
+        batch_name: selectedBatchName,
+        coach_id: selectedCoachId,
+        coach_name: selectedCoachName,
         address: document.getElementById('editRegAddressLine').value.trim(),
         city: document.getElementById('editRegCity').value.trim(),
         postal_code: document.getElementById('editRegPostal').value.trim(),

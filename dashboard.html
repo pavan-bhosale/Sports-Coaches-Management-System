@@ -26,6 +26,7 @@
   <!-- Stylesheets -->
   <link rel="stylesheet" href="css/cropper.min.css">
   <link rel="stylesheet" href="css/dashboard.css?v=13">
+  <link rel="stylesheet" href="css/reports.css?v=1">
 </head>
 
 <body>
@@ -381,28 +382,7 @@
         <!-- ===== END INVENTORY & EQUIPMENT SECTION ===== -->
 
         <!-- ===== REPORTS & ANALYTICS SECTION ===== -->
-        <section id="reportsSection" style="display:none;">
-          <div class="under-dev-container">
-            <div class="under-dev-card">
-              <div class="under-dev-glow"></div>
-              <div class="under-dev-icon-badge">
-                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="20" x2="18" y2="10"></line>
-                  <line x1="12" y1="20" x2="12" y2="4"></line>
-                  <line x1="6" y1="20" x2="6" y2="14"></line>
-                </svg>
-              </div>
-              <div class="under-dev-status-tag">
-                <span class="under-dev-pulse-dot"></span>
-                <span>Module in Progress</span>
-              </div>
-              <h2 class="under-dev-title">Under Development</h2>
-              <p class="under-dev-description">
-                Comprehensive academy performance reports, attendance summaries, and financial analytics are currently under active development.
-              </p>
-            </div>
-          </div>
-        </section>
+        <section id="reportsSection" style="display:none;"></section>
 
         <!-- ===== ATTENDANCE SECTION ===== -->
         <section id="attendanceSection" style="display:none;">
@@ -1217,7 +1197,7 @@
                   <label class="reg-label" for="regBatch">Batch</label>
                   <select id="regBatch" class="reg-input student-batch-select-input">
                     <option value="">Select Batch</option>
-                    <option value="No Batch">No Batch</option>
+                    <option value="0">No Batch</option>
                   </select>
                 </div>
                 <div class="reg-field">
@@ -1462,7 +1442,7 @@
                   <label class="reg-label" for="editRegBatch">Batch</label>
                   <select id="editRegBatch" class="reg-input student-batch-select-input">
                     <option value="">Select Batch</option>
-                    <option value="No Batch">No Batch</option>
+                    <option value="0">No Batch</option>
                   </select>
                 </div>
                 <div class="reg-field">
@@ -3665,6 +3645,8 @@
   <script src="js/inventory.js?v=3"></script>
   <script src="js/navigation.js?v=2"></script>
   <script src="js/dashboard.js?v=2"></script>
+  <script src="js/chart.umd.min.js"></script>
+  <script src="js/reports.js?v=1"></script>
 </body>
 
 </html>

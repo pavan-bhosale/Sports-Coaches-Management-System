@@ -99,6 +99,7 @@ function navigateToSection(targetHref, showToastNotice = true) {
     if (reportsSection) reportsSection.style.display = 'block';
     if (pageTitle) pageTitle.textContent = 'Reports & Analytics';
     if (currentSectionName) currentSectionName.textContent = 'Reports & Analytics';
+    if (typeof initReportsModule === 'function') initReportsModule();
   } else if (targetHref === '#attendance') {
     if (attendanceSection) {
       attendanceSection.style.display = '';

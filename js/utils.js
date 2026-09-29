@@ -7,14 +7,35 @@
 // Resolves to full localhost paths on local development, and relative paths in production.
 // ============================================================================
 function getApiEndpoint(endpoint) {
-  const isLocal = typeof window !== 'undefined' &&
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-
-  if (isLocal) {
-    return `http://localhost/VAVA_sports/server/${endpoint}.php`;
+  // Allow explicit config or localStorage override if set
+  if (typeof window !== 'undefined' && window.VAVA_API_BASE) {
+    const base = window.VAVA_API_BASE.replace(/\/+$/, '');
+    return `${base}/${endpoint}.php`;
   }
-  // Production / Hostinger
-  return `server/${endpoint}.php`;
+  if (typeof window !== 'undefined') {
+    const customBase = localStorage.getItem('vava_api_base');
+    if (customBase) {
+      return `${customBase.replace(/\/+$/, '')}/${endpoint}.php`;
+    }
+  }
+
+  const hostname = (typeof window !== 'undefined' && window.location.hostname) ? window.location.hostname : 'localhost';
+  const port = (typeof window !== 'undefined' && window.location.port) ? window.location.port : '';
+  const pathname = (typeof window !== 'undefined' && window.location.pathname) ? window.location.pathname : '/';
+
+  // Check if running on a standalone dev server (e.g. VS Code Live Server on 5500, 3000, 5173) where Apache is separate
+  const isDevServer = port !== '' && port !== '80' && port !== '443';
+  const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1';
+
+  if (isLocalHost && isDevServer) {
+    // Cross-origin local dev: route to Apache XAMPP default port
+    const targetHost = hostname === '127.0.0.1' ? '127.0.0.1' : 'localhost';
+    return `http://${targetHost}/VAVA_sports/server/${endpoint}.php`;
+  }
+
+  // Same-origin (works for local XAMPP, production root domain, and production subdirectory)
+  const currentDir = pathname.substring(0, pathname.lastIndexOf('/') + 1);
+  return `${currentDir}server/${endpoint}.php`;
 }
 
 const STUDENTS_API   = getApiEndpoint('students');
@@ -23,6 +44,12 @@ const BATCHES_API    = getApiEndpoint('batches');
 const ATTENDANCE_API = getApiEndpoint('attendance');
 const FEES_API       = getApiEndpoint('fees');
 const INVENTORY_API  = getApiEndpoint('inventory');
+const REPORTS_API    = getApiEndpoint('reports');
+
+if (typeof window !== 'undefined') {
+  window.getApiEndpoint = getApiEndpoint;
+  window.REPORTS_API = REPORTS_API;
+}
 
 // Modal Stack & History Management for Mobile Back Button
 const activeModalStack = [];
@@ -272,18 +299,19 @@ async function populateBatchDropdowns() {
       if (currentVal) select.value = currentVal;
     });
 
-    // Student form batch selects (by batch_name string)
+    // Student form batch selects (by batch_id)
     const studentBatchSelects = document.querySelectorAll('.student-batch-select-input');
     studentBatchSelects.forEach(select => {
       const currentVal = select.value;
       let html = '<option value="">Select Batch</option>';
       cachedBatchesList.forEach(b => {
-        const nameEscaped = b.batch_name.replace(/"/g, '&quot;');
-        html += `<option value="${nameEscaped}">${b.batch_name}</option>`;
+        html += `<option value="${b.batch_id}">${b.batch_name}</option>`;
       });
-      html += '<option value="No Batch">No Batch</option>';
+      html += '<option value="0">No Batch</option>';
       select.innerHTML = html;
-      if (currentVal) select.value = currentVal;
+      if (currentVal !== undefined && currentVal !== null && currentVal !== '') {
+        select.value = currentVal;
+      }
     });
   } catch (err) {
     console.error('Error fetching batches for dropdown:', err);

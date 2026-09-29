@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../server/db_connect.php';
-$stmt = $pdo->query("SELECT student_id, student_name, student_photo FROM vsa_students LIMIT 10");
-foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $s) {
-    echo $s['student_id'] . " | " . $s['student_name'] . " | " . ($s['student_photo'] ?: 'NULL') . "\n";
+$tables = ['vsa_students', 'vsa_coaches', 'vsa_batches', 'vsa_attendance', 'vsa_student_fees', 'vsa_payment_notifications', 'vsa_inventory', 'vsa_superadmin'];
+foreach ($tables as $t) {
+    $c = $pdo->query("SELECT COUNT(*) FROM $t")->fetchColumn();
+    echo "$t: $c rows\n";
 }
