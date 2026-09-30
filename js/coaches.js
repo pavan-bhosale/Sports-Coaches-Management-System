@@ -448,10 +448,28 @@ document.addEventListener('DOMContentLoaded', () => {
       submitAddCoach.disabled = true;
       submitAddCoach.innerHTML = 'Registering...';
 
+function getCoachAuthHeaders() {
+  const role = localStorage.getItem('vava_role') || 'admin';
+  const email = localStorage.getItem('vava_email') || '';
+  const coach_id = localStorage.getItem('vava_coach_id') || '0';
+  let name = '';
+  try {
+    const u = JSON.parse(localStorage.getItem('vava_user') || '{}');
+    name = u.name || '';
+  } catch(e) {}
+  return {
+    'Content-Type': 'application/json',
+    'X-VAVA-Role': role,
+    'X-VAVA-Email': email,
+    'X-VAVA-Coach-ID': String(coach_id),
+    'X-VAVA-Actor-Name': name
+  };
+}
+
       try {
         const res = await fetch(COACHES_API, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getCoachAuthHeaders(),
           body: JSON.stringify({
             coach_name: name,
             coach_email: email,
@@ -574,7 +592,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const res = await fetch(COACHES_API, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getCoachAuthHeaders(),
           body: JSON.stringify({
             coach_id: parseInt(id),
             coach_name: name,
@@ -634,7 +652,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const res = await fetch(COACHES_API, {
           method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getCoachAuthHeaders(),
           body: JSON.stringify({ coach_id: parseInt(coachToDelete) })
         });
         const data = await res.json();

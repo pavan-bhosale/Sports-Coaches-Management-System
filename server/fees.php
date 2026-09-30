@@ -11,7 +11,7 @@ date_default_timezone_set('Asia/Kolkata');
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-VAVA-Role, X-VAVA-Email');
+header('Access-Control-Allow-Headers: Content-Type, X-VAVA-Role, X-VAVA-Email, X-VAVA-Coach-ID, X-VAVA-Actor-Name');
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
@@ -21,6 +21,7 @@ if ($method === 'OPTIONS') {
 }
 
 require_once 'db_connect.php';
+require_once 'activity_logger.php';
 require_once 'razorpay_config.php';
 require_once 'twilio_config.php';
 require_once 'fees_scheduler_service.php';
@@ -362,6 +363,12 @@ try {
             }
 
             $pdo->commit();
+
+            recordActivity($pdo, 'FEES', 'Created', 'Payment Cycle', null, $monthLabel, "Started fee payment cycle for {$monthLabel} ({$recordsCreated} students)", [
+                'fee_month'       => $feeMonth,
+                'month_label'     => $monthLabel,
+                'records_created' => $recordsCreated
+            ], $input);
         } catch (Exception $dbEx) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
@@ -434,6 +441,12 @@ try {
             $deletedCount = $deleteStmt->rowCount();
 
             $pdo->commit();
+
+            $monthLabel = date('F Y', strtotime($feeMonth));
+            recordActivity($pdo, 'FEES', 'Deleted', 'Payment Cycle', null, $monthLabel, "Deleted payment cycle and scheduled notifications for {$monthLabel}", [
+                'fee_month'       => $feeMonth,
+                'deleted_records' => $deletedCount
+            ], $input);
         } catch (Exception $e) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
@@ -784,6 +797,20 @@ try {
         ");
         $updateStmt->execute([$paidAmount, $paymentMethod, $paymentId, $orderId, $feeId]);
 
+        $infoStmt = $pdo->prepare("SELECT f.fee_month, s.student_name FROM vsa_student_fees f JOIN vsa_students s ON f.student_id = s.student_id WHERE f.fee_id = ?");
+        $infoStmt->execute([$feeId]);
+        $feeInfo = $infoStmt->fetch();
+        $sName = $feeInfo ? $feeInfo['student_name'] : "Student";
+        $fMonth = $feeInfo ? date('M Y', strtotime($feeInfo['fee_month'])) : '';
+
+        recordActivity($pdo, 'FEES', 'Recorded', 'Payment', $feeId, $sName, "Recorded payment of ₹{$paidAmount} ({$paymentMethod}) for {$sName} ({$fMonth})", [
+            'fee_id'         => $feeId,
+            'student_name'   => $sName,
+            'paid_amount'    => $paidAmount,
+            'payment_method' => $paymentMethod,
+            'payment_id'     => $paymentId
+        ], $input);
+
         echo json_encode([
             'success' => true,
             'message' => 'Payment recorded successfully.',
@@ -804,6 +831,12 @@ try {
         $monthParam = $_GET['month'] ?? $_POST['month'] ?? '';
         $feeMonth = parseMonthParam($monthParam);
         $count = generateMonthlyFeesForMonth($pdo, $feeMonth);
+
+        $monthLabel = date('F Y', strtotime($feeMonth));
+        recordActivity($pdo, 'FEES', 'Created', 'Fee', null, $monthLabel, "Generated monthly fees for {$monthLabel} ({$count} students processed)", [
+            'fee_month' => $feeMonth,
+            'count'     => $count
+        ], array_merge($_GET, $_POST));
 
         echo json_encode([
             'success'   => true,

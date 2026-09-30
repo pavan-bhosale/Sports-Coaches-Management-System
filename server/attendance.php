@@ -7,7 +7,7 @@
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-VAVA-Role, X-VAVA-Email, X-VAVA-Coach-ID');
+header('Access-Control-Allow-Headers: Content-Type, X-VAVA-Role, X-VAVA-Email, X-VAVA-Coach-ID, X-VAVA-Actor-Name');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -15,6 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once 'db_connect.php';
+require_once 'activity_logger.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -563,6 +564,16 @@ if ($method === 'POST') {
             $batchName = $batchRow['batch_name'] ?? ($coach['batch_name'] ?? '');
             $coachName = $batchRow['coach_name'] ?? ($coach['coach_name'] ?? '');
 
+            $numStudents = count($students);
+            $desc = "Created attendance sheet for Batch #{$batch_id} ({$batchName}) on {$attendance_date} ({$numStudents} students)";
+            recordActivity($pdo, 'ATTENDANCE', 'Created', 'Attendance', $batch_id, "Batch #{$batch_id} ({$batchName})", $desc, [
+                'batch_id'        => $batch_id,
+                'batch_name'      => $batchName,
+                'coach_name'      => $coachName,
+                'attendance_date' => $attendance_date,
+                'student_count'   => $numStudents
+            ], $input);
+
             echo json_encode([
                 'success' => true,
                 'message' => 'Attendance sheet created successfully.',
@@ -623,13 +634,33 @@ if ($method === 'POST') {
                     coach_id = VALUES(coach_id)
             ');
 
+            $presentCount = 0;
+            $absentCount = 0;
             foreach ($records as $rec) {
                 $student_id = intval($rec['student_id'] ?? 0);
                 $status = ($rec['status'] === 'Present') ? 'Present' : 'Absent';
+                if ($status === 'Present') {
+                    $presentCount++;
+                } else {
+                    $absentCount++;
+                }
                 if ($student_id > 0) {
                     $upsertStmt->execute([$batch_id, $coach_id, $student_id, $attendance_date, $status]);
                 }
             }
+
+            $bStmt = $pdo->prepare('SELECT batch_name FROM vsa_batches WHERE batch_id = ?');
+            $bStmt->execute([$batch_id]);
+            $batchName = $bStmt->fetchColumn() ?: "Batch #{$batch_id}";
+            $desc = "Saved attendance for Batch #{$batch_id} ({$batchName}) on {$attendance_date} ({$presentCount} present, {$absentCount} absent)";
+            recordActivity($pdo, 'ATTENDANCE', 'Recorded', 'Attendance', $batch_id, "Batch #{$batch_id} ({$batchName})", $desc, [
+                'batch_id'        => $batch_id,
+                'batch_name'      => $batchName,
+                'attendance_date' => $attendance_date,
+                'present_count'   => $presentCount,
+                'absent_count'    => $absentCount,
+                'total_marked'    => count($records)
+            ], $input);
 
             echo json_encode([
                 'success' => true,
@@ -663,8 +694,19 @@ if ($method === 'POST') {
         }
 
         try {
+            $bStmt = $pdo->prepare('SELECT batch_name FROM vsa_batches WHERE batch_id = ?');
+            $bStmt->execute([$batch_id]);
+            $batchName = $bStmt->fetchColumn() ?: "Batch #{$batch_id}";
+
             $delStmt = $pdo->prepare('DELETE FROM vsa_attendance WHERE batch_id = ? AND attendance_date = ?');
             $delStmt->execute([$batch_id, $attendance_date]);
+
+            $desc = "Deleted attendance sheet for Batch #{$batch_id} ({$batchName}) on {$attendance_date}";
+            recordActivity($pdo, 'ATTENDANCE', 'Deleted', 'Attendance', $batch_id, "Batch #{$batch_id} ({$batchName})", $desc, [
+                'batch_id'        => $batch_id,
+                'batch_name'      => $batchName,
+                'attendance_date' => $attendance_date
+            ], $input);
 
             echo json_encode([
                 'success' => true,

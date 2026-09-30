@@ -2,12 +2,10 @@
 /**
  * VAVA Sports Academy - Reports & Analytics Backend Engine
  * 
- * Simplified & Consolidated 5 Core Reports:
- * 1. Student & Batch Report (student_batch)
- * 2. Attendance Report (attendance_report)
- * 3. Fees & Payments Report (fees_payments) - Super Admin Only
- * 4. Coach & Batch Activity Report (coach_activity) - Factual assignments & sessions
- * 5. Inventory Report (inventory_report) - Super Admin Only
+ * Consolidated 3 Core Reports:
+ * 1. Attendance Report (attendance_report)
+ * 2. Fees & Payments Report (fees_payments) - Super Admin Only
+ * 3. Activity Report (activity_report) - Chronological Audit & System History
  * 
  * Core Architectural Guarantees:
  * - Dynamic data from MySQL (zero hardcoded / demo / fallback data)
@@ -255,6 +253,25 @@ function getFilterOptions($pdo, $auth) {
         $paymentMethods = ['Cash', 'GPay / UPI', 'Bank Transfer', 'Razorpay'];
     }
 
+    // 8. Activity Log Filters
+    $activityModules = ['AUTH', 'STUDENT', 'COACH', 'BATCH', 'ATTENDANCE', 'INVENTORY', 'FEES', 'SYSTEM'];
+    $activityActions = ['Created', 'Updated', 'Deleted', 'Assigned', 'Unassigned', 'Recorded', 'Marked', 'Submitted', 'Logged In', 'Logged Out'];
+    $activityRoles = [
+        ['value' => 'superadmin', 'label' => 'Superadmin'],
+        ['value' => 'coach', 'label' => 'Coach']
+    ];
+    $activityActors = [];
+    try {
+        $activityActors = $pdo->query("
+            SELECT DISTINCT actor_name, actor_role, actor_email 
+            FROM vsa_activity_log 
+            WHERE actor_name IS NOT NULL AND actor_name != ''
+            ORDER BY actor_name ASC
+        ")->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        // Table not ready or empty
+    }
+
     return [
         'batches'          => $formattedBatches,
         'coaches'          => $coaches,
@@ -265,7 +282,11 @@ function getFilterOptions($pdo, $auth) {
         'months'           => $formattedMonths,
         'available_months' => $formattedMonths,
         'inventory_items'  => $inventoryItems,
-        'payment_methods'  => array_values(array_filter($paymentMethods))
+        'payment_methods'  => array_values(array_filter($paymentMethods)),
+        'activity_modules' => $activityModules,
+        'activity_actions' => $activityActions,
+        'activity_roles'   => $activityRoles,
+        'activity_actors'  => $activityActors
     ];
 }
 
@@ -280,9 +301,9 @@ function getReportData($pdo, $reportType, $filters, $auth) {
     $coachId = $isCoach ? intval($auth['coach']['coach_id'] ?? 0) : 0;
     $coachAssignedBatchIds = $isCoach ? ($auth['coach']['assigned_batch_ids'] ?? []) : [];
 
-    // Role Guard: Financial & Inventory reports are Super Admin only
-    if ($isCoach && in_array($reportType, ['fees_payments', 'inventory_report'])) {
-        throw new Exception('Access denied. Financial, inventory, and management reports are restricted to Super Admin only.');
+    // Role Guard: Financial reports are Super Admin only
+    if ($isCoach && in_array($reportType, ['fees_payments'])) {
+        throw new Exception('Access denied. Financial reports are restricted to Super Admin only.');
     }
 
     $report = [
@@ -306,187 +327,6 @@ function getReportData($pdo, $reportType, $filters, $auth) {
     ];
 
     switch ($reportType) {
-
-        // =====================================================================
-        // 1. STUDENT & BATCH REPORT
-        // =====================================================================
-        case 'student_batch':
-            $report['title'] = 'Student & Batch Report';
-            $report['category'] = 'Students & Batches';
-            $report['period'] = 'Live Enrollment & Batch Allocation';
-            $report['notes'] = 'Authoritative roster of enrolled students and active training batch allocations calculated dynamically from MySQL.';
-            $report['table_headers'] = ['Student Name', 'Batch', 'Coach', 'Branch', 'Gender', 'Status'];
-
-            $where = ['1=1'];
-            $params = [];
-
-            // Filters
-            if (!empty($filters['student_id']) && $filters['student_id'] !== 'all') {
-                $where[] = 's.student_id = ?';
-                $params[] = intval($filters['student_id']);
-                $report['filters_applied'][] = ['label' => 'Student ID', 'value' => '#' . $filters['student_id']];
-            }
-            if (!empty($filters['batch_id']) && $filters['batch_id'] !== 'all') {
-                $where[] = 's.batch_id = ?';
-                $params[] = intval($filters['batch_id']);
-                $report['filters_applied'][] = ['label' => 'Batch ID', 'value' => '#' . $filters['batch_id']];
-            }
-            if (!empty($filters['coach_id']) && $filters['coach_id'] !== 'all') {
-                $where[] = 's.coach_id = ?';
-                $params[] = intval($filters['coach_id']);
-                $report['filters_applied'][] = ['label' => 'Coach ID', 'value' => '#' . $filters['coach_id']];
-            }
-            if (!empty($filters['branch']) && $filters['branch'] !== 'all') {
-                $where[] = '(s.branch_name = ? OR b.batch_location = ?)';
-                $params[] = $filters['branch'];
-                $params[] = $filters['branch'];
-                $report['filters_applied'][] = ['label' => 'Branch', 'value' => $filters['branch']];
-            }
-            if (!empty($filters['gender']) && $filters['gender'] !== 'all') {
-                $where[] = 'LOWER(s.gender) = LOWER(?)';
-                $params[] = $filters['gender'];
-                $report['filters_applied'][] = ['label' => 'Gender', 'value' => ucfirst($filters['gender'])];
-            }
-            if (!empty($filters['status']) && $filters['status'] !== 'all') {
-                $where[] = 's.status = ?';
-                $params[] = $filters['status'];
-                $report['filters_applied'][] = ['label' => 'Status', 'value' => ucfirst($filters['status'])];
-            }
-
-            // Coach restriction
-            if ($isCoach && !empty($coachAssignedBatchIds)) {
-                $inClause = implode(',', array_map('intval', $coachAssignedBatchIds));
-                $where[] = "(s.batch_id IN ($inClause) OR s.coach_id = $coachId)";
-            }
-
-            // Student records query
-            $sql = '
-                SELECT 
-                    s.student_id,
-                    s.student_name,
-                    s.branch_name AS branch,
-                    s.gender,
-                    COALESCE(s.status, "Active") AS student_status,
-                    COALESCE(b.batch_name, "Unassigned") AS batch_name,
-                    COALESCE(c.coach_name, "Unassigned") AS coach_name
-                FROM vsa_students s
-                LEFT JOIN vsa_batches b ON s.batch_id = b.batch_id
-                LEFT JOIN vsa_coaches c ON s.coach_id = c.coach_id
-                WHERE ' . implode(' AND ', $where) . '
-                ORDER BY s.student_name ASC
-            ';
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($params);
-            $studentRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            // Dynamic Batch Summary Query (based on real student counts, NOT stale batch.current_students)
-            $batchSummarySql = '
-                SELECT 
-                    b.batch_id,
-                    b.batch_name,
-                    COALESCE(b.batch_location, "—") AS location,
-                    COALESCE(DATE_FORMAT(b.batch_time, "%H:%i"), b.batch_time, "—") AS schedule,
-                    COALESCE(c.coach_name, "Unassigned") AS coach_name,
-                    COUNT(s.student_id) AS current_student_count
-                FROM vsa_batches b
-                LEFT JOIN vsa_coaches c ON b.coach_id = c.coach_id
-                LEFT JOIN vsa_students s ON b.batch_id = s.batch_id AND (s.status = "Active" OR s.status IS NULL)
-            ';
-            if ($isCoach && !empty($coachAssignedBatchIds)) {
-                $inClause = implode(',', array_map('intval', $coachAssignedBatchIds));
-                $batchSummarySql .= " WHERE b.batch_id IN ($inClause)";
-            }
-            $batchSummarySql .= ' GROUP BY b.batch_id, b.batch_name, b.batch_location, b.batch_time, c.coach_name ORDER BY current_student_count DESC, b.batch_name ASC';
-            $batchSummaryRows = $pdo->query($batchSummarySql)->fetchAll(PDO::FETCH_ASSOC);
-
-            if (empty($studentRows)) {
-                $report['empty'] = true;
-                $report['summary_metrics'] = [
-                    ['label' => 'Total Students', 'value' => 0, 'subtext' => '0 active athletes'],
-                    ['label' => 'Active Students', 'value' => 0, 'subtext' => '0% active rate'],
-                    ['label' => 'Inactive Students', 'value' => 0, 'subtext' => '0 inactive/on-leave'],
-                    ['label' => 'Total Batches', 'value' => count($batchSummaryRows), 'subtext' => 'Academy batches'],
-                    ['label' => 'Students in Batches', 'value' => 0, 'subtext' => '0% allocated']
-                ];
-                $report['table_rows'] = [];
-                $report['chart'] = null;
-                $report['batch_summary'] = [
-                    'title'   => 'Batch Capacity & Enrollment Summary',
-                    'headers' => ['Batch Name', 'Coach', 'Location / Branch', 'Schedule', 'Current Student Count'],
-                    'rows'    => array_map(function($b) {
-                        return [$b['batch_name'], $b['coach_name'], $b['location'], $b['schedule'], intval($b['current_student_count'])];
-                    }, $batchSummaryRows)
-                ];
-                break;
-            }
-
-            $totalStudents = count($studentRows);
-            $activeStudents = 0;
-            $inactiveStudents = 0;
-            $assignedStudents = 0;
-
-            foreach ($studentRows as $r) {
-                if (strtolower($r['student_status']) === 'active') {
-                    $activeStudents++;
-                } else {
-                    $inactiveStudents++;
-                }
-                if ($r['batch_name'] !== 'Unassigned') {
-                    $assignedStudents++;
-                }
-                $report['table_rows'][] = [
-                    $r['student_name'],
-                    $r['batch_name'],
-                    $r['coach_name'],
-                    $r['branch'] ?: '—',
-                    $r['gender'] ?: '—',
-                    $r['student_status']
-                ];
-            }
-
-            $activeRate = $totalStudents > 0 ? round(($activeStudents / $totalStudents) * 100, 1) : 0;
-            $assignedRate = $totalStudents > 0 ? round(($assignedStudents / $totalStudents) * 100, 1) : 0;
-
-            $report['summary_metrics'] = [
-                ['label' => 'Total Students', 'value' => $totalStudents, 'subtext' => 'Athletes in roster'],
-                ['label' => 'Active Students', 'value' => $activeStudents, 'subtext' => "{$activeRate}% active rate"],
-                ['label' => 'Inactive Students', 'value' => $inactiveStudents, 'subtext' => 'On leave or paused'],
-                ['label' => 'Total Batches', 'value' => count($batchSummaryRows), 'subtext' => 'Active training groups'],
-                ['label' => 'Students in Batches', 'value' => $assignedStudents, 'subtext' => "{$assignedRate}% allocated to batches"]
-            ];
-
-            // Chart: Batch enrollment distribution (top 6 batches)
-            $topBatches = array_slice($batchSummaryRows, 0, 6);
-            $batchLabels = [];
-            $batchCounts = [];
-            foreach ($topBatches as $tb) {
-                $batchLabels[] = $tb['batch_name'];
-                $batchCounts[] = intval($tb['current_student_count']);
-            }
-            if (!empty($batchLabels)) {
-                $report['chart'] = [
-                    'type'   => 'bar',
-                    'title'  => 'Batch Student Enrollment Distribution',
-                    'labels' => $batchLabels,
-                    'datasets' => [
-                        [
-                            'label'           => 'Enrolled Students',
-                            'data'            => $batchCounts,
-                            'backgroundColor' => '#22C55E'
-                        ]
-                    ]
-                ];
-            }
-
-            // Secondary batch summary section
-            $report['batch_summary'] = [
-                'title'   => 'Batch Capacity & Enrollment Summary',
-                'headers' => ['Batch Name', 'Coach', 'Location / Branch', 'Schedule', 'Current Student Count'],
-                'rows'    => array_map(function($b) {
-                    return [$b['batch_name'], $b['coach_name'], $b['location'], $b['schedule'], intval($b['current_student_count'])];
-                }, $batchSummaryRows)
-            ];
-            break;
 
         // =====================================================================
         // 2. ATTENDANCE REPORT
@@ -831,308 +671,269 @@ function getReportData($pdo, $reportType, $filters, $auth) {
             break;
 
         // =====================================================================
-        // 4. COACH & BATCH ACTIVITY REPORT (FACTUAL ASSIGNMENTS & SESSIONS)
+        // 3. ACTIVITY REPORT (AUDIT & SYSTEM OPERATIONS)
         // =====================================================================
-        case 'coach_activity':
-            $report['title'] = 'Coach & Batch Activity Report';
-            $report['category'] = 'Coaches & Batches';
-            $report['period'] = 'Active Coaching Rosters & Training Activity';
-            $report['notes'] = 'Factual coaching assignments, active training batches, and logged attendance sessions. Strictly objective; contains no performance ratings or ranking scores.';
-            $report['table_headers'] = ['Coach Name', 'Assigned Batches', 'Location / Branch', 'Schedule', 'Student Count', 'Recorded Sessions'];
+        case 'activity_report':
+            $report['title'] = 'Activity Report';
+            $report['category'] = 'Activity & System Audit';
+            $report['period'] = 'Chronological System Operations';
+            $report['notes'] = 'Authoritative chronological audit history of operations and system activities recorded dynamically from database mutations.';
+            $report['table_headers'] = ['Time', 'Actor', 'Role', 'Module', 'Action', 'Target', 'Description'];
 
             $where = ['1=1'];
             $params = [];
 
-            if (!empty($filters['coach_id']) && $filters['coach_id'] !== 'all') {
-                $where[] = 'c.coach_id = ?';
-                $params[] = intval($filters['coach_id']);
-                $report['filters_applied'][] = ['label' => 'Coach ID', 'value' => '#' . $filters['coach_id']];
-            }
-            if (!empty($filters['batch_id']) && $filters['batch_id'] !== 'all') {
-                $where[] = 'b.batch_id = ?';
-                $params[] = intval($filters['batch_id']);
-                $report['filters_applied'][] = ['label' => 'Batch ID', 'value' => '#' . $filters['batch_id']];
-            }
-            if (!empty($filters['branch']) && $filters['branch'] !== 'all') {
-                $where[] = 'b.batch_location = ?';
-                $params[] = $filters['branch'];
-                $report['filters_applied'][] = ['label' => 'Branch', 'value' => $filters['branch']];
-            }
-
-            // Coach role restriction
+            // Role guard for data visibility:
+            // Coach only sees their own logged activities or activities relevant to them
             if ($isCoach) {
-                $where[] = 'c.coach_id = ?';
-                $params[] = $coachId;
+                if ($coachId > 0) {
+                    $where[] = '(a.actor_role = "coach" AND a.actor_id = ?)';
+                    $params[] = $coachId;
+                } else {
+                    $coachEmail = strtolower(trim($auth['coach']['coach_email'] ?? ''));
+                    if (!empty($coachEmail)) {
+                        $where[] = '(a.actor_role = "coach" AND LOWER(a.actor_email) = ?)';
+                        $params[] = $coachEmail;
+                    } else {
+                        $where[] = 'a.actor_role = "coach"';
+                    }
+                }
             }
 
-            // Coach and batches mapping
-            $sql = '
-                SELECT 
-                    c.coach_id,
-                    c.coach_name,
-                    c.coach_phone,
-                    c.status AS coach_status,
-                    b.batch_id,
-                    b.batch_name,
-                    COALESCE(b.batch_location, "—") AS location,
-                    COALESCE(DATE_FORMAT(b.batch_time, "%H:%i"), b.batch_time, "—") AS schedule
-                FROM vsa_coaches c
-                LEFT JOIN vsa_batches b ON b.coach_id = c.coach_id
-                WHERE ' . implode(' AND ', $where) . '
-                ORDER BY c.coach_name ASC, b.batch_name ASC
-            ';
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($params);
-            $coachBatchRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            // Dynamically count real students per batch
-            $batchStudentCounts = [];
-            $bscStmt = $pdo->query('
-                SELECT batch_id, COUNT(student_id) AS cnt 
-                FROM vsa_students 
-                WHERE (status = "Active" OR status IS NULL)
-                GROUP BY batch_id
-            ');
-            while ($row = $bscStmt->fetch(PDO::FETCH_ASSOC)) {
-                $batchStudentCounts[intval($row['batch_id'])] = intval($row['cnt']);
-            }
-
-            // Dynamically count recorded sessions per coach
-            $attWhere = ['1=1'];
-            $attParams = [];
+            // Filters
             if (!empty($filters['start_date'])) {
-                $attWhere[] = 'attendance_date >= ?';
-                $attParams[] = $filters['start_date'];
+                $where[] = 'a.created_at >= ?';
+                $params[] = $filters['start_date'] . ' 00:00:00';
+                $report['filters_applied'][] = ['label' => 'From Date', 'value' => date('d/m/Y', strtotime($filters['start_date']))];
             }
             if (!empty($filters['end_date'])) {
-                $attWhere[] = 'attendance_date <= ?';
-                $attParams[] = $filters['end_date'];
+                $where[] = 'a.created_at <= ?';
+                $params[] = $filters['end_date'] . ' 23:59:59';
+                $report['filters_applied'][] = ['label' => 'To Date', 'value' => date('d/m/Y', strtotime($filters['end_date']))];
             }
-            $attSql = '
-                SELECT coach_id, COUNT(DISTINCT CONCAT(attendance_date, "_", batch_id)) AS session_count
-                FROM vsa_attendance
-                WHERE ' . implode(' AND ', $attWhere) . '
-                GROUP BY coach_id
-            ';
-            $attStmt = $pdo->prepare($attSql);
-            $attStmt->execute($attParams);
-            $coachSessions = [];
-            while ($row = $attStmt->fetch(PDO::FETCH_ASSOC)) {
-                $coachSessions[intval($row['coach_id'])] = intval($row['session_count']);
+            if (!empty($filters['role']) && $filters['role'] !== 'all') {
+                $where[] = 'LOWER(a.actor_role) = LOWER(?)';
+                $params[] = $filters['role'];
+                $report['filters_applied'][] = ['label' => 'Role', 'value' => ucfirst($filters['role'])];
             }
-
-            if (empty($coachBatchRows)) {
-                $report['empty'] = true;
-                $report['summary_metrics'] = [
-                    ['label' => 'Total Coaches', 'value' => 0, 'subtext' => '0 coaches matching filters'],
-                    ['label' => 'Active Coaches', 'value' => 0, 'subtext' => '0 active in roster'],
-                    ['label' => 'Assigned Coaches', 'value' => 0, 'subtext' => '0 coaches with batches'],
-                    ['label' => 'Assigned Batches', 'value' => 0, 'subtext' => '0 batches assigned']
-                ];
-                $report['table_rows'] = [];
-                $report['chart'] = null;
-                break;
+            if (!empty($filters['module']) && $filters['module'] !== 'all') {
+                $where[] = 'UPPER(a.module) = UPPER(?)';
+                $params[] = $filters['module'];
+                $report['filters_applied'][] = ['label' => 'Module', 'value' => strtoupper($filters['module'])];
             }
-
-            $distinctCoaches = [];
-            $activeCoaches = 0;
-            $assignedCoaches = [];
-            $assignedBatches = [];
-
-            foreach ($coachBatchRows as $r) {
-                $cId = intval($r['coach_id']);
-                $bId = intval($r['batch_id'] ?? 0);
-
-                if (!isset($distinctCoaches[$cId])) {
-                    $distinctCoaches[$cId] = true;
-                    if (strtolower($r['coach_status'] ?? '') === 'active') {
-                        $activeCoaches++;
-                    }
-                }
-
-                if ($bId > 0) {
-                    $assignedCoaches[$cId] = true;
-                    $assignedBatches[$bId] = true;
-                }
-
-                $sCount = $bId > 0 ? ($batchStudentCounts[$bId] ?? 0) : 0;
-                $sessCount = $coachSessions[$cId] ?? 0;
-
-                $report['table_rows'][] = [
-                    $r['coach_name'],
-                    $r['batch_name'] ?: 'No Batch Assigned',
-                    $r['location'],
-                    $r['schedule'],
-                    $sCount,
-                    $sessCount
-                ];
+            if (!empty($filters['action_type']) && $filters['action_type'] !== 'all') {
+                $where[] = 'LOWER(a.action_type) = LOWER(?)';
+                $params[] = $filters['action_type'];
+                $report['filters_applied'][] = ['label' => 'Action', 'value' => ucfirst($filters['action_type'])];
+            }
+            if (!empty($filters['actor_name']) && $filters['actor_name'] !== 'all') {
+                $where[] = 'a.actor_name = ?';
+                $params[] = $filters['actor_name'];
+                $report['filters_applied'][] = ['label' => 'Actor', 'value' => $filters['actor_name']];
+            }
+            if (!empty($filters['actor_id']) && $filters['actor_id'] !== 'all') {
+                $where[] = 'a.actor_id = ?';
+                $params[] = intval($filters['actor_id']);
+                $report['filters_applied'][] = ['label' => 'Actor ID', 'value' => '#' . $filters['actor_id']];
+            }
+            if (!empty($filters['search'])) {
+                $searchTerm = '%' . trim($filters['search']) . '%';
+                $where[] = '(a.actor_name LIKE ? OR a.actor_email LIKE ? OR a.description LIKE ? OR a.target_name LIKE ? OR a.module LIKE ? OR a.action_type LIKE ?)';
+                $params[] = $searchTerm;
+                $params[] = $searchTerm;
+                $params[] = $searchTerm;
+                $params[] = $searchTerm;
+                $params[] = $searchTerm;
+                $params[] = $searchTerm;
+                $report['filters_applied'][] = ['label' => 'Search', 'value' => $filters['search']];
             }
 
-            $report['summary_metrics'] = [
-                ['label' => 'Total Coaches', 'value' => count($distinctCoaches), 'subtext' => 'Coaches on record'],
-                ['label' => 'Active Coaches', 'value' => $activeCoaches, 'subtext' => 'Active status'],
-                ['label' => 'Assigned Coaches', 'value' => count($assignedCoaches), 'subtext' => 'Coaches leading batches'],
-                ['label' => 'Assigned Batches', 'value' => count($assignedBatches), 'subtext' => 'Active training batches']
-            ];
-            break;
+            // Summary metrics calculation:
+            // 1. Total matching activities
+            $countSql = 'SELECT COUNT(*) FROM vsa_activity_log a WHERE ' . implode(' AND ', $where);
+            $countStmt = $pdo->prepare($countSql);
+            $countStmt->execute($params);
+            $totalCount = intval($countStmt->fetchColumn());
 
-        // =====================================================================
-        // 5. INVENTORY REPORT (SUPER ADMIN ONLY)
-        // =====================================================================
-        case 'inventory_report':
-            $report['title'] = 'Inventory Report';
-            $report['category'] = 'Inventory & Equipment';
-            $report['period'] = 'Live Equipment Stock Registry & Movement Trail';
-            $report['notes'] = 'Consolidated equipment inventory status, batch field allocations, and historical movement trail from vsa_inventory.';
-            $report['table_headers'] = ['Equipment Item', 'Total Quantity', 'Allocated Units', 'Available in Stock', 'Utilization %'];
-
-            $where = ['1=1'];
-            $params = [];
-
-            if (!empty($filters['item_id']) && $filters['item_id'] !== 'all') {
-                $where[] = 'inventory_id = ?';
-                $params[] = intval($filters['item_id']);
-                $report['filters_applied'][] = ['label' => 'Item ID', 'value' => '#' . $filters['item_id']];
+            // 2. Today's activities
+            $todaySql = 'SELECT COUNT(*) FROM vsa_activity_log a WHERE DATE(a.created_at) = CURDATE()';
+            if ($isCoach && $coachId > 0) {
+                $todaySql .= " AND a.actor_role = 'coach' AND a.actor_id = {$coachId}";
             }
+            $todayCount = intval($pdo->query($todaySql)->fetchColumn());
 
-            $sql = '
-                SELECT inventory_id, item_name, total_quantity, allocations, stock_history, created_at, updated_at
-                FROM vsa_inventory
+            // 3. Superadmin vs Coach counts (in current filter scope or overall)
+            $roleCountSql = '
+                SELECT 
+                    SUM(CASE WHEN LOWER(a.actor_role) = "superadmin" THEN 1 ELSE 0 END) AS sa_count,
+                    SUM(CASE WHEN LOWER(a.actor_role) = "coach" THEN 1 ELSE 0 END) AS coach_count
+                FROM vsa_activity_log a 
+                WHERE ' . implode(' AND ', $where);
+            $rcStmt = $pdo->prepare($roleCountSql);
+            $rcStmt->execute($params);
+            $rcRow = $rcStmt->fetch(PDO::FETCH_ASSOC);
+            $saCount = intval($rcRow['sa_count'] ?? 0);
+            $coachCount = intval($rcRow['coach_count'] ?? 0);
+
+            // 4. Most active module
+            $topModSql = '
+                SELECT a.module, COUNT(*) as cnt 
+                FROM vsa_activity_log a 
                 WHERE ' . implode(' AND ', $where) . '
-                ORDER BY item_name ASC
+                GROUP BY a.module 
+                ORDER BY cnt DESC 
+                LIMIT 1
             ';
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute($params);
-            $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            if (empty($items)) {
-                $report['empty'] = true;
-                $report['summary_metrics'] = [
-                    ['label' => 'Total Equipment Items', 'value' => 0, 'subtext' => '0 items tracked'],
-                    ['label' => 'Total Units', 'value' => 0, 'subtext' => '0 central inventory units'],
-                    ['label' => 'Allocated Units', 'value' => 0, 'subtext' => '0 deployed in field'],
-                    ['label' => 'Available Stock', 'value' => 0, 'subtext' => '0 ready for use'],
-                    ['label' => 'Deductions / Losses', 'value' => 0, 'subtext' => '0 units deducted']
-                ];
-                $report['table_rows'] = [];
-                $report['chart'] = null;
-                break;
-            }
-
-            $batchFilterId = !empty($filters['batch_id']) && $filters['batch_id'] !== 'all' ? intval($filters['batch_id']) : 0;
-            $actionFilter = !empty($filters['action_type']) && $filters['action_type'] !== 'all' ? strtolower(trim($filters['action_type'])) : '';
-
-            $totQty = 0;
-            $totAlloc = 0;
-            $totAvail = 0;
-            $totDeductions = 0;
-
-            $itemLabels = [];
-            $allocChart = [];
-            $availChart = [];
-            $movementRows = [];
-
-            foreach ($items as $it) {
-                $t = intval($it['total_quantity']);
-                $allocs = json_decode($it['allocations'] ?: '[]', true) ?: [];
-                $history = json_decode($it['stock_history'] ?: '[]', true) ?: [];
-
-                $a = 0;
-                foreach ($allocs as $al) {
-                    $bId = intval($al['batch_id'] ?? 0);
-                    if ($batchFilterId > 0 && $bId !== $batchFilterId) continue;
-                    $a += intval($al['quantity'] ?? 0);
-                }
-                $av = max(0, $t - $a);
-
-                $totQty += $t;
-                $totAlloc += $a;
-                $totAvail += $av;
-
-                $itemLabels[] = $it['item_name'];
-                $allocChart[] = $a;
-                $availChart[] = $av;
-
-                $utilPct = $t > 0 ? round(($a / $t) * 100, 1) : 0;
-                $report['table_rows'][] = [
-                    $it['item_name'],
-                    $t,
-                    $a,
-                    $av,
-                    "{$utilPct}%"
-                ];
-
-                // Movement History Trail
-                foreach ($history as $h) {
-                    $act = ucfirst(strtolower($h['action'] ?? 'Unknown'));
-                    if (!empty($actionFilter) && strtolower($act) !== $actionFilter) {
-                        continue;
-                    }
-                    $hDate = $h['date'] ?? $h['timestamp'] ?? '';
-                    if (!empty($filters['start_date']) && $hDate < $filters['start_date']) continue;
-                    if (!empty($filters['end_date']) && $hDate > $filters['end_date']) continue;
-
-                    $changeQty = intval($h['quantity'] ?? 0);
-                    if (strtolower($act) === 'deducted') {
-                        $totDeductions += abs($changeQty);
-                    }
-
-                    $movementRows[] = [
-                        $hDate ? date('d/m/Y', strtotime($hDate)) : '—',
-                        $it['item_name'],
-                        $act,
-                        $changeQty > 0 ? "+{$changeQty}" : $changeQty,
-                        $h['batch_name'] ?? '—',
-                        $h['reason'] ?? $h['note'] ?? 'Standard Stock Action'
-                    ];
-                }
-            }
-
-            // Check if batchFilter caused 0 allocated records
-            if ($batchFilterId > 0 && $totAlloc === 0 && empty($movementRows)) {
-                $report['empty'] = true;
-            }
-
-            $overallUtil = $totQty > 0 ? round(($totAlloc / $totQty) * 100, 1) : 0;
+            $tmStmt = $pdo->prepare($topModSql);
+            $tmStmt->execute($params);
+            $topModRow = $tmStmt->fetch(PDO::FETCH_ASSOC);
+            $topModuleName = $topModRow ? $topModRow['module'] . ' (' . $topModRow['cnt'] . ')' : 'None';
 
             $report['summary_metrics'] = [
-                ['label' => 'Total Equipment Items', 'value' => count($items), 'subtext' => 'Distinct gear types'],
-                ['label' => 'Total Units', 'value' => $totQty, 'subtext' => 'Central inventory units'],
-                ['label' => 'Allocated Units', 'value' => $totAlloc, 'subtext' => "{$overallUtil}% deployed in field"],
-                ['label' => 'Available Stock', 'value' => $totAvail, 'subtext' => round(100 - $overallUtil, 1) . '% in central stock'],
-                ['label' => 'Deductions / Losses', 'value' => $totDeductions, 'subtext' => 'Total units deducted']
+                ['label' => 'Total Activities', 'value' => $totalCount, 'subtext' => 'Recorded operations'],
+                ['label' => "Today's Activities", 'value' => $todayCount, 'subtext' => 'Logged today'],
+                ['label' => 'Superadmin Actions', 'value' => $saCount, 'subtext' => 'Administrative operations'],
+                ['label' => 'Coach Actions', 'value' => $coachCount, 'subtext' => 'Field coaching operations'],
+                ['label' => 'Top Module', 'value' => $topModuleName, 'subtext' => 'Highest recorded activity']
             ];
 
-            // Chart: Allocated vs Available Stock
-            if (!empty($itemLabels)) {
+            // Module Breakdown Chart
+            $chartSql = '
+                SELECT a.module, COUNT(*) as cnt 
+                FROM vsa_activity_log a 
+                WHERE ' . implode(' AND ', $where) . '
+                GROUP BY a.module 
+                ORDER BY cnt DESC
+            ';
+            $chartStmt = $pdo->prepare($chartSql);
+            $chartStmt->execute($params);
+            $chartRows = $chartStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (!empty($chartRows)) {
+                $chartLabels = [];
+                $chartData = [];
+                foreach ($chartRows as $cr) {
+                    $chartLabels[] = $cr['module'];
+                    $chartData[] = intval($cr['cnt']);
+                }
                 $report['chart'] = [
                     'type'   => 'bar',
-                    'title'  => 'Equipment Deployment Distribution (Allocated vs Available)',
-                    'labels' => $itemLabels,
+                    'title'  => 'Activity Volume by Operational Module',
+                    'labels' => $chartLabels,
                     'datasets' => [
                         [
-                            'label'           => 'Allocated Units',
-                            'data'            => $allocChart,
+                            'label'           => 'Recorded Actions',
+                            'data'            => $chartData,
                             'backgroundColor' => '#C9A227'
-                        ],
-                        [
-                            'label'           => 'Available in Stock',
-                            'data'            => $availChart,
-                            'backgroundColor' => '#22C55E'
                         ]
                     ]
                 ];
             }
 
-            // Movement History Section
-            $report['secondary_table'] = [
-                'title'   => 'Equipment Movement History & Audit Log',
-                'headers' => ['Date', 'Equipment Item', 'Action Taken', 'Quantity Changed', 'Associated Batch', 'Reason / Notes'],
-                'rows'    => array_slice($movementRows, 0, 50)
+            // Pagination parameters
+            $limit = isset($filters['limit']) ? max(1, min(200, intval($filters['limit']))) : 50;
+            $offset = isset($filters['offset']) ? max(0, intval($filters['offset'])) : 0;
+
+            if ($totalCount === 0) {
+                $report['empty'] = true;
+                $report['table_rows'] = [];
+                $report['activities'] = [];
+                $report['pagination'] = [
+                    'total'    => 0,
+                    'limit'    => $limit,
+                    'offset'   => $offset,
+                    'has_more' => false
+                ];
+                break;
+            }
+
+            // Query chronological activity list
+            $dataSql = '
+                SELECT 
+                    a.activity_id,
+                    a.actor_role,
+                    a.actor_name,
+                    a.actor_email,
+                    a.action_type,
+                    a.module,
+                    a.target_type,
+                    a.target_id,
+                    a.target_name,
+                    a.description,
+                    a.details,
+                    a.created_at
+                FROM vsa_activity_log a
+                WHERE ' . implode(' AND ', $where) . '
+                ORDER BY a.created_at DESC, a.activity_id DESC
+                LIMIT ' . intval($limit) . ' OFFSET ' . intval($offset) . '
+            ';
+            $dataStmt = $pdo->prepare($dataSql);
+            $dataStmt->execute($params);
+            $activityRows = $dataStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $formattedActivities = [];
+            foreach ($activityRows as $row) {
+                $timeFormatted = date('d M Y, h:i A', strtotime($row['created_at']));
+                $shortTime = date('h:i A', strtotime($row['created_at']));
+                $dateFormatted = date('d M Y', strtotime($row['created_at']));
+
+                $targetLabel = '—';
+                if (!empty($row['target_name'])) {
+                    $targetLabel = $row['target_name'];
+                    if (!empty($row['target_type'])) {
+                        $targetLabel = ucfirst($row['target_type']) . ': ' . $targetLabel;
+                    }
+                } elseif (!empty($row['target_type']) && !empty($row['target_id'])) {
+                    $targetLabel = ucfirst($row['target_type']) . ' #' . $row['target_id'];
+                }
+
+                $actorDisplay = $row['actor_name'] ?: ($row['actor_role'] ? ucfirst($row['actor_role']) : 'System');
+
+                $report['table_rows'][] = [
+                    $timeFormatted,
+                    $actorDisplay,
+                    ucfirst($row['actor_role'] ?? 'system'),
+                    $row['module'],
+                    $row['action_type'],
+                    $targetLabel,
+                    $row['description']
+                ];
+
+                $detailsParsed = null;
+                if (!empty($row['details'])) {
+                    $detailsParsed = json_decode($row['details'], true);
+                }
+
+                $formattedActivities[] = [
+                    'activity_id'     => intval($row['activity_id']),
+                    'actor_role'      => $row['actor_role'],
+                    'actor_name'      => $row['actor_name'],
+                    'actor_email'     => $row['actor_email'],
+                    'action_type'     => $row['action_type'],
+                    'module'          => $row['module'],
+                    'target_type'     => $row['target_type'],
+                    'target_id'       => $row['target_id'],
+                    'target_name'     => $row['target_name'],
+                    'description'     => $row['description'],
+                    'details'         => $detailsParsed,
+                    'created_at'      => $row['created_at'],
+                    'formatted_time'  => $shortTime,
+                    'formatted_date'  => $dateFormatted,
+                    'full_timestamp'  => $timeFormatted
+                ];
+            }
+
+            $report['activities'] = $formattedActivities;
+            $report['pagination'] = [
+                'total'    => $totalCount,
+                'limit'    => $limit,
+                'offset'   => $offset,
+                'has_more' => ($offset + count($activityRows) < $totalCount)
             ];
             break;
 
         default:
+            http_response_code(400);
             throw new Exception("Invalid or unsupported report type: {$reportType}");
     }
 
@@ -1205,7 +1006,7 @@ try {
 } catch (Exception $e) {
     $code = http_response_code();
     if ($code === 200) {
-        http_response_code(500);
+        http_response_code(400);
     }
     echo json_encode([
         'success' => false,

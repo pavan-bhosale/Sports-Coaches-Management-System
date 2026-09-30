@@ -105,7 +105,30 @@ if ($role === 'coach' && $verifiedUser) {
     if (!empty($verifiedUser['student_photo'])) {
         $userData['student_photo'] = $verifiedUser['student_photo'];
     }
+// Activity Logging for Successful Login
+require_once __DIR__ . '/activity_logger.php';
+$targetId = null;
+if ($role === 'coach') {
+    $targetId = intval($verifiedUser['coach_id'] ?? 0);
+} elseif ($role === 'student') {
+    $targetId = intval($verifiedUser['student_id'] ?? 0);
+} else {
+    $targetId = intval($verifiedUser['admin_id'] ?? 0);
 }
+
+logActivity($pdo, [
+    'actor_role'  => $role,
+    'actor_id'    => $targetId,
+    'actor_name'  => $name,
+    'actor_email' => $email,
+    'module'      => 'AUTH',
+    'action_type' => 'Logged In',
+    'target_type' => 'User',
+    'target_id'   => $targetId,
+    'target_name' => $name,
+    'description' => "{$name} logged in successfully as " . ucfirst($role),
+    'details'     => ['role' => $role, 'email' => $email]
+]);
 
 echo json_encode([
     'success' => true,

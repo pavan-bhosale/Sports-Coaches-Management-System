@@ -7,7 +7,7 @@
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-VAVA-Role, X-VAVA-Email, X-VAVA-Coach-Id');
+header('Access-Control-Allow-Headers: Content-Type, X-VAVA-Role, X-VAVA-Email, X-VAVA-Coach-Id, X-VAVA-Actor-Name');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -15,6 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once 'db_connect.php';
+require_once 'activity_logger.php';
 
 /**
  * Ensure student_note TEXT NULL column exists in vsa_students,
@@ -340,6 +341,11 @@ if ($method === 'POST') {
             $stmtUpdate = $pdo->prepare('UPDATE vsa_students SET student_note = ? WHERE student_id = ?');
             $stmtUpdate->execute([$note_content, $student_id]);
 
+            recordActivity($pdo, 'STUDENT', 'Updated', 'Student', $student_id, "Student #{$student_id}", "Updated coach training notes for Student #{$student_id}", [
+                'student_id'   => $student_id,
+                'student_note' => $note_content
+            ], $input);
+
             echo json_encode([
                 'success'      => true,
                 'message'      => !empty($student['student_note']) ? 'Note updated successfully.' : 'Note added successfully.',
@@ -576,6 +582,24 @@ if ($method === 'POST') {
         ]);
         $newId = $pdo->lastInsertId();
 
+        $batchInfo = $batch_name ?: 'No Batch';
+        if ($batch_id > 0) {
+            $batchInfo = "Batch #{$batch_id} ({$batch_name})";
+        }
+        $desc = "Enrolled student {$student_name} (ID: #{$newId}) in {$batchInfo}";
+        if ($coach_name) {
+            $desc .= " with Coach {$coach_name}";
+        }
+        recordActivity($pdo, 'STUDENT', 'Created', 'Student', $newId, $student_name, $desc, [
+            'student_id'   => $newId,
+            'student_name' => $student_name,
+            'batch_id'     => $batch_id,
+            'batch_name'   => $batch_name,
+            'coach_name'   => $coach_name,
+            'branch_name'  => $branch_name,
+            'status'       => $status
+        ], $input);
+
         $imageData = $input['image_data'] ?? $input['student_photo'] ?? '';
         $savedPhoto = null;
         if (!empty($imageData)) {
@@ -741,6 +765,21 @@ if ($method === 'PUT') {
             }
         }
 
+        $batchInfo = $batch_name ?: 'No Batch';
+        if ($batch_id > 0) {
+            $batchInfo = "Batch #{$batch_id} ({$batch_name})";
+        }
+        $desc = "Updated student profile for {$student_name} (ID: #{$student_id}) — Assigned to {$batchInfo}";
+        recordActivity($pdo, 'STUDENT', 'Updated', 'Student', $student_id, $student_name, $desc, [
+            'student_id'   => $student_id,
+            'student_name' => $student_name,
+            'batch_id'     => $batch_id,
+            'batch_name'   => $batch_name,
+            'coach_name'   => $coach_name,
+            'branch_name'  => $branch_name,
+            'status'       => $status
+        ], $input);
+
         echo json_encode(['success' => true, 'student_photo' => $savedPhoto]);
     } catch (PDOException $e) {
         http_response_code(500);
@@ -768,10 +807,16 @@ if ($method === 'DELETE') {
     }
 
     try {
-        $stmtOld = $pdo->prepare('SELECT student_photo FROM vsa_students WHERE student_id = ?');
+        $stmtOld = $pdo->prepare('SELECT student_id, student_name, batch_name, student_photo FROM vsa_students WHERE student_id = ?');
         $stmtOld->execute([$student_id]);
         $student = $stmtOld->fetch();
-        if ($student && !empty($student['student_photo'])) {
+        if (!$student) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Student not found.']);
+            exit;
+        }
+
+        if (!empty($student['student_photo'])) {
             $oldFile = __DIR__ . '/../' . $student['student_photo'];
             if (file_exists($oldFile)) {
                 @unlink($oldFile);
@@ -781,11 +826,8 @@ if ($method === 'DELETE') {
         $stmt = $pdo->prepare('DELETE FROM vsa_students WHERE student_id = ?');
         $stmt->execute([$student_id]);
 
-        if ($stmt->rowCount() === 0) {
-            http_response_code(404);
-            echo json_encode(['error' => 'Student not found.']);
-            exit;
-        }
+        $studentTitle = "Student #{$student_id} ({$student['student_name']})";
+        recordActivity($pdo, 'STUDENT', 'Deleted', 'Student', $student_id, $studentTitle, "Deleted {$studentTitle}", $student, $input);
 
         echo json_encode(['success' => true]);
     } catch (PDOException $e) {

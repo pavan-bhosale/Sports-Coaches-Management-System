@@ -7,7 +7,7 @@
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Headers: Content-Type, X-VAVA-Role, X-VAVA-Email, X-VAVA-Coach-ID, X-VAVA-Actor-Name');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -15,6 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once 'db_connect.php';
+require_once 'activity_logger.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -199,6 +200,15 @@ if ($method === 'POST') {
         ]);
         $newId = $pdo->lastInsertId();
 
+        recordActivity($pdo, 'COACH', 'Created', 'Coach', $newId, $coach_name, "Registered coach {$coach_name} (Email: {$coach_email})", [
+            'coach_id'    => $newId,
+            'coach_name'  => $coach_name,
+            'coach_email' => $coach_email,
+            'sport'       => $coach_sport,
+            'status'      => $status,
+            'batch_id'    => $batch_id > 0 ? $batch_id : null
+        ], $input);
+
         echo json_encode([
             'success' => true,
             'coach_id' => $newId
@@ -254,6 +264,15 @@ if ($method === 'PUT') {
             $coach_id
         ]);
 
+        recordActivity($pdo, 'COACH', 'Updated', 'Coach', $coach_id, $coach_name, "Updated coach profile for {$coach_name} (ID: #{$coach_id})", [
+            'coach_id'    => $coach_id,
+            'coach_name'  => $coach_name,
+            'coach_email' => $coach_email,
+            'sport'       => $coach_sport,
+            'status'      => $status,
+            'batch_id'    => $batch_id > 0 ? $batch_id : null
+        ], $input);
+
         echo json_encode(['success' => true]);
     } catch (PDOException $e) {
         http_response_code(500);
@@ -274,10 +293,16 @@ if ($method === 'DELETE') {
     }
 
     try {
-        $stmtOld = $pdo->prepare('SELECT coach_photo FROM vsa_coaches WHERE coach_id = ?');
+        $stmtOld = $pdo->prepare('SELECT coach_id, coach_name, coach_email, coach_photo FROM vsa_coaches WHERE coach_id = ?');
         $stmtOld->execute([$coach_id]);
         $coach = $stmtOld->fetch();
-        if ($coach && !empty($coach['coach_photo'])) {
+        if (!$coach) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Coach not found.']);
+            exit;
+        }
+
+        if (!empty($coach['coach_photo'])) {
             $oldFile = __DIR__ . '/../' . $coach['coach_photo'];
             if (file_exists($oldFile)) {
                 @unlink($oldFile);
@@ -291,11 +316,8 @@ if ($method === 'DELETE') {
         $stmt = $pdo->prepare('DELETE FROM vsa_coaches WHERE coach_id = ?');
         $stmt->execute([$coach_id]);
 
-        if ($stmt->rowCount() === 0) {
-            http_response_code(404);
-            echo json_encode(['error' => 'Coach not found.']);
-            exit;
-        }
+        $coachTitle = "Coach #{$coach_id} ({$coach['coach_name']})";
+        recordActivity($pdo, 'COACH', 'Deleted', 'Coach', $coach_id, $coachTitle, "Deleted {$coachTitle}", $coach, $input);
 
         echo json_encode(['success' => true]);
     } catch (PDOException $e) {

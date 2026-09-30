@@ -21,7 +21,7 @@ date_default_timezone_set('Asia/Kolkata');
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-VAVA-Role, X-VAVA-Email');
+header('Access-Control-Allow-Headers: Content-Type, X-VAVA-Role, X-VAVA-Email, X-VAVA-Coach-ID, X-VAVA-Actor-Name');
 
 // Helper to respond with JSON errors consistently
 function respondError($message, $code = 400) {
@@ -47,6 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once 'db_connect.php';
+require_once 'activity_logger.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -356,6 +357,12 @@ if ($method === 'POST') {
             $fetchStmt->execute([$newId]);
             $newItem = $fetchStmt->fetch();
 
+            recordActivity($pdo, 'INVENTORY', 'Created', 'Equipment', $newId, $itemName, "Added equipment item {$itemName} with initial stock {$initialQty}", [
+                'inventory_id'     => $newId,
+                'item_name'        => $itemName,
+                'initial_quantity' => $initialQty
+            ], $input);
+
             respondSuccess([
                 'message' => 'Inventory item created successfully.',
                 'item'    => formatItemPayload($newItem, $batchesMap)
@@ -414,6 +421,14 @@ if ($method === 'POST') {
             $updateStmt->execute([$newTotal, json_encode($stockHistory), $inventory_id]);
 
             $pdo->commit();
+
+            recordActivity($pdo, 'INVENTORY', 'Updated', 'Equipment', $inventory_id, $row['item_name'], "Added {$addedQty} stock to {$row['item_name']}. Reason: {$reason}", [
+                'inventory_id'   => $inventory_id,
+                'item_name'      => $row['item_name'],
+                'added_quantity' => $addedQty,
+                'new_total'      => $newTotal,
+                'reason'         => $reason
+            ], $input);
 
             $batchesMap = getBatchesMap($pdo);
             $stmt->execute([$inventory_id]);
@@ -568,6 +583,14 @@ if ($method === 'POST') {
 
             $pdo->commit();
 
+            recordActivity($pdo, 'INVENTORY', 'Updated', 'Equipment', $inventory_id, $row['item_name'], "Deducted {$deductedQty} stock from {$row['item_name']}. Reason: {$reason}", [
+                'inventory_id'      => $inventory_id,
+                'item_name'         => $row['item_name'],
+                'deducted_quantity' => $deductedQty,
+                'new_total'         => $newTotal,
+                'reason'            => $reason
+            ], $input);
+
             // Re-fetch updated row to return fresh payload
             $stmt->execute([$inventory_id]);
             $updatedRow = $stmt->fetch();
@@ -680,6 +703,15 @@ if ($method === 'POST') {
 
             $pdo->commit();
 
+            recordActivity($pdo, 'INVENTORY', 'Assigned', 'Equipment', $inventory_id, $row['item_name'], "Allocated {$allocQty} {$row['item_name']} to {$batch['batch_name']}", [
+                'inventory_id' => $inventory_id,
+                'item_name'    => $row['item_name'],
+                'quantity'     => $allocQty,
+                'batch_id'     => $batch_id,
+                'batch_name'   => $batch['batch_name'],
+                'reason'       => $reason
+            ], $input);
+
             $batchesMap = getBatchesMap($pdo);
             $stmt->execute([$inventory_id]);
             $updatedRow = $stmt->fetch();
@@ -780,6 +812,15 @@ if ($method === 'POST') {
             ]);
 
             $pdo->commit();
+
+            recordActivity($pdo, 'INVENTORY', 'Unassigned', 'Equipment', $inventory_id, $row['item_name'], "Returned {$deallocQty} {$row['item_name']} from {$batchName}", [
+                'inventory_id' => $inventory_id,
+                'item_name'    => $row['item_name'],
+                'quantity'     => $deallocQty,
+                'batch_id'     => $batch_id,
+                'batch_name'   => $batchName,
+                'reason'       => $reason
+            ], $input);
 
             $batchesMap = getBatchesMap($pdo);
             $stmt->execute([$inventory_id]);

@@ -3,12 +3,10 @@
  * VAVA SPORTS ACADEMY - CONSOLIDATED REPORTS & ANALYTICS CLIENT MODULE
  * ==========================================================================
  * 
- * Simplified to 5 Core Reports:
- * 1. Student & Batch Report (student_batch)
- * 2. Attendance Report (attendance_report)
- * 3. Fees & Payments Report (fees_payments) - Super Admin Only
- * 4. Coach & Batch Activity Report (coach_activity) - Factual assignments
- * 5. Inventory Report (inventory_report) - Super Admin Only
+ * Consolidated 3 Core Reports:
+ * 1. Attendance Report (attendance_report)
+ * 2. Fees & Payments Report (fees_payments) - Super Admin Only
+ * 3. Activity Report (activity_report) - Chronological Audit & System History
  * 
  * Production Hardened Features:
  * - Centralized API resolution for local XAMPP, Live Server, and root/subdirectory deployments
@@ -34,11 +32,9 @@
 
   // Clean SVG Icons
   const ICONS = {
-    students: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>`,
     attendance: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="M9 16l2 2 4-4"></path></svg>`,
     fees: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line><circle cx="12" cy="15" r="2"></circle></svg>`,
-    coaches: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle><line x1="18" y1="8" x2="22" y2="8"></line><line x1="20" y1="6" x2="20" y2="10"></line></svg>`,
-    inventory: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>`
+    activity: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>`
   };
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -128,19 +124,10 @@
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // 2. THE 5 CORE REPORT REGISTRY
+  // 2. THE 3 CORE REPORT REGISTRY
   // ──────────────────────────────────────────────────────────────────────────
 
   const REPORT_REGISTRY = [
-    {
-      id: 'student_batch',
-      title: 'Student & Batch Report',
-      category: 'Students & Batches',
-      description: 'Combined overview of athlete enrollment, coach allocations, and real-time training batch distributions.',
-      icon: ICONS.students,
-      superadminOnly: false,
-      filterFields: ['student_id', 'batch_id', 'coach_id', 'branch', 'gender', 'status']
-    },
     {
       id: 'attendance_report',
       title: 'Attendance Report',
@@ -160,22 +147,13 @@
       filterFields: ['month', 'start_date', 'end_date', 'student_id', 'batch_id', 'status', 'payment_method']
     },
     {
-      id: 'coach_activity',
-      title: 'Coach & Batch Activity Report',
-      category: 'Coaches & Batches',
-      description: 'Factual coaching roster records, assigned batch timings, enrolled athlete counts, and recorded session logs.',
-      icon: ICONS.coaches,
+      id: 'activity_report',
+      title: 'Activity Report',
+      category: 'Audit & System History',
+      description: 'Chronological audit-style history of system operations, administrative changes, and user activities.',
+      icon: ICONS.activity,
       superadminOnly: false,
-      filterFields: ['coach_id', 'batch_id', 'branch', 'start_date', 'end_date']
-    },
-    {
-      id: 'inventory_report',
-      title: 'Inventory Report',
-      category: 'Inventory & Equipment',
-      description: 'Complete equipment status, field allocations to batches, utilization rates, and stock movement audit trail.',
-      icon: ICONS.inventory,
-      superadminOnly: true,
-      filterFields: ['item_id', 'batch_id', 'action_type', 'start_date', 'end_date']
+      filterFields: ['start_date', 'end_date', 'role', 'module', 'action_type', 'actor_name', 'search']
     }
   ];
 
@@ -228,7 +206,7 @@
               Reports & Analytics
             </h1>
             <p>
-              Consolidated operational reports, attendance tracking, financial collections, and equipment audits.
+              Consolidated operational reports, attendance tracking, financial collections, and chronological activity audits.
             </p>
           </div>
         </div>
@@ -243,11 +221,11 @@
             <input type="text" id="reportSearchInput" class="reports-search-input" placeholder="Search reports by title or description...">
           </div>
           <div class="reports-count-pill" id="reportsCountBadge">
-            5 Core Reports
+            3 Core Reports
           </div>
         </div>
 
-        <!-- Reports Grid (Exactly 5 Cards) -->
+        <!-- Reports Grid (Exactly 3 Cards) -->
         <div class="reports-grid" id="reportsGrid"></div>
       </div>
 
@@ -260,7 +238,7 @@
           <div class="report-modal-header">
             <div class="report-modal-header-left">
               <div class="report-modal-header-icon" id="previewModalIcon">
-                ${ICONS.students}
+                ${ICONS.attendance}
               </div>
               <div class="report-modal-title-group">
                 <h2 id="previewModalTitle">Report Details</h2>
@@ -349,6 +327,13 @@
                     Detailed Records
                   </span>
                   <span class="report-table-count" id="previewTableCount">0 records found</span>
+                  <span class="report-table-scroll-hint" id="previewTableScrollHint">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="13 17 18 12 13 7"></polyline>
+                      <polyline points="6 17 11 12 6 7"></polyline>
+                    </svg>
+                    Swipe to view columns
+                  </span>
                 </div>
                 <div class="report-table-wrapper" id="previewTableWrapper">
                   <table class="report-data-table" id="previewDataTable">
@@ -658,33 +643,67 @@
             </select>
           </div>
         `;
-      } else if (field === 'item_id') {
-        const val = activeFilters.item_id || '';
-        const items = (filterOptions && filterOptions.inventory_items) ? filterOptions.inventory_items : [];
+      } else if (field === 'role') {
+        const val = activeFilters.role || '';
+        const roles = (filterOptions && filterOptions.activity_roles) ? filterOptions.activity_roles : [
+          { value: 'superadmin', label: 'Superadmin' },
+          { value: 'coach', label: 'Coach' }
+        ];
         html += `
           <div class="report-filter-group">
-            <label class="report-filter-label" for="filter_item_id">Equipment Item</label>
-            <select id="filter_item_id" class="report-filter-select">
-              <option value="">All Inventory Items</option>
-              ${items.map(it => {
-                const itId = it.inventory_id || it.id;
-                return `<option value="${itId}" ${val == itId ? 'selected' : ''}>${escapeHtml(it.item_name)}</option>`;
-              }).join('')}
+            <label class="report-filter-label" for="filter_role">Actor Role</label>
+            <select id="filter_role" class="report-filter-select">
+              <option value="">All Roles</option>
+              ${roles.map(r => `<option value="${r.value}" ${val.toLowerCase() === r.value.toLowerCase() ? 'selected' : ''}>${escapeHtml(r.label)}</option>`).join('')}
+            </select>
+          </div>
+        `;
+      } else if (field === 'module') {
+        const val = activeFilters.module || '';
+        const modules = (filterOptions && filterOptions.activity_modules) ? filterOptions.activity_modules : [
+          'AUTH', 'STUDENT', 'COACH', 'BATCH', 'ATTENDANCE', 'INVENTORY', 'FEES', 'SYSTEM'
+        ];
+        html += `
+          <div class="report-filter-group">
+            <label class="report-filter-label" for="filter_module">Module</label>
+            <select id="filter_module" class="report-filter-select">
+              <option value="">All Modules</option>
+              ${modules.map(m => `<option value="${m}" ${val.toUpperCase() === m.toUpperCase() ? 'selected' : ''}>${escapeHtml(m)}</option>`).join('')}
             </select>
           </div>
         `;
       } else if (field === 'action_type') {
         const val = activeFilters.action_type || '';
+        const actions = (filterOptions && filterOptions.activity_actions) ? filterOptions.activity_actions : [
+          'Created', 'Updated', 'Deleted', 'Assigned', 'Unassigned', 'Recorded', 'Marked', 'Submitted', 'Logged In', 'Logged Out'
+        ];
         html += `
           <div class="report-filter-group">
-            <label class="report-filter-label" for="filter_action_type">Movement Type</label>
+            <label class="report-filter-label" for="filter_action_type">Action</label>
             <select id="filter_action_type" class="report-filter-select">
-              <option value="">All Movement Types</option>
-              <option value="Added" ${val === 'Added' ? 'selected' : ''}>Added Stock</option>
-              <option value="Deducted" ${val === 'Deducted' ? 'selected' : ''}>Deducted Stock</option>
-              <option value="Allocated" ${val === 'Allocated' ? 'selected' : ''}>Allocated to Batch</option>
-              <option value="Deallocated" ${val === 'Deallocated' ? 'selected' : ''}>Deallocated from Batch</option>
+              <option value="">All Actions</option>
+              ${actions.map(a => `<option value="${a}" ${val.toLowerCase() === a.toLowerCase() ? 'selected' : ''}>${escapeHtml(a)}</option>`).join('')}
             </select>
+          </div>
+        `;
+      } else if (field === 'actor_name') {
+        const val = activeFilters.actor_name || '';
+        const actors = (filterOptions && filterOptions.activity_actors) ? filterOptions.activity_actors : [];
+        html += `
+          <div class="report-filter-group">
+            <label class="report-filter-label" for="filter_actor_name">Actor / User</label>
+            <select id="filter_actor_name" class="report-filter-select">
+              <option value="">All Actors</option>
+              ${actors.map(a => `<option value="${escapeHtml(a.actor_name)}" ${val === a.actor_name ? 'selected' : ''}>${escapeHtml(a.actor_name)} (${escapeHtml(a.actor_role)})</option>`).join('')}
+            </select>
+          </div>
+        `;
+      } else if (field === 'search') {
+        const val = activeFilters.search || '';
+        html += `
+          <div class="report-filter-group report-filter-group-search">
+            <label class="report-filter-label" for="filter_search">Search Keyword</label>
+            <input type="text" id="filter_search" class="report-filter-input" placeholder="Search actor, description, target..." value="${escapeHtml(val)}">
           </div>
         `;
       }
@@ -826,8 +845,12 @@
     // 2. Visual Analytics / Chart
     renderReportChart(data.chart);
 
-    // 3. Primary Data Table
-    renderReportTable(data.table_headers, data.table_rows, data.empty);
+    // 3. Primary Data Table or Activity Feed
+    if (data.id === 'activity_report') {
+      renderActivitySection(data);
+    } else {
+      renderReportTable(data.table_headers, data.table_rows, data.empty);
+    }
 
     // 4. Secondary Breakdown Section
     renderSecondarySections(data);
@@ -909,14 +932,45 @@
     const thead = document.getElementById('previewTableHead');
     const tbody = document.getElementById('previewTableBody');
     const countBadge = document.getElementById('previewTableCount');
+    const tableTitle = document.getElementById('previewTableTitle');
+    const wrapper = document.getElementById('previewTableWrapper');
 
-    if (!thead || !tbody) return;
+    if (tableTitle) {
+      tableTitle.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="8" y1="6" x2="21" y2="6"></line>
+          <line x1="8" y1="12" x2="21" y2="12"></line>
+          <line x1="8" y1="18" x2="21" y2="18"></line>
+          <line x1="3" y1="6" x2="3.01" y2="6"></line>
+          <line x1="3" y1="12" x2="3.01" y2="12"></line>
+          <line x1="3" y1="18" x2="3.01" y2="18"></line>
+        </svg>
+        Detailed Records
+      `;
+    }
 
-    thead.innerHTML = `<tr>${(headers || []).map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr>`;
+    if (!wrapper) return;
+    wrapper.classList.remove('has-timeline');
+
+    // Ensure table structure exists
+    if (!document.getElementById('previewDataTable')) {
+      wrapper.innerHTML = `
+        <table class="report-data-table" id="previewDataTable">
+          <thead id="previewTableHead"></thead>
+          <tbody id="previewTableBody"></tbody>
+        </table>
+      `;
+    }
+
+    const currentThead = document.getElementById('previewTableHead');
+    const currentTbody = document.getElementById('previewTableBody');
+    if (!currentThead || !currentTbody) return;
+
+    currentThead.innerHTML = `<tr>${(headers || []).map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr>`;
 
     if (isEmpty || !rows || rows.length === 0) {
       if (countBadge) countBadge.textContent = '0 records found';
-      tbody.innerHTML = `
+      currentTbody.innerHTML = `
         <tr class="report-empty-row">
           <td colspan="${headers?.length || 1}" class="report-table-empty-cell">
             <div class="reports-empty-notice">
@@ -936,7 +990,7 @@
       countBadge.textContent = `${rows.length} record${rows.length === 1 ? '' : 's'} found`;
     }
 
-    tbody.innerHTML = rows.map(r => `
+    currentTbody.innerHTML = rows.map(r => `
       <tr>
         ${r.map((cell, idx) => {
           const rawStr = cell !== null && cell !== undefined ? String(cell) : '—';
@@ -958,6 +1012,338 @@
     `).join('');
   }
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // 9. DEDICATED ACTIVITY REPORT RENDERER (DESKTOP HYBRID + MOBILE TIMELINE)
+  // ──────────────────────────────────────────────────────────────────────────
+
+  function renderActivitySection(data) {
+    const tableTitle = document.getElementById('previewTableTitle');
+    const countBadge = document.getElementById('previewTableCount');
+    const wrapper = document.getElementById('previewTableWrapper');
+
+    if (!wrapper) return;
+    wrapper.classList.add('has-timeline');
+
+    if (tableTitle) {
+      tableTitle.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+        </svg>
+        Recent Activity Log
+      `;
+    }
+
+    const totalCount = data.pagination?.total !== undefined ? data.pagination.total : (data.activities ? data.activities.length : 0);
+
+    if (data.empty || !data.activities || data.activities.length === 0) {
+      if (countBadge) countBadge.textContent = '0 activities recorded';
+
+      const hasFiltersApplied = Object.keys(activeFilters).some(k => activeFilters[k] !== '' && activeFilters[k] !== 'all');
+      wrapper.innerHTML = `
+        <div class="report-empty-state" style="padding: 3rem 1rem;">
+          <div class="report-empty-icon" style="color: var(--gold-primary);">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </div>
+          <div class="report-empty-text">${hasFiltersApplied ? 'No activities match the selected filters.' : 'No activity recorded yet.'}</div>
+          <p style="font-size:0.85rem; color:var(--text-muted); max-width:480px; margin: 0.35rem auto 0; line-height: 1.5;">
+            ${hasFiltersApplied ? 'Try modifying or resetting the filter fields above.' : 'Real-time actions performed in Students, Coaches, Batches, Attendance, Fees, and Inventory modules will be recorded here automatically.'}
+          </p>
+          ${hasFiltersApplied ? `
+            <button type="button" class="btn-sb-ghost" id="btnResetActivityEmpty" style="margin-top: 1rem;">
+              Reset Filters
+            </button>
+          ` : ''}
+        </div>
+      `;
+
+      const resetBtn = document.getElementById('btnResetActivityEmpty');
+      if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+          activeFilters = {};
+          const reportDef = REPORT_REGISTRY.find(r => r.id === 'activity_report');
+          if (reportDef) renderFilterForm(reportDef);
+          fetchAndRenderReport();
+        });
+      }
+      return;
+    }
+
+    const activities = data.activities;
+    if (countBadge) {
+      countBadge.textContent = `${activities.length} of ${totalCount} recorded`;
+    }
+
+    const getActionClass = (act) => {
+      const a = (act || '').toLowerCase();
+      if (a.includes('create') || a.includes('record') || a.includes('mark') || a.includes('submit')) return 'act-action-created';
+      if (a.includes('update') || a.includes('edit')) return 'act-action-updated';
+      if (a.includes('delete')) return 'act-action-deleted';
+      if (a.includes('unassign') || a.includes('dealloc')) return 'act-action-unassigned';
+      if (a.includes('assign') || a.includes('alloc')) return 'act-action-assigned';
+      if (a.includes('login') || a.includes('log')) return 'act-action-login';
+      return 'act-action-created';
+    };
+
+    // Desktop Table Layout
+    let tableHtml = `
+      <div class="activity-table-view">
+        <table class="report-data-table" id="activityDataTable">
+          <thead>
+            <tr>
+              <th style="width: 14%;">Time</th>
+              <th style="width: 15%;">Actor</th>
+              <th style="width: 11%;">Role</th>
+              <th style="width: 11%;">Module</th>
+              <th style="width: 12%;">Action</th>
+              <th style="width: 17%;">Target</th>
+              <th style="width: 20%;">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    activities.forEach(act => {
+      const roleLower = (act.actor_role || 'superadmin').toLowerCase();
+      const modLower = (act.module || '').toLowerCase();
+      const actionCls = getActionClass(act.action_type);
+      const actorName = act.actor_name || (act.actor_role ? ucfirst(act.actor_role) : 'System');
+      const targetDisplay = act.target_name ? `${act.target_name}` : (act.target_type ? `${ucfirst(act.target_type)} #${act.target_id || ''}` : '—');
+
+      tableHtml += `
+        <tr>
+          <td style="white-space:nowrap;" title="${escapeHtml(act.full_timestamp)}">
+            <span style="font-weight:600; color:var(--text-primary); font-size:0.82rem;">${escapeHtml(act.formatted_time)}</span>
+            <div style="font-size:0.72rem; color:var(--text-muted);">${escapeHtml(act.formatted_date)}</div>
+          </td>
+          <td>
+            <span style="font-weight:600; color:var(--text-primary); font-size:0.83rem;">${escapeHtml(actorName)}</span>
+            ${act.actor_email ? `<div style="font-size:0.72rem; color:var(--text-muted);">${escapeHtml(act.actor_email)}</div>` : ''}
+          </td>
+          <td>
+            <span class="act-badge-role ${roleLower}">${escapeHtml(act.actor_role || 'Superadmin')}</span>
+          </td>
+          <td>
+            <span class="act-badge-module act-mod-${modLower}">${escapeHtml(act.module)}</span>
+          </td>
+          <td>
+            <span class="act-badge-action ${actionCls}">${escapeHtml(act.action_type)}</span>
+          </td>
+          <td title="${escapeHtml(targetDisplay)}">
+            <span style="font-weight:500; font-size:0.82rem; color:var(--text-secondary);">${escapeHtml(targetDisplay)}</span>
+          </td>
+          <td>
+            <div style="font-size:0.83rem; color:var(--text-primary); line-height:1.4;">${escapeHtml(act.description)}</div>
+            ${act.details ? `
+              <button type="button" class="btn-act-details" data-act-id="${act.activity_id}" style="margin-top:0.25rem;">
+                View Details
+              </button>
+            ` : ''}
+          </td>
+        </tr>
+      `;
+    });
+
+    tableHtml += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    // Mobile Timeline Cards Layout
+    let timelineHtml = `
+      <div class="activity-timeline-view">
+    `;
+
+    activities.forEach(act => {
+      const roleLower = (act.actor_role || 'superadmin').toLowerCase();
+      const modLower = (act.module || '').toLowerCase();
+      const actionCls = getActionClass(act.action_type);
+      const actorName = act.actor_name || (act.actor_role ? ucfirst(act.actor_role) : 'System');
+      const targetDisplay = act.target_name ? `${act.target_name}` : (act.target_type ? `${ucfirst(act.target_type)} #${act.target_id || ''}` : '');
+
+      timelineHtml += `
+        <div class="activity-card mod-${modLower}">
+          <div class="activity-card-top">
+            <span class="activity-card-time">${escapeHtml(act.formatted_time)} • ${escapeHtml(act.formatted_date)}</span>
+            <span class="act-badge-module act-mod-${modLower}">${escapeHtml(act.module)}</span>
+          </div>
+          <div class="activity-card-actor-row">
+            <span>${escapeHtml(actorName)}</span>
+            <span class="act-badge-role ${roleLower}">${escapeHtml(act.actor_role || 'Superadmin')}</span>
+          </div>
+          <div class="activity-card-action-row">
+            <span class="act-badge-action ${actionCls}">${escapeHtml(act.action_type)}</span>
+            ${targetDisplay ? `<span class="activity-card-target">${escapeHtml(targetDisplay)}</span>` : ''}
+          </div>
+          <p class="activity-card-desc">${escapeHtml(act.description)}</p>
+          ${act.details ? `
+            <div style="margin-top:0.25rem;">
+              <button type="button" class="btn-act-details" data-act-id="${act.activity_id}">
+                View Details
+              </button>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    });
+
+    timelineHtml += `
+      </div>
+    `;
+
+    // Pagination Bar
+    let paginationHtml = '';
+    if (data.pagination && data.pagination.has_more) {
+      paginationHtml = `
+        <div class="activity-pagination-bar">
+          <button type="button" class="btn-activity-load-more" id="btnLoadMoreActivities">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+            Load More (${activities.length} of ${data.pagination.total})
+          </button>
+        </div>
+      `;
+    }
+
+    wrapper.innerHTML = tableHtml + timelineHtml + paginationHtml;
+
+    // Bind Details buttons
+    wrapper.querySelectorAll('.btn-act-details').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const actId = parseInt(this.getAttribute('data-act-id'), 10);
+        const actObj = activities.find(a => a.activity_id === actId);
+        if (actObj) {
+          openActivityDetailsModal(actObj);
+        }
+      });
+    });
+
+    // Bind Load More button
+    const loadMoreBtn = document.getElementById('btnLoadMoreActivities');
+    if (loadMoreBtn) {
+      loadMoreBtn.addEventListener('click', async function() {
+        this.disabled = true;
+        this.textContent = 'Loading more activities...';
+        try {
+          const currentLimit = data.pagination.limit || 50;
+          const currentOffset = data.pagination.offset || 0;
+          const nextOffset = currentOffset + currentLimit;
+          const params = Object.assign({ report: 'activity_report', offset: nextOffset, limit: currentLimit }, activeFilters);
+          const res = await fetchReportsJson('get_report', params);
+          if (res && res.success && res.data && res.data.activities) {
+            currentReportData.activities = currentReportData.activities.concat(res.data.activities);
+            currentReportData.pagination = res.data.pagination;
+            renderActivitySection(currentReportData);
+          }
+        } catch (err) {
+          console.error('Failed to load more activities:', err);
+        }
+      });
+    }
+  }
+
+  function openActivityDetailsModal(act) {
+    const existing = document.getElementById('activityDetailsModalOverlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'activity-details-modal-overlay';
+    overlay.id = 'activityDetailsModalOverlay';
+
+    let detailsRowsHtml = '';
+    if (act.details && typeof act.details === 'object') {
+      detailsRowsHtml = Object.keys(act.details).map(k => {
+        const val = act.details[k];
+        const valStr = typeof val === 'object' ? JSON.stringify(val, null, 2) : String(val);
+        const labelStr = k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        return `
+          <div class="activity-detail-item">
+            <span class="activity-detail-label">${escapeHtml(labelStr)}</span>
+            <span class="activity-detail-val">${escapeHtml(valStr)}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    overlay.innerHTML = `
+      <div class="activity-details-card" role="dialog" aria-modal="true">
+        <div class="activity-details-header">
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            <span class="act-badge-module act-mod-${(act.module || '').toLowerCase()}">${escapeHtml(act.module)}</span>
+            <span style="font-weight:700; color:var(--text-primary); font-size:0.95rem;">Activity #${act.activity_id}</span>
+          </div>
+          <button type="button" class="report-modal-close-btn" id="closeActDetailsModal" style="width:28px; height:28px;">&times;</button>
+        </div>
+        <div class="activity-details-body">
+          <div class="activity-detail-item">
+            <span class="activity-detail-label">Timestamp</span>
+            <span class="activity-detail-val">${escapeHtml(act.full_timestamp)}</span>
+          </div>
+          <div class="activity-detail-item">
+            <span class="activity-detail-label">Actor Name</span>
+            <span class="activity-detail-val">${escapeHtml(act.actor_name || 'System')}</span>
+          </div>
+          ${act.actor_email ? `
+            <div class="activity-detail-item">
+              <span class="activity-detail-label">Actor Email</span>
+              <span class="activity-detail-val">${escapeHtml(act.actor_email)}</span>
+            </div>
+          ` : ''}
+          <div class="activity-detail-item">
+            <span class="activity-detail-label">Actor Role</span>
+            <span class="activity-detail-val">
+              <span class="act-badge-role ${(act.actor_role || '').toLowerCase()}">${escapeHtml(act.actor_role || 'Superadmin')}</span>
+            </span>
+          </div>
+          <div class="activity-detail-item">
+            <span class="activity-detail-label">Action Performed</span>
+            <span class="activity-detail-val">
+              <span class="act-badge-action">${escapeHtml(act.action_type)}</span>
+            </span>
+          </div>
+          ${act.target_name || act.target_type ? `
+            <div class="activity-detail-item">
+              <span class="activity-detail-label">Target / Entity</span>
+              <span class="activity-detail-val">${escapeHtml(act.target_name || (act.target_type + ' #' + (act.target_id || '')))}</span>
+            </div>
+          ` : ''}
+          <div class="activity-detail-item">
+            <span class="activity-detail-label">Description</span>
+            <span class="activity-detail-val" style="color:var(--gold-primary); font-weight:600;">${escapeHtml(act.description)}</span>
+          </div>
+          ${detailsRowsHtml ? `
+            <div style="margin-top:0.5rem; font-size:0.78rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;">
+              Structured Event Details
+            </div>
+            ${detailsRowsHtml}
+          ` : ''}
+        </div>
+        <div class="activity-details-footer">
+          <button type="button" class="btn-sb-ghost" id="btnActDetailsCloseFooter">Close</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const closeFn = () => overlay.remove();
+    overlay.querySelector('#closeActDetailsModal').addEventListener('click', closeFn);
+    overlay.querySelector('#btnActDetailsCloseFooter').addEventListener('click', closeFn);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeFn();
+    });
+  }
+
+  function ucfirst(str) {
+    if (!str) return '';
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
   function renderSecondarySections(data) {
     const secArea = document.getElementById('previewSecondarySection');
     if (!secArea) return;
@@ -965,55 +1351,8 @@
     secArea.innerHTML = '';
     secArea.style.display = 'none';
 
-    // 1. Batch Summary Section (Student & Batch report)
-    if (data.batch_summary && data.batch_summary.rows && data.batch_summary.rows.length > 0) {
-      secArea.style.display = 'block';
-      secArea.innerHTML = `
-        <div class="report-table-section">
-          <div class="report-table-header">
-            <span class="report-table-title">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-              </svg>
-              ${escapeHtml(data.batch_summary.title || 'Batch Enrollment & Capacity Summary')}
-            </span>
-            <span class="report-table-count">${data.batch_summary.rows.length} batches</span>
-          </div>
-          <div class="report-table-wrapper">
-            <table class="report-data-table">
-              <thead>
-                <tr>${data.batch_summary.headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr>
-              </thead>
-              <tbody>
-                ${data.batch_summary.rows.map(r => `
-                  <tr>
-                    ${r.map((c, i) => {
-                      const isCount = i === r.length - 1;
-                      const countNum = Number(c);
-                      const isBold = i === 0 ? 'style="font-weight: 600; color: var(--text-primary);"' : '';
-                      const rawStr = String(c !== null && c !== undefined ? c : '—');
-                      let content = escapeHtml(rawStr);
-                      if (isCount) {
-                        content = countNum > 0
-                          ? `<span class="report-count-badge active">${countNum}</span>`
-                          : `<span class="report-count-badge">${countNum}</span>`;
-                        return `<td style="text-align: right;" title="${countNum} enrolled">${content}</td>`;
-                      }
-                      return `<td ${isBold} title="${escapeHtml(rawStr)}">${content}</td>`;
-                    }).join('')}
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      `;
-    }
-
-    // 2. Compact Breakdowns (Fees & Payments report)
-    else if (data.compact_views) {
+    // Compact Breakdowns (Fees & Payments report)
+    if (data.compact_views) {
       secArea.style.display = 'block';
       const pm = data.compact_views.payment_methods;
       const mt = data.compact_views.monthly_trend;
@@ -1054,36 +1393,6 @@
 
       subHtml += '</div>';
       secArea.innerHTML = subHtml;
-    }
-
-    // 3. Movement History & Audit Log (Inventory report)
-    else if (data.secondary_table && data.secondary_table.rows && data.secondary_table.rows.length > 0) {
-      secArea.style.display = 'block';
-      const st = data.secondary_table;
-      secArea.innerHTML = `
-        <div class="report-table-section">
-          <div class="report-table-header">
-            <span class="report-table-title">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polyline points="12 6 12 12 16 14"></polyline>
-              </svg>
-              ${escapeHtml(st.title || 'Movement History & Audit Log')}
-            </span>
-            <span class="report-table-count">${st.rows.length} log entries</span>
-          </div>
-          <div class="report-table-wrapper">
-            <table class="report-data-table">
-              <thead><tr>${st.headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>
-              <tbody>
-                ${st.rows.map(r => `
-                  <tr>${r.map((c, i) => `<td ${i === 0 ? 'style="font-family:monospace; font-size:0.85rem;"' : ''}>${escapeHtml(String(c))}</td>`).join('')}</tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      `;
     }
   }
 

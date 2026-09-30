@@ -10,7 +10,7 @@
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Headers: Content-Type, X-VAVA-Role, X-VAVA-Email, X-VAVA-Coach-ID, X-VAVA-Actor-Name');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -18,6 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once 'db_connect.php';
+require_once 'activity_logger.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -91,6 +92,19 @@ if ($method === 'POST') {
             if ($cRow) $coachName = $cRow['coach_name'];
         }
 
+        $desc = "Created Batch #{$newId} ({$batch_name}) at {$batch_location}";
+        if ($coachName) {
+            $desc .= " assigned to Coach {$coachName}";
+        }
+        recordActivity($pdo, 'BATCH', 'Created', 'Batch', $newId, "Batch #{$newId} ({$batch_name})", $desc, [
+            'batch_id'       => $newId,
+            'batch_name'     => $batch_name,
+            'batch_location' => $batch_location,
+            'batch_time'     => $batch_time,
+            'coach_id'       => $coach_id > 0 ? $coach_id : null,
+            'coach_name'     => $coachName
+        ], $input);
+
         echo json_encode([
             'success' => true,
             'batch' => [
@@ -129,6 +143,14 @@ if ($method === 'PUT') {
     }
 
     try {
+        $check = $pdo->prepare('SELECT batch_id FROM vsa_batches WHERE batch_id = ?');
+        $check->execute([$batch_id]);
+        if (!$check->fetch()) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Batch not found.']);
+            exit;
+        }
+
         $stmt = $pdo->prepare(
             'UPDATE vsa_batches SET batch_name = ?, batch_location = ?, batch_time = ?, coach_id = ? WHERE batch_id = ?'
         );
@@ -140,15 +162,26 @@ if ($method === 'PUT') {
             $batch_id
         ]);
 
-        if ($stmt->rowCount() === 0) {
-            $check = $pdo->prepare('SELECT batch_id FROM vsa_batches WHERE batch_id = ?');
-            $check->execute([$batch_id]);
-            if (!$check->fetch()) {
-                http_response_code(404);
-                echo json_encode(['error' => 'Batch not found.']);
-                exit;
-            }
+        $coachName = null;
+        if ($coach_id > 0) {
+            $cStmt = $pdo->prepare('SELECT coach_name FROM vsa_coaches WHERE coach_id = ?');
+            $cStmt->execute([$coach_id]);
+            $cRow = $cStmt->fetch();
+            if ($cRow) $coachName = $cRow['coach_name'];
         }
+
+        $desc = "Updated Batch #{$batch_id} ({$batch_name})";
+        if ($coachName) {
+            $desc .= " (Coach: {$coachName})";
+        }
+        recordActivity($pdo, 'BATCH', 'Updated', 'Batch', $batch_id, "Batch #{$batch_id} ({$batch_name})", $desc, [
+            'batch_id'       => $batch_id,
+            'batch_name'     => $batch_name,
+            'batch_location' => $batch_location,
+            'batch_time'     => $batch_time,
+            'coach_id'       => $coach_id > 0 ? $coach_id : null,
+            'coach_name'     => $coachName
+        ], $input);
 
         echo json_encode(['success' => true]);
     } catch (PDOException $e) {
@@ -170,14 +203,20 @@ if ($method === 'DELETE') {
     }
 
     try {
-        $stmt = $pdo->prepare('DELETE FROM vsa_batches WHERE batch_id = ?');
-        $stmt->execute([$batch_id]);
-
-        if ($stmt->rowCount() === 0) {
+        $bStmt = $pdo->prepare('SELECT batch_id, batch_name, batch_location FROM vsa_batches WHERE batch_id = ?');
+        $bStmt->execute([$batch_id]);
+        $batchRow = $bStmt->fetch();
+        if (!$batchRow) {
             http_response_code(404);
             echo json_encode(['error' => 'Batch not found.']);
             exit;
         }
+
+        $stmt = $pdo->prepare('DELETE FROM vsa_batches WHERE batch_id = ?');
+        $stmt->execute([$batch_id]);
+
+        $batchTitle = "Batch #{$batch_id} ({$batchRow['batch_name']})";
+        recordActivity($pdo, 'BATCH', 'Deleted', 'Batch', $batch_id, $batchTitle, "Deleted {$batchTitle}", $batchRow, $input);
 
         echo json_encode(['success' => true]);
     } catch (PDOException $e) {

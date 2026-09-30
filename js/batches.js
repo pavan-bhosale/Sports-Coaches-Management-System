@@ -284,6 +284,24 @@ async function fetchBatches() {
   }
 }
 
+function getBatchAuthHeaders() {
+  const role = localStorage.getItem('vava_role') || 'admin';
+  const email = localStorage.getItem('vava_email') || '';
+  const coach_id = localStorage.getItem('vava_coach_id') || '0';
+  let name = '';
+  try {
+    const u = JSON.parse(localStorage.getItem('vava_user') || '{}');
+    name = u.name || '';
+  } catch(e) {}
+  return {
+    'Content-Type': 'application/json',
+    'X-VAVA-Role': role,
+    'X-VAVA-Email': email,
+    'X-VAVA-Coach-ID': String(coach_id),
+    'X-VAVA-Actor-Name': name
+  };
+}
+
 // ── Batches Initialization & Event Listeners ──────────────
 document.addEventListener('DOMContentLoaded', () => {
   // Add Batch Modal Controls
@@ -312,7 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const res = await fetch(BATCHES_API, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getBatchAuthHeaders(),
         body: JSON.stringify({
           batch_name: name,
           batch_location: location,
@@ -418,7 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const res = await fetch(BATCHES_API, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getBatchAuthHeaders(),
         body: JSON.stringify({
           batch_id: parseInt(id),
           batch_name: name,
@@ -536,7 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const res  = await fetch(BATCHES_API, {
           method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getBatchAuthHeaders(),
           body: JSON.stringify({ batch_id: parseInt(batchToDelete) })
         });
         const data = await res.json();
