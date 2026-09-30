@@ -577,10 +577,19 @@
     const modal = document.getElementById('reportPreviewModal');
     if (!modal) return;
 
-    // Toggle Attendance Export button strictly for Attendance Report
+    // Toggle Export button strictly for Attendance Report, Fees & Payments Report, and Activity Report
     const exportDropdown = document.getElementById('attendanceExportDropdown');
+    const exportBtn = document.getElementById('btnReportExport');
     if (exportDropdown) {
-      exportDropdown.style.display = (reportDef.id === 'attendance_report') ? 'inline-block' : 'none';
+      const canExport = (reportDef.id === 'attendance_report' || reportDef.id === 'fees_payments' || reportDef.id === 'activity_report');
+      exportDropdown.style.display = canExport ? 'inline-block' : 'none';
+      if (exportBtn) {
+        exportBtn.title = (reportDef.id === 'activity_report')
+          ? 'Export Activity Report'
+          : (reportDef.id === 'fees_payments')
+            ? 'Export Fees & Payments Report'
+            : 'Export Attendance Report';
+      }
     }
     const exportMenu = document.getElementById('reportExportMenu');
     if (exportMenu) exportMenu.style.display = 'none';
@@ -875,8 +884,9 @@
       // Ensure latest user input from filter controls is captured
       collectFiltersFromForm();
 
+      const currentReportType = activeReportId || 'attendance_report';
       const params = Object.assign({
-        report: 'attendance_report',
+        report: currentReportType,
         format: format
       }, activeFilters);
 
@@ -889,7 +899,11 @@
       if (contentType.includes('application/json')) {
         const json = await res.json();
         if (json.empty || (json.success === false && json.message)) {
-          const msg = json.message || 'No attendance data available to export for the selected filters.';
+          const msg = json.message || (currentReportType === 'activity_report'
+            ? 'No activity data available to export for the selected filters.'
+            : currentReportType === 'fees_payments'
+              ? 'No fee or payment data available to export for the selected filters.'
+              : 'No attendance data available to export for the selected filters.');
           if (typeof window.showToast === 'function') {
             window.showToast(msg, 'info');
           } else {
@@ -907,7 +921,12 @@
       }
 
       // Extract dynamic filename from Content-Disposition header if present
-      let filename = `VAVA_Attendance_Report_${new Date().toISOString().slice(0, 10)}.${format}`;
+      const defaultPrefix = (currentReportType === 'activity_report')
+        ? 'Activity_Report'
+        : (currentReportType === 'fees_payments')
+          ? 'Fees_Payments_Report'
+          : 'Attendance_Report';
+      let filename = `VAVA_${defaultPrefix}_${new Date().toISOString().slice(0, 10)}.${format}`;
       const disposition = res.headers.get('Content-Disposition');
       if (disposition && disposition.includes('filename=')) {
         const match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);

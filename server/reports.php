@@ -152,11 +152,18 @@ function resolveReportsUser($pdo, $input = []) {
         ];
     }
 
-    // Default to superadmin
-    return [
-        'role'  => 'superadmin',
-        'coach' => null
-    ];
+    // Valid administrator roles
+    if ($roleLower === 'admin' || $roleLower === 'superadmin' || empty($roleLower)) {
+        return [
+            'role'  => 'superadmin',
+            'coach' => null
+        ];
+    }
+
+    http_response_code(403);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['success' => false, 'error' => 'Access denied. Invalid or unauthorized role.']);
+    exit;
 }
 
 function formatRupees($amount) {
@@ -777,15 +784,23 @@ function getReportData($pdo, $reportType, $filters, $auth) {
                 $params[] = $filters['module'];
                 $report['filters_applied'][] = ['label' => 'Module', 'value' => strtoupper($filters['module'])];
             }
-            if (!empty($filters['action_type']) && $filters['action_type'] !== 'all') {
+            $actionFilter = $filters['action_type'] ?? $filters['action'] ?? '';
+            if (!empty($actionFilter) && $actionFilter !== 'all') {
                 $where[] = 'LOWER(a.action_type) = LOWER(?)';
-                $params[] = $filters['action_type'];
-                $report['filters_applied'][] = ['label' => 'Action', 'value' => ucfirst($filters['action_type'])];
+                $params[] = $actionFilter;
+                $report['filters_applied'][] = ['label' => 'Action', 'value' => ucfirst($actionFilter)];
             }
-            if (!empty($filters['actor_name']) && $filters['actor_name'] !== 'all') {
-                $where[] = 'a.actor_name = ?';
-                $params[] = $filters['actor_name'];
-                $report['filters_applied'][] = ['label' => 'Actor', 'value' => $filters['actor_name']];
+            $actorFilter = $filters['actor_name'] ?? $filters['actor'] ?? '';
+            if (!empty($actorFilter) && $actorFilter !== 'all') {
+                if (is_numeric($actorFilter)) {
+                    $where[] = 'a.actor_id = ?';
+                    $params[] = intval($actorFilter);
+                    $report['filters_applied'][] = ['label' => 'Actor ID', 'value' => '#' . $actorFilter];
+                } else {
+                    $where[] = 'a.actor_name = ?';
+                    $params[] = $actorFilter;
+                    $report['filters_applied'][] = ['label' => 'Actor', 'value' => $actorFilter];
+                }
             }
             if (!empty($filters['actor_id']) && $filters['actor_id'] !== 'all') {
                 $where[] = 'a.actor_id = ?';
@@ -886,8 +901,9 @@ function getReportData($pdo, $reportType, $filters, $auth) {
                 ];
             }
 
-            // Pagination parameters
-            $limit = isset($filters['limit']) ? max(1, min(200, intval($filters['limit']))) : 50;
+            // Pagination parameters (unlimited when exporting)
+            $isUnlimited = (!empty($filters['unlimited']) || (isset($filters['limit']) && in_array(strtolower((string)$filters['limit']), ['all', 'unlimited'])));
+            $limit = $isUnlimited ? 10000 : (isset($filters['limit']) ? max(1, min(200, intval($filters['limit']))) : 50);
             $offset = isset($filters['offset']) ? max(0, intval($filters['offset'])) : 0;
 
             if ($totalCount === 0) {
@@ -1009,6 +1025,9 @@ function getReportData($pdo, $reportType, $filters, $auth) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
+if ($action === 'none') {
+    return;
+}
 $auth = resolveReportsUser($pdo);
 
 header('Content-Type: application/json; charset=utf-8');
@@ -1057,9 +1076,9 @@ try {
             if (empty($reportType)) {
                 throw new Exception('Missing required "report" parameter.');
             }
-            if ($reportType !== 'attendance_report') {
+            if (!in_array($reportType, ['attendance_report', 'fees_payments', 'activity_report'])) {
                 http_response_code(400);
-                throw new Exception("Export is currently only available for the Attendance Report.");
+                throw new Exception("Export is currently available for Attendance Report, Fees & Payments Report, and Activity Report.");
             }
 
             $format = strtolower($_GET['format'] ?? $_POST['format'] ?? 'pdf');
@@ -1083,7 +1102,13 @@ try {
             }
 
             require_once __DIR__ . '/report_export.php';
-            handleAttendanceExport($pdo, $auth, $filters, $format);
+            if ($reportType === 'fees_payments') {
+                handleFeesExport($pdo, $auth, $filters, $format);
+            } elseif ($reportType === 'activity_report') {
+                handleActivityExport($pdo, $auth, $filters, $format);
+            } else {
+                handleAttendanceExport($pdo, $auth, $filters, $format);
+            }
             exit;
 
         default:
