@@ -446,6 +446,113 @@
   flex-shrink: 0;
 }
 
+/* ==========================================================================
+   ATTENDANCE REPORT EXPORT CONTROLS
+   ========================================================================== */
+
+.report-export-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.btn-report-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-primary);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.btn-report-export:hover,
+.btn-report-export:focus-visible,
+.btn-report-export[aria-expanded="true"] {
+  background: rgba(201, 162, 39, 0.12);
+  border-color: rgba(201, 162, 39, 0.35);
+  color: var(--gold-primary);
+}
+
+.btn-report-export svg {
+  flex-shrink: 0;
+}
+
+.btn-report-export .export-chevron {
+  transition: transform 0.2s ease;
+}
+
+.btn-report-export[aria-expanded="true"] .export-chevron {
+  transform: rotate(180deg);
+}
+
+.btn-report-export.is-loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.report-export-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 175px;
+  background: #181F2A;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+  padding: 0.35rem;
+  z-index: 1050;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  animation: exportMenuFadeIn 0.15s ease-out;
+}
+
+@keyframes exportMenuFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.report-export-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.75rem;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.report-export-item:hover,
+.report-export-item:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+  color: #FFFFFF;
+}
+
+.report-export-item svg {
+  flex-shrink: 0;
+}
+
 .report-modal-close-btn {
   background: transparent;
   border: 1px solid var(--border-primary);

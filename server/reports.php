@@ -41,9 +41,58 @@ require_once __DIR__ . '/db_connect.php';
 // ─────────────────────────────────────────────────────────────────────────────
 
 function resolveReportsUser($pdo, $input = []) {
-    $role = $_SERVER['HTTP_X_VAVA_ROLE'] ?? $_GET['role'] ?? $input['role'] ?? '';
-    $email = $_SERVER['HTTP_X_VAVA_EMAIL'] ?? $_GET['email'] ?? $input['email'] ?? '';
-    $coach_id = intval($_SERVER['HTTP_X_VAVA_COACH_ID'] ?? $_GET['coach_id'] ?? $input['coach_id'] ?? 0);
+    // 1. Authoritative request headers
+    $role = $_SERVER['HTTP_X_VAVA_ROLE'] ?? '';
+    $email = $_SERVER['HTTP_X_VAVA_EMAIL'] ?? '';
+    $coach_id = isset($_SERVER['HTTP_X_VAVA_COACH_ID']) ? intval($_SERVER['HTTP_X_VAVA_COACH_ID']) : null;
+
+    // 2. Session fallback
+    if (session_status() === PHP_SESSION_NONE) {
+        @session_start();
+    }
+    if (empty($role) && !empty($_SESSION['user_role'])) {
+        $role = $_SESSION['user_role'];
+    }
+    if (empty($email) && !empty($_SESSION['user_email'])) {
+        $email = $_SESSION['user_email'];
+    }
+    if ($coach_id === null && isset($_SESSION['coach_id'])) {
+        $coach_id = intval($_SESSION['coach_id']);
+    }
+
+    // 3. Explicit auth parameters or non-get_report fallback
+    $action = $_GET['action'] ?? $_POST['action'] ?? $input['action'] ?? '';
+    $isReportAction = in_array($action, ['get_report', 'export_report', 'export']);
+    if (empty($role)) {
+        if (!empty($_GET['auth_role'])) {
+            $role = $_GET['auth_role'];
+        } elseif (!$isReportAction && !empty($_GET['role'])) {
+            $role = $_GET['role'];
+        } elseif (!empty($input['auth_role'])) {
+            $role = $input['auth_role'];
+        } elseif (!$isReportAction && !empty($input['role'])) {
+            $role = $input['role'];
+        }
+    }
+    if (empty($email)) {
+        $email = $_GET['auth_email'] ?? $input['auth_email'] ?? '';
+        if (empty($email) && !$isReportAction) {
+            $email = $_GET['email'] ?? $input['email'] ?? '';
+        }
+    }
+    if ($coach_id === null) {
+        if (isset($_GET['auth_coach_id'])) {
+            $coach_id = intval($_GET['auth_coach_id']);
+        } elseif (!$isReportAction && isset($_GET['coach_id'])) {
+            $coach_id = intval($_GET['coach_id']);
+        } elseif (isset($input['auth_coach_id'])) {
+            $coach_id = intval($input['auth_coach_id']);
+        } elseif (!$isReportAction && isset($input['coach_id'])) {
+            $coach_id = intval($input['coach_id']);
+        } else {
+            $coach_id = 0;
+        }
+    }
 
     $roleLower = strtolower(trim($role));
 
@@ -355,10 +404,16 @@ function getReportData($pdo, $reportType, $filters, $auth) {
                 $params[] = intval($filters['batch_id']);
                 $report['filters_applied'][] = ['label' => 'Batch ID', 'value' => '#' . $filters['batch_id']];
             }
-            if (!empty($filters['coach_id']) && $filters['coach_id'] !== 'all') {
-                $where[] = 'a.coach_id = ?';
-                $params[] = intval($filters['coach_id']);
-                $report['filters_applied'][] = ['label' => 'Coach ID', 'value' => '#' . $filters['coach_id']];
+            $coachFilter = $filters['coach_id'] ?? $filters['filter_coach_id'] ?? '';
+            if (!empty($coachFilter) && $coachFilter !== 'all') {
+                $cId = intval($coachFilter);
+                $where[] = 'COALESCE(a.coach_id, b.coach_id) = ?';
+                $params[] = $cId;
+
+                $cNameStmt = $pdo->prepare('SELECT coach_name FROM vsa_coaches WHERE coach_id = ?');
+                $cNameStmt->execute([$cId]);
+                $cName = $cNameStmt->fetchColumn() ?: ('#' . $cId);
+                $report['filters_applied'][] = ['label' => 'Coach', 'value' => $cName];
             }
             if (!empty($filters['student_id']) && $filters['student_id'] !== 'all') {
                 $where[] = 'a.student_id = ?';
@@ -711,10 +766,11 @@ function getReportData($pdo, $reportType, $filters, $auth) {
                 $params[] = $filters['end_date'] . ' 23:59:59';
                 $report['filters_applied'][] = ['label' => 'To Date', 'value' => date('d/m/Y', strtotime($filters['end_date']))];
             }
-            if (!empty($filters['role']) && $filters['role'] !== 'all') {
+            $roleFilter = $filters['role'] ?? $filters['actor_role'] ?? $filters['filter_role'] ?? '';
+            if (!empty($roleFilter) && $roleFilter !== 'all') {
                 $where[] = 'LOWER(a.actor_role) = LOWER(?)';
-                $params[] = $filters['role'];
-                $report['filters_applied'][] = ['label' => 'Role', 'value' => ucfirst($filters['role'])];
+                $params[] = $roleFilter;
+                $report['filters_applied'][] = ['label' => 'Action Role', 'value' => ucfirst($roleFilter)];
             }
             if (!empty($filters['module']) && $filters['module'] !== 'all') {
                 $where[] = 'UPPER(a.module) = UPPER(?)';
@@ -755,12 +811,12 @@ function getReportData($pdo, $reportType, $filters, $auth) {
             $countStmt->execute($params);
             $totalCount = intval($countStmt->fetchColumn());
 
-            // 2. Today's activities
-            $todaySql = 'SELECT COUNT(*) FROM vsa_activity_log a WHERE DATE(a.created_at) = CURDATE()';
-            if ($isCoach && $coachId > 0) {
-                $todaySql .= " AND a.actor_role = 'coach' AND a.actor_id = {$coachId}";
-            }
-            $todayCount = intval($pdo->query($todaySql)->fetchColumn());
+            // 2. Today's activities (in current filter scope)
+            $todayWhere = array_merge($where, ['DATE(a.created_at) = CURDATE()']);
+            $todaySql = 'SELECT COUNT(*) FROM vsa_activity_log a WHERE ' . implode(' AND ', $todayWhere);
+            $todayStmt = $pdo->prepare($todaySql);
+            $todayStmt->execute($params);
+            $todayCount = intval($todayStmt->fetchColumn());
 
             // 3. Superadmin vs Coach counts (in current filter scope or overall)
             $roleCountSql = '
@@ -977,7 +1033,7 @@ try {
             // Parse filter arguments
             $filters = [];
             foreach ($_GET as $k => $v) {
-                if (!in_array($k, ['action', 'report', 'role', 'email', 'coach_id'])) {
+                if (!in_array($k, ['action', 'report', '_', 'auth_role', 'auth_email', 'auth_coach_id'])) {
                     $filters[$k] = $v;
                 }
             }
@@ -995,11 +1051,46 @@ try {
             ]);
             break;
 
+        case 'export_report':
+        case 'export':
+            $reportType = $_GET['report'] ?? $_POST['report'] ?? '';
+            if (empty($reportType)) {
+                throw new Exception('Missing required "report" parameter.');
+            }
+            if ($reportType !== 'attendance_report') {
+                http_response_code(400);
+                throw new Exception("Export is currently only available for the Attendance Report.");
+            }
+
+            $format = strtolower($_GET['format'] ?? $_POST['format'] ?? 'pdf');
+            if (!in_array($format, ['pdf', 'xlsx'])) {
+                http_response_code(400);
+                throw new Exception("Unsupported export format: '{$format}'. Supported formats: pdf, xlsx.");
+            }
+
+            // Parse filter arguments (identical to get_report)
+            $filters = [];
+            foreach ($_GET as $k => $v) {
+                if (!in_array($k, ['action', 'report', 'format', '_', 'auth_role', 'auth_email', 'auth_coach_id'])) {
+                    $filters[$k] = $v;
+                }
+            }
+            if ($reqMethod === 'POST') {
+                $postData = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+                if (!empty($postData['filters']) && is_array($postData['filters'])) {
+                    $filters = array_merge($filters, $postData['filters']);
+                }
+            }
+
+            require_once __DIR__ . '/report_export.php';
+            handleAttendanceExport($pdo, $auth, $filters, $format);
+            exit;
+
         default:
             http_response_code(400);
             echo json_encode([
                 'success' => false,
-                'error'   => 'Invalid API action specified. Supported actions: filter_options, get_report'
+                'error'   => 'Invalid API action specified. Supported actions: filter_options, get_report, export_report'
             ]);
             break;
     }

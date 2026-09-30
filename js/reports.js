@@ -263,6 +263,40 @@
               </div>
             </div>
             <div class="report-modal-header-actions">
+              <div class="report-export-dropdown" id="attendanceExportDropdown" style="display:none;">
+                <button type="button" class="btn-report-export" id="btnReportExport" aria-haspopup="true" aria-expanded="false" title="Export Attendance Report">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  <span>Export</span>
+                  <svg class="export-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+                <div class="report-export-menu" id="reportExportMenu" style="display:none;">
+                  <button type="button" class="report-export-item" id="btnExportAttendancePdf">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                      <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    <span>PDF Report</span>
+                  </button>
+                  <button type="button" class="report-export-item" id="btnExportAttendanceXlsx">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="8" y1="13" x2="16" y2="17"></line>
+                      <line x1="16" y1="13" x2="8" y2="17"></line>
+                    </svg>
+                    <span>Excel (.xlsx)</span>
+                  </button>
+                </div>
+              </div>
               <button type="button" class="report-modal-close-btn" id="closeReportPreviewModal" aria-label="Close Report">&times;</button>
             </div>
           </div>
@@ -383,7 +417,15 @@
       });
     }
 
+    function closeExportMenu() {
+      const menu = document.getElementById('reportExportMenu');
+      const btn = document.getElementById('btnReportExport');
+      if (menu) menu.style.display = 'none';
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    }
+
     const closeModal = () => {
+      closeExportMenu();
       const modal = document.getElementById('reportPreviewModal');
       if (modal) modal.style.display = 'none';
       if (currentReportChart) {
@@ -402,6 +444,45 @@
     if (modalOverlay) {
       modalOverlay.addEventListener('click', function (e) {
         if (e.target === modalOverlay) closeModal();
+      });
+    }
+
+    // Export Dropdown Controls
+    const exportBtn = document.getElementById('btnReportExport');
+    const exportMenu = document.getElementById('reportExportMenu');
+    if (exportBtn && exportMenu) {
+      exportBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const isHidden = (exportMenu.style.display === 'none' || !exportMenu.style.display);
+        if (isHidden) {
+          exportMenu.style.display = 'flex';
+          exportBtn.setAttribute('aria-expanded', 'true');
+        } else {
+          closeExportMenu();
+        }
+      });
+    }
+
+    document.addEventListener('click', function(e) {
+      const dropdown = document.getElementById('attendanceExportDropdown');
+      if (dropdown && !dropdown.contains(e.target)) {
+        closeExportMenu();
+      }
+    });
+
+    const exportPdfBtn = document.getElementById('btnExportAttendancePdf');
+    if (exportPdfBtn) {
+      exportPdfBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        triggerAttendanceExport('pdf');
+      });
+    }
+
+    const exportXlsxBtn = document.getElementById('btnExportAttendanceXlsx');
+    if (exportXlsxBtn) {
+      exportXlsxBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        triggerAttendanceExport('xlsx');
       });
     }
   }
@@ -495,6 +576,14 @@
 
     const modal = document.getElementById('reportPreviewModal');
     if (!modal) return;
+
+    // Toggle Attendance Export button strictly for Attendance Report
+    const exportDropdown = document.getElementById('attendanceExportDropdown');
+    if (exportDropdown) {
+      exportDropdown.style.display = (reportDef.id === 'attendance_report') ? 'inline-block' : 'none';
+    }
+    const exportMenu = document.getElementById('reportExportMenu');
+    if (exportMenu) exportMenu.style.display = 'none';
 
     const titleEl = document.getElementById('previewModalTitle');
     const catEl = document.getElementById('previewModalCategory');
@@ -651,7 +740,7 @@
         ];
         html += `
           <div class="report-filter-group">
-            <label class="report-filter-label" for="filter_role">Actor Role</label>
+            <label class="report-filter-label" for="filter_role">Action Role</label>
             <select id="filter_role" class="report-filter-select">
               <option value="">All Roles</option>
               ${roles.map(r => `<option value="${r.value}" ${val.toLowerCase() === r.value.toLowerCase() ? 'selected' : ''}>${escapeHtml(r.label)}</option>`).join('')}
@@ -761,6 +850,100 @@
         activeFilters[id] = val;
       }
     });
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // ATTENDANCE REPORT EXPORT HANDLER (PDF & EXCEL .XLSX)
+  // ──────────────────────────────────────────────────────────────────────────
+
+  async function triggerAttendanceExport(format) {
+    const menu = document.getElementById('reportExportMenu');
+    const btn = document.getElementById('btnReportExport');
+    if (menu) menu.style.display = 'none';
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+
+    if (!btn || btn.classList.contains('is-loading')) return;
+
+    const originalContent = btn.innerHTML;
+    btn.classList.add('is-loading');
+    btn.innerHTML = `
+      <span class="report-spinner" style="width:12px; height:12px; border-width:2px; margin:0; display:inline-block; vertical-align:middle;"></span>
+      <span>Exporting...</span>
+    `;
+
+    try {
+      // Ensure latest user input from filter controls is captured
+      collectFiltersFromForm();
+
+      const params = Object.assign({
+        report: 'attendance_report',
+        format: format
+      }, activeFilters);
+
+      const url = resolveReportsApiUrl('export_report', params);
+      const headers = getAuthHeaders();
+
+      const res = await fetch(url, { method: 'GET', headers });
+      const contentType = res.headers.get('Content-Type') || '';
+
+      if (contentType.includes('application/json')) {
+        const json = await res.json();
+        if (json.empty || (json.success === false && json.message)) {
+          const msg = json.message || 'No attendance data available to export for the selected filters.';
+          if (typeof window.showToast === 'function') {
+            window.showToast(msg, 'info');
+          } else {
+            alert(msg);
+          }
+          return;
+        }
+        if (json.error) {
+          throw new Error(json.error);
+        }
+      }
+
+      if (!res.ok) {
+        throw new Error(`Export failed (HTTP ${res.status}).`);
+      }
+
+      // Extract dynamic filename from Content-Disposition header if present
+      let filename = `VAVA_Attendance_Report_${new Date().toISOString().slice(0, 10)}.${format}`;
+      const disposition = res.headers.get('Content-Disposition');
+      if (disposition && disposition.includes('filename=')) {
+        const match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (match && match[1]) {
+          filename = match[1].replace(/['"]/g, '').trim();
+        }
+      }
+
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+
+      if (typeof window.showToast === 'function') {
+        window.showToast(`Exported ${format.toUpperCase()} report successfully!`, 'success');
+      }
+
+    } catch (err) {
+      console.error('Export error:', err);
+      const errMsg = err.message || 'Failed to generate export file.';
+      if (typeof window.showToast === 'function') {
+        window.showToast(errMsg, 'error');
+      } else {
+        alert(errMsg);
+      }
+    } finally {
+      if (btn) {
+        btn.classList.remove('is-loading');
+        btn.innerHTML = originalContent;
+      }
+    }
   }
 
   // ──────────────────────────────────────────────────────────────────────────
