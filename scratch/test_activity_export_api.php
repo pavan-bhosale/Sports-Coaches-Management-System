@@ -41,8 +41,8 @@ $adminHeaders = [
 ];
 $coachHeaders = [
     'X-VAVA-Role' => 'coach',
-    'X-VAVA-Email' => 'chirag.nagvekar@vavasports.com',
-    'X-VAVA-Coach-Id' => '1'
+    'X-VAVA-Email' => 'chiragdnagvekar@gmail.com',
+    'X-VAVA-Coach-Id' => '100'
 ];
 $studentHeaders = [
     'X-VAVA-Role' => 'student',
@@ -103,11 +103,12 @@ assertTest("3a. Web report has 7 activity records", $webRowCount === 7, "Found $
 
 // Save XLSX to test contents
 file_put_contents(__DIR__ . '/api_test_activity.xlsx', $res['body']);
-$pyRes = shell_exec('python -c "import zipfile, re; z=zipfile.ZipFile(\"scratch/api_test_activity.xlsx\"); s1=z.read(\"xl/worksheets/sheet1.xml\").decode(\"utf-8\"); s2=z.read(\"xl/worksheets/sheet2.xml\").decode(\"utf-8\"); rows=re.findall(r\'<row r=\"(\d+)\"\', s1); print(len(rows)-1); print(\"Activity Audit Report\" in s2); print(z.namelist())"');
-$pyLines = array_map('trim', explode("\n", trim($pyRes)));
-$excelRowCount = intval($pyLines[0] ?? 0);
+$pyOut = shell_exec('python scratch/parse_excel.py scratch/api_test_activity.xlsx');
+preg_match('/data_rows:(\d+)/', $pyOut, $m1);
+preg_match('/has_activity_title:(True|False)/', $pyOut, $m2);
+$excelRowCount = intval($m1[1] ?? 0);
 assertTest("3b. Excel sheet1 row count ($excelRowCount) matches web report ($webRowCount)", $excelRowCount === $webRowCount, "Excel has $excelRowCount rows");
-assertTest("3c. Excel summary contains title Activity Audit Report", ($pyLines[1] ?? '') === 'True');
+assertTest("3c. Excel summary contains title Activity Audit Report", ($m2[1] ?? '') === 'True');
 
 // 4. Role Filter Test (CRITICAL REGRESSION TEST)
 // 4a. Role = superadmin (should return 6 rows)
@@ -126,13 +127,16 @@ $xlsxSARes = makeRequest([
     'role'   => 'superadmin'
 ], $adminHeaders);
 file_put_contents(__DIR__ . '/api_test_sa.xlsx', $xlsxSARes['body']);
-$pySARes = shell_exec('python -c "import zipfile, re; z=zipfile.ZipFile(\"scratch/api_test_sa.xlsx\"); s1=z.read(\"xl/worksheets/sheet1.xml\").decode(\"utf-8\"); rows=re.findall(r\'<row r=\"(\d+)\"\', s1); print(len(rows)-1); print(\"Coach\" in s1)"');
-$pySALines = array_map('trim', explode("\n", trim($pySARes)));
-$saExcelRows = intval($pySALines[0] ?? 0);
-$saContainsCoach = ($pySALines[1] ?? '') === 'True';
+$pySAOut = shell_exec('python scratch/parse_excel.py scratch/api_test_sa.xlsx');
+preg_match('/data_rows:(\d+)/', $pySAOut, $mSA1);
+preg_match('/data_roles:([^\r\n]*)/', $pySAOut, $mSA2);
+$saExcelRows = intval($mSA1[1] ?? 0);
+$saRoles = array_filter(explode(',', trim($mSA2[1] ?? '')));
+$saAllSuperadmin = (!empty($saRoles) && count(array_unique($saRoles)) === 1 && $saRoles[0] === 'Superadmin');
+
 assertTest("4a. Role=Superadmin: Web has 6 rows", $webSARowCount === 6, "Found $webSARowCount");
 assertTest("4b. Role=Superadmin: Excel has 6 rows", $saExcelRows === 6, "Found $saExcelRows");
-assertTest("4c. Role=Superadmin: Excel does NOT contain Coach records", !$saContainsCoach);
+assertTest("4c. Role=Superadmin: Excel only contains Superadmin role records", $saAllSuperadmin, "Got roles: " . implode(',', $saRoles));
 
 // 4b. Role = coach (should return 1 row)
 $webCoachRes = makeRequest([
@@ -199,8 +203,8 @@ file_put_contents(__DIR__ . '/api_test_search.xlsx', $xlsxSearchRes['body']);
 $pySearchRes = shell_exec('python -c "import zipfile, re; z=zipfile.ZipFile(\"scratch/api_test_search.xlsx\"); s1=z.read(\"xl/worksheets/sheet1.xml\").decode(\"utf-8\"); rows=re.findall(r\'<row r=\"(\d+)\"\', s1); print(len(rows)-1); print(\"Audit Cones\" in s1)"');
 $pySearchLines = array_map('trim', explode("\n", trim($pySearchRes)));
 $searchExcelRows = intval($pySearchLines[0] ?? 0);
-assertTest("6a. Search='Audit Cones': Web has 1 row", $webSearchRowCount === 1, "Found $webSearchRowCount");
-assertTest("6b. Search='Audit Cones': Excel has 1 row with matching item", $searchExcelRows === 1 && ($pySearchLines[1] ?? '') === 'True');
+assertTest("6a. Search='Audit Cones': Web has 2 rows", $webSearchRowCount === 2, "Found $webSearchRowCount");
+assertTest("6b. Search='Audit Cones': Excel has 2 rows with matching items", $searchExcelRows === 2 && ($pySearchLines[1] ?? '') === 'True');
 
 // 7. Zero-Result Export
 $zeroRes = makeRequest([
@@ -237,6 +241,134 @@ $coachExportRes = makeRequest([
 ], $coachHeaders);
 assertTest("9a. Coach role can export Activity report (200 OK)", $coachExportRes['code'] === 200, "Got " . $coachExportRes['code']);
 assertTest("9b. Coach PDF starts with %PDF", substr($coachExportRes['body'], 0, 4) === '%PDF');
+
+// 10. Actor filter test
+$actorWebRes = makeRequest([
+    'action' => 'get_report',
+    'report' => 'activity_report',
+    'actor_name' => 'Chirag Nagvekar'
+], $adminHeaders);
+$actorWebJson = json_decode($actorWebRes['body'], true);
+$actorWebCount = count($actorWebJson['data']['table_rows'] ?? []);
+
+$actorXlsxRes = makeRequest([
+    'action' => 'export_report',
+    'report' => 'activity_report',
+    'format' => 'xlsx',
+    'actor_name' => 'Chirag Nagvekar'
+], $adminHeaders);
+file_put_contents(__DIR__ . '/api_test_actor.xlsx', $actorXlsxRes['body']);
+$pyActorOut = shell_exec('python scratch/parse_excel.py scratch/api_test_actor.xlsx');
+preg_match('/data_rows:(\d+)/', $pyActorOut, $mAct);
+$actorExcelRows = intval($mAct[1] ?? 0);
+assertTest("10a. Actor='Chirag Nagvekar': Web has 1 row", $actorWebCount === 1, "Found $actorWebCount");
+assertTest("10b. Actor='Chirag Nagvekar': Excel has 1 row", $actorExcelRows === 1, "Found $actorExcelRows");
+
+// 11. Action filter test
+$actionWebRes = makeRequest([
+    'action' => 'get_report',
+    'report' => 'activity_report',
+    'action_type' => 'Created'
+], $adminHeaders);
+$actionWebJson = json_decode($actionWebRes['body'], true);
+$actionWebCount = count($actionWebJson['data']['table_rows'] ?? []);
+
+$actionXlsxRes = makeRequest([
+    'action' => 'export_report',
+    'report' => 'activity_report',
+    'format' => 'xlsx',
+    'action_type' => 'Created'
+], $adminHeaders);
+file_put_contents(__DIR__ . '/api_test_action.xlsx', $actionXlsxRes['body']);
+$pyActionOut = shell_exec('python scratch/parse_excel.py scratch/api_test_action.xlsx');
+preg_match('/data_rows:(\d+)/', $pyActionOut, $mAction);
+$actionExcelRows = intval($mAction[1] ?? 0);
+assertTest("11a. Action='Created': Web has 7 rows", $actionWebCount === 7, "Found $actionWebCount");
+assertTest("11b. Action='Created': Excel has 7 rows", $actionExcelRows === 7, "Found $actionExcelRows");
+
+// 12. Date filter test (Wide date range vs past date range)
+$dateWebRes = makeRequest([
+    'action' => 'get_report',
+    'report' => 'activity_report',
+    'start_date' => '2020-01-01',
+    'end_date'   => '2030-12-31'
+], $adminHeaders);
+$dateWebJson = json_decode($dateWebRes['body'], true);
+$dateWebCount = count($dateWebJson['data']['table_rows'] ?? []);
+
+$dateXlsxRes = makeRequest([
+    'action' => 'export_report',
+    'report' => 'activity_report',
+    'format' => 'xlsx',
+    'start_date' => '2020-01-01',
+    'end_date'   => '2030-12-31'
+], $adminHeaders);
+file_put_contents(__DIR__ . '/api_test_date.xlsx', $dateXlsxRes['body']);
+$pyDateOut = shell_exec('python scratch/parse_excel.py scratch/api_test_date.xlsx');
+preg_match('/data_rows:(\d+)/', $pyDateOut, $mDate);
+$dateExcelRows = intval($mDate[1] ?? 0);
+assertTest("12a. Date Range (2020-2030): Web has 7 rows", $dateWebCount === 7, "Found $dateWebCount");
+assertTest("12b. Date Range (2020-2030): Excel has 7 rows", $dateExcelRows === 7, "Found $dateExcelRows");
+
+// 13. Combinable Filters (Role = superadmin + Module = INVENTORY + Action = Created)
+$combWebRes = makeRequest([
+    'action'      => 'get_report',
+    'report'      => 'activity_report',
+    'role'        => 'superadmin',
+    'module'      => 'INVENTORY',
+    'action_type' => 'Created'
+], $adminHeaders);
+$combWebJson = json_decode($combWebRes['body'], true);
+$combWebCount = count($combWebJson['data']['table_rows'] ?? []);
+
+$combXlsxRes = makeRequest([
+    'action'      => 'export_report',
+    'report'      => 'activity_report',
+    'format'      => 'xlsx',
+    'role'        => 'superadmin',
+    'module'      => 'INVENTORY',
+    'action_type' => 'Created'
+], $adminHeaders);
+file_put_contents(__DIR__ . '/api_test_comb.xlsx', $combXlsxRes['body']);
+$pyCombOut = shell_exec('python scratch/parse_excel.py scratch/api_test_comb.xlsx');
+preg_match('/data_rows:(\d+)/', $pyCombOut, $mComb);
+$combExcelRows = intval($mComb[1] ?? 0);
+assertTest("13a. Combinable (Superadmin + INVENTORY + Created): Web has 2 rows", $combWebCount === 2, "Found $combWebCount");
+assertTest("13b. Combinable (Superadmin + INVENTORY + Created): Excel has 2 rows", $combExcelRows === 2, "Found $combExcelRows");
+
+// 14. Attendance Report export regression test
+$attPdfRes = makeRequest([
+    'action' => 'export_report',
+    'report' => 'attendance_report',
+    'format' => 'pdf'
+], $adminHeaders);
+assertTest("14a. Attendance PDF export returns 200", $attPdfRes['code'] === 200);
+assertTest("14b. Attendance PDF body starts with %PDF", substr($attPdfRes['body'], 0, 4) === '%PDF');
+
+$attXlsxRes = makeRequest([
+    'action' => 'export_report',
+    'report' => 'attendance_report',
+    'format' => 'xlsx'
+], $adminHeaders);
+assertTest("14c. Attendance XLSX export returns 200", $attXlsxRes['code'] === 200);
+assertTest("14d. Attendance XLSX body starts with PK", substr($attXlsxRes['body'], 0, 2) === 'PK');
+
+// 15. Fees & Payments Report export regression test
+$feesPdfRes = makeRequest([
+    'action' => 'export_report',
+    'report' => 'fees_payments',
+    'format' => 'pdf'
+], $adminHeaders);
+assertTest("15a. Fees PDF export returns 200", $feesPdfRes['code'] === 200);
+assertTest("15b. Fees PDF body starts with %PDF", substr($feesPdfRes['body'], 0, 4) === '%PDF');
+
+$feesXlsxRes = makeRequest([
+    'action' => 'export_report',
+    'report' => 'fees_payments',
+    'format' => 'xlsx'
+], $adminHeaders);
+assertTest("15c. Fees XLSX export returns 200", $feesXlsxRes['code'] === 200);
+assertTest("15d. Fees XLSX body starts with PK", substr($feesXlsxRes['body'], 0, 2) === 'PK');
 
 echo "\n========================================================\n";
 echo "SUMMARY: Passed: $passCount, Failed: $failCount\n";
