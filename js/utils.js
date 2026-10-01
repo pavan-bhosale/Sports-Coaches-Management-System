@@ -45,10 +45,12 @@ const ATTENDANCE_API = getApiEndpoint('attendance');
 const FEES_API       = getApiEndpoint('fees');
 const INVENTORY_API  = getApiEndpoint('inventory');
 const REPORTS_API    = getApiEndpoint('reports');
+const DASHBOARD_API  = getApiEndpoint('dashboard');
 
 if (typeof window !== 'undefined') {
   window.getApiEndpoint = getApiEndpoint;
   window.REPORTS_API = REPORTS_API;
+  window.DASHBOARD_API = DASHBOARD_API;
 }
 
 // Modal Stack & History Management for Mobile Back Button

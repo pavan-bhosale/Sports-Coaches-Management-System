@@ -48,6 +48,10 @@ function navigateToSection(targetHref, showToastNotice = true) {
   if (attendanceSection) attendanceSection.style.display = 'none';
   if (feesSection) feesSection.style.display = 'none';
 
+  if (targetHref !== '#overview' && typeof window.cleanDashboardCharts === 'function') {
+    window.cleanDashboardCharts();
+  }
+
   const storedRole = localStorage.getItem('vava_role') || 'admin';
   const isSuperAdmin = (storedRole === 'admin' || storedRole === 'superadmin');
   const isCoach = (storedRole === 'coach');
@@ -57,6 +61,7 @@ function navigateToSection(targetHref, showToastNotice = true) {
     if (showToastNotice && typeof showToast === 'function') {
       showToast('Access denied. Attendance is not accessible to your role.', 'error');
     }
+    window.location.hash = '#overview';
     navigateToSection('#overview', false);
     return;
   }
@@ -66,6 +71,7 @@ function navigateToSection(targetHref, showToastNotice = true) {
     if (showToastNotice && typeof showToast === 'function') {
       showToast('Access denied. Fees & Collections is accessible to Super Admin only.', 'error');
     }
+    window.location.hash = '#overview';
     navigateToSection('#overview', false);
     return;
   }
@@ -75,6 +81,7 @@ function navigateToSection(targetHref, showToastNotice = true) {
     if (showToastNotice && typeof showToast === 'function') {
       showToast('Access denied. Inventory & Equipment is accessible to Super Admin only.', 'error');
     }
+    window.location.hash = '#overview';
     navigateToSection('#overview', false);
     return;
   }
@@ -88,6 +95,9 @@ function navigateToSection(targetHref, showToastNotice = true) {
     };
     if (pageTitle) pageTitle.textContent = dashboardTitles[storedRole] || 'Super Admin Dashboard';
     if (currentSectionName) currentSectionName.textContent = 'Overview';
+    if (typeof window.loadDashboardOverview === 'function') {
+      window.loadDashboardOverview();
+    }
   } else if (targetHref === '#inventory') {
     if (inventorySection) {
       inventorySection.style.display = 'block';

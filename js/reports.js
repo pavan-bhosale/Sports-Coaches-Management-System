@@ -174,6 +174,8 @@
     renderReportCatalog();
   };
 
+  window.openReportPreview = openReportPreview;
+
   async function loadFilterOptions() {
     try {
       const res = await fetchReportsJson('filter_options');
