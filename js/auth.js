@@ -74,13 +74,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const config = roleConfig[currentRole];
     
     try {
-      // Automatic Environment Detection for Login Endpoint
-      const isLocal = typeof window !== 'undefined' &&
-        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-      const verifyUrl = isLocal ? 'http://localhost/VAVA_sports/server/verify_login.php' : 'server/verify_login.php';
+      // Dynamic Environment Detection for Login Endpoint (Apache localhost, DevServer 5500, or Production)
+      let verifyUrl = 'server/verify_login.php';
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname || 'localhost';
+        const port = window.location.port || '';
+        const pathname = window.location.pathname || '/';
+        const isDevServer = port !== '' && port !== '80' && port !== '443';
+        const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1';
+
+        if (isLocalHost && isDevServer) {
+          const targetHost = hostname === '127.0.0.1' ? '127.0.0.1' : 'localhost';
+          verifyUrl = `http://${targetHost}/VAVA_sports/server/verify_login.php`;
+        } else {
+          const currentDir = pathname.substring(0, pathname.lastIndexOf('/') + 1);
+          verifyUrl = `${currentDir}server/verify_login.php`;
+        }
+      }
 
       const res = await fetch(verifyUrl, {
         method: 'POST',
+        credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json'
         },
@@ -90,9 +104,16 @@ document.addEventListener('DOMContentLoaded', () => {
         })
       });
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (parseErr) {
+        console.error('Non-JSON response from authentication endpoint:', parseErr);
+        showToast('Server error: Invalid response format from authentication service.', 'error');
+        return;
+      }
 
-      if (res.ok) {
+      if (res.ok && data && data.success) {
         // Save token, role, and user object to localStorage
         localStorage.setItem('vava_token', data.token || response.credential || '');
         localStorage.setItem('vava_role', currentRole);
@@ -107,11 +128,12 @@ document.addEventListener('DOMContentLoaded', () => {
           window.location.href = 'dashboard.html';
         }, 1500);
       } else {
-        // Show error message
-        showToast(data.error || 'Authentication failed', 'error');
+        // Show server-provided error message or descriptive status
+        const errorMsg = data?.error || (res.status === 403 ? "You aren't a verified user." : (res.status === 401 ? 'Invalid Google token.' : 'Authentication failed.'));
+        showToast(errorMsg, 'error');
       }
     } catch (error) {
-      console.error('Auth error:', error);
+      console.error('Auth network error:', error);
       showToast('Connection error. Please try again.', 'error');
     }
   };
