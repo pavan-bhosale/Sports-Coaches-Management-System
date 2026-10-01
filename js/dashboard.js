@@ -34,18 +34,33 @@
     }
   }
 
-  async function openActivityReport() {
+  async function openSpecificReport(reportId) {
+    if (reportId === 'fees_payments' && isCurrentCoach()) {
+      return;
+    }
     goToSection('#reports');
     if (typeof initReportsModule === 'function') {
       try {
         await initReportsModule();
       } catch (err) {
-        console.warn('Error initializing reports module for activity view:', err);
+        console.warn(`Error initializing reports module for ${reportId} view:`, err);
       }
     }
     if (typeof window.openReportPreview === 'function') {
-      window.openReportPreview('activity_report');
+      window.openReportPreview(reportId);
     }
+  }
+
+  async function openActivityReport() {
+    await openSpecificReport('activity_report');
+  }
+
+  async function openAttendanceReport() {
+    await openSpecificReport('attendance_report');
+  }
+
+  async function openFeesReport() {
+    await openSpecificReport('fees_payments');
   }
 
   function escapeHtml(str) {
@@ -232,18 +247,18 @@
     const cardAttendance = document.getElementById('cardKpiAttendance');
     attachNavClick(cardAttendance, () => goToSection('#attendance'));
 
-    // 5. Attendance Overview Card & Trend Chart -> #attendance
+    // 5. Attendance Overview Card & Trend Chart -> Reports -> Attendance Report
     const panelAttendance = document.getElementById('panelAttendanceOverview');
     attachNavClick(panelAttendance, () => {
       if (isChartLegendInteracting) return;
-      goToSection('#attendance');
+      openAttendanceReport();
     });
 
-    // 6. Financial Overview Card -> #fees (Super Admin strictly)
+    // 6. Financial Overview Card -> Reports -> Fees & Payments Report (Super Admin strictly)
     const panelFinancial = document.getElementById('panelFinancialOverview');
     attachNavClick(panelFinancial, () => {
       if (!isCurrentCoach()) {
-        goToSection('#fees');
+        openFeesReport();
       }
     });
 
@@ -253,7 +268,7 @@
         e.preventDefault();
         e.stopPropagation();
         if (!isCurrentCoach()) {
-          goToSection('#fees');
+          openFeesReport();
         }
       });
     }

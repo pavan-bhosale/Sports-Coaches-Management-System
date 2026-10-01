@@ -51,19 +51,30 @@ if (typeof window !== 'undefined') {
   window.getApiEndpoint = getApiEndpoint;
   window.REPORTS_API = REPORTS_API;
   window.DASHBOARD_API = DASHBOARD_API;
+  window.openModal = openModal;
+  window.closeModal = closeModal;
 }
 
 // Modal Stack & History Management for Mobile Back Button
 const activeModalStack = [];
 let isProgrammaticHistoryBack = false;
 let isPopstateClosing = false;
+let savedScrollY = 0;
 
 function openModal(id) {
   const m = document.getElementById(id);
   if (!m) return;
+
+  // On first modal opening, preserve current scroll position and lock background
+  if (activeModalStack.length === 0) {
+    savedScrollY = window.pageYOffset || document.documentElement.scrollTop || window.scrollY || 0;
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${savedScrollY}px`;
+    document.body.style.width = '100%';
+    document.body.classList.add('modal-open');
+  }
+
   m.style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-  document.body.classList.add('modal-open');
 
   // If not already the top of the stack, register it
   if (activeModalStack[activeModalStack.length - 1] !== id) {
@@ -88,9 +99,18 @@ function closeModal(id) {
     activeModalStack.splice(idx, 1);
   }
 
+  // If all modals in the stack are closed, unlock background and restore previous scroll position
   if (activeModalStack.length === 0) {
-    document.body.style.overflow = '';
+    const scrollTarget = savedScrollY;
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
     document.body.classList.remove('modal-open');
+    window.scrollTo({
+      top: scrollTarget,
+      left: 0,
+      behavior: 'instant'
+    });
   }
 
   // If closed directly by user (close button, Cancel, backdrop) and not by browser popstate,
@@ -400,8 +420,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Close modals on overlay click
   document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('sb-modal-overlay')) {
+    if (e.target.classList.contains('sb-modal-overlay') || e.target.classList.contains('report-modal-overlay')) {
       closeModal(e.target.id);
+    }
+  });
+
+  // Escape key closes topmost modal in activeModalStack
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && activeModalStack.length > 0) {
+      const topModalId = activeModalStack[activeModalStack.length - 1];
+      if (topModalId === 'addStudentModal' && typeof closeRegForm === 'function') {
+        closeRegForm();
+      } else if (topModalId === 'editStudentModal' && typeof closeEditStudentForm === 'function') {
+        closeEditStudentForm();
+      } else if (topModalId === 'feesPaymentDetailModal' && typeof closeStudentPaymentDetailModal === 'function') {
+        closeStudentPaymentDetailModal();
+      } else if (topModalId === 'feesNewPaymentModal' && typeof closeNewPaymentModal === 'function') {
+        closeNewPaymentModal();
+      } else if (topModalId === 'feesScheduleModal' && typeof closeScheduleModal === 'function') {
+        closeScheduleModal();
+      } else if (topModalId === 'feesDeleteCycleModal' && typeof closeDeleteCycleConfirmationModal === 'function') {
+        closeDeleteCycleConfirmationModal();
+      } else {
+        closeModal(topModalId);
+      }
     }
   });
 });

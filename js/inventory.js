@@ -278,13 +278,21 @@
 
   // ── Modal Open / Close Helpers ────────────────────────────────────────────
   function showModal(modalId) {
-    const el = document.getElementById(modalId);
-    if (el) el.style.display = 'flex';
+    if (typeof openModal === 'function') {
+      openModal(modalId);
+    } else {
+      const el = document.getElementById(modalId);
+      if (el) el.style.display = 'flex';
+    }
   }
 
   function hideModal(modalId) {
-    const el = document.getElementById(modalId);
-    if (el) el.style.display = 'none';
+    if (typeof closeModal === 'function') {
+      closeModal(modalId);
+    } else {
+      const el = document.getElementById(modalId);
+      if (el) el.style.display = 'none';
+    }
   }
 
   // ── Format Helper: Short Month Date for Batch Card (e.g. 23 Sep 2026) ─────

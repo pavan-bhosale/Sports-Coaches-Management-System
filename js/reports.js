@@ -426,10 +426,14 @@
       if (btn) btn.setAttribute('aria-expanded', 'false');
     }
 
-    const closeModal = () => {
+    const closeModalHandler = () => {
       closeExportMenu();
-      const modal = document.getElementById('reportPreviewModal');
-      if (modal) modal.style.display = 'none';
+      if (typeof closeModal === 'function') {
+        closeModal('reportPreviewModal');
+      } else {
+        const modal = document.getElementById('reportPreviewModal');
+        if (modal) modal.style.display = 'none';
+      }
       if (currentReportChart) {
         currentReportChart.destroy();
         currentReportChart = null;
@@ -437,15 +441,15 @@
     };
 
     const closeBtn = document.getElementById('closeReportPreviewModal');
-    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (closeBtn) closeBtn.addEventListener('click', closeModalHandler);
 
     const closeFooterBtn = document.getElementById('btnClosePreviewFooter');
-    if (closeFooterBtn) closeFooterBtn.addEventListener('click', closeModal);
+    if (closeFooterBtn) closeFooterBtn.addEventListener('click', closeModalHandler);
 
     const modalOverlay = document.getElementById('reportPreviewModal');
     if (modalOverlay) {
       modalOverlay.addEventListener('click', function (e) {
-        if (e.target === modalOverlay) closeModal();
+        if (e.target === modalOverlay) closeModalHandler();
       });
     }
 
@@ -573,6 +577,13 @@
     const reportDef = REPORT_REGISTRY.find(r => r.id === reportId);
     if (!reportDef) return;
 
+    if (reportDef.superadminOnly && !isUserSuperAdmin()) {
+      if (typeof showToast === 'function') {
+        showToast('Access denied. Fees & Payments Report is restricted to Super Admin.', 'error');
+      }
+      return;
+    }
+
     activeReportId = reportId;
     activeFilters = Object.assign({}, initialFilters);
 
@@ -604,7 +615,11 @@
     if (iconEl) iconEl.innerHTML = reportDef.icon;
 
     renderFilterForm(reportDef);
-    modal.style.display = 'flex';
+    if (typeof openModal === 'function') {
+      openModal('reportPreviewModal');
+    } else {
+      modal.style.display = 'flex';
+    }
     await fetchAndRenderReport();
   }
 
