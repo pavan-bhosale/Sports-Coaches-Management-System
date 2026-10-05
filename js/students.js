@@ -669,18 +669,37 @@ async function openStudentProfile(studentId) {
   if (typeof activeProfileType !== 'undefined') {
     window.activeProfileType = 'student';
   }
-  activeProfileStudentId = studentId;
+  activeProfileStudentId = studentId || null;
   const modal = document.getElementById('studentProfileModal');
   if (!modal) return;
 
   try {
-    const url = `${STUDENTS_API}?id=${studentId}&${getStudentAuthQuery()}`;
-    const res = await fetch(url, { headers: getStudentAuthHeaders() });
+    const idParam = (studentId !== undefined && studentId !== null && studentId !== '') ? `id=${encodeURIComponent(studentId)}&` : '';
+    const url = `${STUDENTS_API}?${idParam}${getStudentAuthQuery()}`;
+    const res = await fetch(url, {
+      headers: getStudentAuthHeaders(),
+      credentials: 'include'
+    });
     const data = await res.json();
-    if (!data.success || !data.student) throw new Error('Student not found');
+    if (!data.success || !data.student) throw new Error(data.error || 'Student not found');
 
     const student = data.student;
     currentLoadedStudentData = student;
+    activeProfileStudentId = student.student_id;
+
+    // Check viewing role for role-aware profile presentation
+    const storedRole = (localStorage.getItem('vava_role') || 'admin').toLowerCase();
+    const isStudent = (storedRole === 'student');
+
+    // Section 8: Role-based restrictions - student has read-only profile access (hide photo edit overlay)
+    const btnEditPhoto = document.getElementById('btnEditStudentPhoto');
+    const photoDropdown = document.getElementById('studentPhotoDropdown');
+    if (btnEditPhoto) {
+      btnEditPhoto.style.display = isStudent ? 'none' : '';
+    }
+    if (photoDropdown && isStudent) {
+      photoDropdown.classList.remove('show');
+    }
 
     // Populate Text Elements
     const profileTitleEl = document.getElementById('studentProfileTitle');
@@ -735,7 +754,7 @@ async function openStudentProfile(studentId) {
       imgEl.src = student.student_photo + '?t=' + Date.now();
       imgEl.style.display = 'block';
       initialsEl.style.display = 'none';
-      if (btnDeletePhoto) btnDeletePhoto.style.display = 'flex';
+      if (btnDeletePhoto) btnDeletePhoto.style.display = isStudent ? 'none' : 'flex';
     } else {
       imgEl.src = '';
       imgEl.style.display = 'none';
@@ -744,7 +763,7 @@ async function openStudentProfile(studentId) {
       if (btnDeletePhoto) btnDeletePhoto.style.display = 'none';
     }
 
-    // Render Student Note (single note per student directly on student record)
+    // Render Student Note (single note per student directly on student record - automatically hidden for students)
     renderStudentNoteUI(student);
 
     openModal('studentProfileModal');
@@ -753,6 +772,7 @@ async function openStudentProfile(studentId) {
     showToast('Could not load student profile.', 'error');
   }
 }
+window.openStudentProfile = openStudentProfile;
 
 // ── Students Initialization & Event Listeners ─────────────
 document.addEventListener('DOMContentLoaded', () => {

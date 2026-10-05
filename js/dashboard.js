@@ -1369,7 +1369,12 @@
   // 6. STUDENT DASHBOARD RENDERING (PERSONAL ATHLETE PORTAL)
   // ============================================================================
 
+  let currentStudentPayload = null;
+  let isStudentInteractionsInitialized = false;
+
   function renderStudentDashboard(data) {
+    currentStudentPayload = data;
+
     // 1. Personal Welcome Card & Avatar
     renderStudentWelcome(data);
 
@@ -1379,11 +1384,14 @@
     // 3. Training & Lead Coach Card
     renderStudentTraining(data.batch);
 
-    // 4. Personal Attendance Overview & Chart
+    // 4. Personal Attendance Overview (Donut Ring + Chronological Timeline)
     renderStudentAttendanceOverview(data.attendance);
 
     // 5. Recent Attendance Log
     renderStudentRecentAttendance(data.attendance?.recent || []);
+
+    // 6. Interactive Detail Card Interactions
+    initStudentDashboardInteractions();
   }
 
   function renderStudentWelcome(data) {
@@ -1403,6 +1411,25 @@
       } else {
         avatarEl.textContent = initials;
       }
+    }
+
+    const welcomeProfileEl = document.getElementById('studentWelcomeProfile') || document.querySelector('.student-welcome-profile');
+    if (welcomeProfileEl && !welcomeProfileEl._hasProfileBound) {
+      welcomeProfileEl._hasProfileBound = true;
+      welcomeProfileEl.style.cursor = 'pointer';
+      welcomeProfileEl.addEventListener('click', () => {
+        if (typeof window.openStudentProfile === 'function') {
+          window.openStudentProfile();
+        }
+      });
+      welcomeProfileEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          if (typeof window.openStudentProfile === 'function') {
+            window.openStudentProfile();
+          }
+        }
+      });
     }
   }
 
@@ -1483,129 +1510,78 @@
     const pillEl = document.getElementById('studentAttPill');
     const presentEl = document.getElementById('studentAttPresent');
     const absentEl = document.getElementById('studentAttAbsent');
-    const rateEl = document.getElementById('studentAttRate');
+    const totalEl = document.getElementById('studentAttTotal');
+    const ringFg = document.getElementById('studentAttRingFg');
+    const ringRate = document.getElementById('studentAttRingRate');
+    const ringLabel = document.getElementById('studentAttRingLabel');
 
     const present = att.present || 0;
     const absent = att.absent || 0;
+    const total = att.total || (present + absent);
     const rate = att.rate;
 
     if (presentEl) presentEl.textContent = present;
     if (absentEl) absentEl.textContent = absent;
+    if (totalEl) totalEl.textContent = total;
 
+    // 1. Donut Ring & Rate Badge
     if (rate !== null && rate !== undefined) {
-      if (rateEl) rateEl.textContent = `${rate}%`;
       if (pillEl) pillEl.textContent = `${rate}% Rate`;
+      if (ringRate) ringRate.textContent = `${rate}%`;
+      if (ringLabel) ringLabel.textContent = 'ATTENDANCE';
+      if (ringFg) {
+        const pct = Math.max(0, Math.min(100, parseFloat(rate)));
+        ringFg.setAttribute('stroke-dasharray', `${pct}, 100`);
+        ringFg.style.stroke = pct >= 75 ? '#22C55E' : (pct >= 50 ? '#C9A227' : '#EF4444');
+      }
     } else {
-      if (rateEl) rateEl.textContent = '--';
-      if (pillEl) pillEl.textContent = 'No Rate';
+      if (pillEl) pillEl.textContent = 'No Sessions';
+      if (ringRate) ringRate.textContent = '--';
+      if (ringLabel) ringLabel.textContent = 'NO SESSIONS';
+      if (ringFg) {
+        ringFg.setAttribute('stroke-dasharray', '0, 100');
+        ringFg.style.stroke = 'rgba(255, 255, 255, 0.1)';
+      }
     }
 
-    renderStudentAttendanceChart(att.seven_day_trend || []);
+    // 2. Chronological Timeline of Recorded Sessions
+    renderStudentAttendanceTimeline(att.timeline || []);
   }
 
-  function renderStudentAttendanceChart(trendData) {
-    if (typeof Chart === 'undefined') {
-      console.warn('Chart.js library is not loaded. Skipping student attendance chart render.');
-      return;
-    }
+  function renderStudentAttendanceTimeline(timelineData) {
+    const track = document.getElementById('studentAttTimeline');
+    const emptyState = document.getElementById('studentAttTimelineEmpty');
+    const countBadge = document.getElementById('studentTimelineCount');
+    if (!track) return;
 
-    const canvas = document.getElementById('studentAttendanceChart');
-    const emptyState = document.getElementById('studentAttChartEmpty');
-    if (!canvas) return;
+    track.innerHTML = '';
 
-    if (studentAttendanceChartInstance) {
-      studentAttendanceChartInstance.destroy();
-      studentAttendanceChartInstance = null;
-    }
-
-    if (!trendData || trendData.length === 0) {
+    if (!timelineData || timelineData.length === 0) {
       if (emptyState) emptyState.style.display = 'flex';
-      canvas.style.display = 'none';
+      track.style.display = 'none';
+      if (countBadge) countBadge.textContent = '0 sessions';
       return;
     }
 
     if (emptyState) emptyState.style.display = 'none';
-    canvas.style.display = 'block';
+    track.style.display = 'flex';
+    if (countBadge) countBadge.textContent = `${timelineData.length} recorded session${timelineData.length === 1 ? '' : 's'}`;
 
-    const labels = trendData.map(d => d.date_formatted);
-    const presentData = trendData.map(d => d.present);
-    const absentData = trendData.map(d => d.absent);
+    timelineData.forEach((item, index) => {
+      const isPresent = (item.status === 'Present');
+      const node = document.createElement('div');
+      node.className = `student-timeline-item student-timeline-node ${isPresent ? 'is-present' : 'is-absent'}`;
+      node.setAttribute('title', `${item.date_formatted || item.date}: ${item.status} (${item.batch_name || 'Training Batch'})`);
 
-    const ctx = canvas.getContext('2d');
-    studentAttendanceChartInstance = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            label: 'Present',
-            data: presentData,
-            backgroundColor: 'rgba(34, 197, 94, 0.85)',
-            borderColor: '#22C55E',
-            borderWidth: 1,
-            borderRadius: 4,
-            maxBarThickness: 28
-          },
-          {
-            label: 'Absent',
-            data: absentData,
-            backgroundColor: 'rgba(239, 68, 68, 0.8)',
-            borderColor: '#EF4444',
-            borderWidth: 1,
-            borderRadius: 4,
-            maxBarThickness: 28
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: true,
-            position: 'top',
-            labels: {
-              color: '#A7AFBC',
-              boxWidth: 12,
-              padding: 12,
-              font: { family: "'Plus Jakarta Sans', sans-serif", size: 12 }
-            }
-          },
-          tooltip: {
-            backgroundColor: '#1B2028',
-            titleColor: '#FFFFFF',
-            bodyColor: '#A7AFBC',
-            borderColor: 'rgba(201, 162, 39, 0.3)',
-            borderWidth: 1,
-            padding: 10,
-            callbacks: {
-              label: (item) => {
-                const isPresent = item.dataset.label === 'Present';
-                const count = item.raw || 0;
-                return `${item.dataset.label}: ${count > 0 ? (isPresent ? 'Attended' : 'Missed') : 'None'}`;
-              }
-            }
-          }
-        },
-        scales: {
-          x: {
-            grid: { color: 'rgba(255, 255, 255, 0.04)' },
-            ticks: { color: '#737C89', font: { size: 11 } }
-          },
-          y: {
-            beginAtZero: true,
-            max: 1,
-            grid: { color: 'rgba(255, 255, 255, 0.04)' },
-            ticks: {
-              color: '#737C89',
-              stepSize: 1,
-              precision: 0,
-              font: { size: 11 },
-              callback: (val) => (val === 1 ? 'Logged' : '0')
-            }
-          }
-        }
-      }
+      node.innerHTML = `
+        <div class="student-timeline-dot student-timeline-badge ${isPresent ? 'dot-present' : 'dot-absent'}">
+          ${isPresent ? 'P' : 'A'}
+        </div>
+        <span class="student-timeline-date">${escapeHtml(item.date_label || item.date_short || item.date)}</span>
+        <span class="student-timeline-day">${escapeHtml(item.day_name || '')}</span>
+      `;
+
+      track.appendChild(node);
     });
   }
 
@@ -1624,18 +1600,447 @@
 
     recentList.forEach(rec => {
       const isPresent = (rec.status === 'Present');
-      const badgeClass = isPresent ? 'badge-active' : 'badge-inactive';
+      const badgeHtml = isPresent
+        ? '<span class="badge-status-present">✓ Present</span>'
+        : '<span class="badge-status-absent">✕ Absent</span>';
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td style="font-weight:500; color:#FFFFFF;">${escapeHtml(rec.date_formatted || rec.attendance_date)}</td>
         <td style="color:var(--text-muted);">${escapeHtml(rec.batch_name || 'Training Batch')}</td>
         <td style="text-align:right;">
-          <span class="dash-kpi-badge ${badgeClass}">${escapeHtml(rec.status || '—')}</span>
+          ${badgeHtml}
         </td>
       `;
       tbody.appendChild(tr);
     });
+  }
+
+  // ============================================================================
+  // 6. STUDENT DASHBOARD INTERACTIVE DETAIL MODAL SYSTEM
+  // ============================================================================
+
+  function initStudentDashboardInteractions() {
+    if (isStudentInteractionsInitialized) return;
+    isStudentInteractionsInitialized = true;
+
+    // Helper: Bind click and keyboard Enter/Space
+    const bindInteractive = (id, type) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openStudentModal(type);
+      });
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openStudentModal(type);
+        }
+      });
+    };
+
+    // 1. My Batch Card & Details Button
+    bindInteractive('cardStudentBatch', 'batch');
+
+    // 2. My Attendance Card & Details Button
+    bindInteractive('cardStudentAttRate', 'attendance');
+    bindInteractive('btnStudentViewAttDetails', 'attendance');
+
+    // 3. Sessions Attended Card
+    bindInteractive('cardStudentSessions', 'sessions');
+
+    // 4. Training Schedule Card
+    bindInteractive('cardStudentSchedule', 'schedule');
+
+    // 5. My Training Panel & Button & Coach Chip
+    bindInteractive('btnStudentViewTrainingDetails', 'training');
+    bindInteractive('studentCoachChip', 'training');
+
+    // 6. Recent Attendance View All Button
+    bindInteractive('btnStudentViewAllAttendance', 'history');
+
+    // Close button for student detail modal
+    const closeBtn = document.getElementById('closeStudentDetailModal');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        if (typeof closeModal === 'function') {
+          closeModal('studentDetailModal');
+        } else {
+          const m = document.getElementById('studentDetailModal');
+          if (m) m.style.display = 'none';
+        }
+      });
+    }
+
+    // Backdrop click dismiss for student detail modal
+    const modalOverlay = document.getElementById('studentDetailModal');
+    if (modalOverlay) {
+      modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) {
+          if (typeof closeModal === 'function') {
+            closeModal('studentDetailModal');
+          } else {
+            modalOverlay.style.display = 'none';
+          }
+        }
+      });
+    }
+  }
+
+  function openStudentModal(type) {
+    const modal = document.getElementById('studentDetailModal');
+    const badgeEl = document.getElementById('studentModalBadge');
+    const titleEl = document.getElementById('studentModalTitle');
+    const bodyEl = document.getElementById('studentModalBody');
+    if (!modal || !bodyEl) return;
+
+    const data = currentStudentPayload || {};
+    const batch = data.batch || {};
+    const att = data.attendance || {};
+    const kpis = data.kpis || {};
+    const user = data.user || {};
+    const history = att.history || att.recent || [];
+
+    const present = att.present || 0;
+    const absent = att.absent || 0;
+    const total = att.total || (present + absent);
+    const rateText = (att.rate !== null && att.rate !== undefined) ? `${att.rate}%` : 'No Rate';
+
+    let badge = 'STUDENT DETAIL';
+    let title = 'Athlete Overview';
+    let contentHtml = '';
+
+    const formatStatusBadge = (status) => {
+      const isP = (status === 'Present');
+      return isP
+        ? '<span class="badge-status-present">✓ Present</span>'
+        : '<span class="badge-status-absent">✕ Absent</span>';
+    };
+
+    switch (type) {
+      case 'batch':
+        badge = 'MY BATCH';
+        title = 'Batch Details';
+        contentHtml = `
+          <div class="sm-hero-compact">
+            <div class="sm-hero-compact-top">
+              <span class="sm-hero-name">${escapeHtml(batch.batch_name || 'Assigned Batch')}</span>
+              <span class="sm-sport-pill">${escapeHtml(batch.sport || 'General Sports')}</span>
+            </div>
+            <span class="sm-hero-sub text-success">Active Training Group</span>
+          </div>
+
+          <div class="sm-section">
+            <div class="sm-section-heading">Training Details</div>
+            <div class="sm-spec-grid">
+              <div class="sm-spec-item">
+                <span class="sm-spec-label">Sport Discipline</span>
+                <span class="sm-spec-val">${escapeHtml(batch.sport || 'General Sports')}</span>
+              </div>
+              <div class="sm-spec-item">
+                <span class="sm-spec-label">Training Ground</span>
+                <span class="sm-spec-val">${escapeHtml(batch.batch_location || 'Academy Grounds')}</span>
+              </div>
+              <div class="sm-spec-item">
+                <span class="sm-spec-label">Session Schedule</span>
+                <span class="sm-spec-val">${escapeHtml(batch.batch_time || 'Flexible Schedule')}</span>
+              </div>
+              <div class="sm-spec-item">
+                <span class="sm-spec-label">Enrollment Status</span>
+                <span class="sm-spec-val text-success">Active Athlete</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sm-section">
+            <div class="sm-section-heading">Assigned Coaching Staff</div>
+            <div class="sm-coach-card">
+              <div class="sm-coach-avatar">
+                ${batch.coach_photo 
+                  ? `<img src="${escapeHtml(batch.coach_photo)}" alt="${escapeHtml(batch.coach_name || 'Coach')}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`
+                  : getInitials(batch.coach_name || 'Coach', 'C')}
+              </div>
+              <div class="sm-coach-details">
+                <span class="sm-coach-role">Head Coach</span>
+                <span class="sm-coach-name">${escapeHtml(batch.coach_name || 'Unassigned')}</span>
+                <span class="sm-coach-contact">${escapeHtml(batch.coach_email || 'No email registered')}</span>
+                ${batch.coach_phone ? `<span class="sm-coach-phone">${escapeHtml(batch.coach_phone)}</span>` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+
+      case 'attendance':
+        badge = 'MY ATTENDANCE';
+        title = 'Attendance Breakdown';
+        contentHtml = `
+          <div class="sm-stat-highlight-row">
+            <div class="sm-stat-box">
+              <span class="sm-stat-num text-gold">${escapeHtml(rateText)}</span>
+              <span class="sm-stat-sub">Overall Rate</span>
+            </div>
+            <div class="sm-stat-box">
+              <span class="sm-stat-num text-success">${present}</span>
+              <span class="sm-stat-sub">Present</span>
+            </div>
+            <div class="sm-stat-box">
+              <span class="sm-stat-num text-danger">${absent}</span>
+              <span class="sm-stat-sub">Absent</span>
+            </div>
+            <div class="sm-stat-box">
+              <span class="sm-stat-num">${total}</span>
+              <span class="sm-stat-sub">Recorded</span>
+            </div>
+          </div>
+
+          <div class="sm-section">
+            <div class="sm-history-header">
+              <span class="sm-section-heading" style="margin:0;">Recorded Attendance History</span>
+              <span class="sm-history-count">${history.length} Session${history.length === 1 ? '' : 's'}</span>
+            </div>
+
+            <div class="sm-scrollable-history">
+              ${history.length > 0 ? `
+                <table class="sm-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Batch</th>
+                      <th style="text-align:right;">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${history.map(rec => `
+                      <tr>
+                        <td class="sm-cell-date">${escapeHtml(rec.date_formatted || rec.attendance_date)}</td>
+                        <td class="sm-cell-batch">${escapeHtml(rec.batch_name || 'Training Batch')}</td>
+                        <td style="text-align:right;">${formatStatusBadge(rec.status)}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              ` : `
+                <div class="sm-empty-box">
+                  <p>No attendance sessions recorded yet for your profile.</p>
+                </div>
+              `}
+            </div>
+          </div>
+        `;
+        break;
+
+      case 'sessions':
+        badge = 'SESSIONS ATTENDED';
+        title = 'Attended Sessions';
+        const attendedRecords = history.filter(h => h.status === 'Present');
+        contentHtml = `
+          <div class="sm-stat-highlight-row" style="grid-template-columns: repeat(3, 1fr);">
+            <div class="sm-stat-box">
+              <span class="sm-stat-num text-success">${present}</span>
+              <span class="sm-stat-sub">Attended</span>
+            </div>
+            <div class="sm-stat-box">
+              <span class="sm-stat-num">${total}</span>
+              <span class="sm-stat-sub">Total Recorded</span>
+            </div>
+            <div class="sm-stat-box">
+              <span class="sm-stat-num text-gold">${escapeHtml(rateText)}</span>
+              <span class="sm-stat-sub">Rate</span>
+            </div>
+          </div>
+
+          <div class="sm-section">
+            <div class="sm-history-header">
+              <span class="sm-section-heading" style="margin:0;">Attended Sessions Log</span>
+              <span class="sm-history-count text-success">${attendedRecords.length} Attended</span>
+            </div>
+
+            <div class="sm-scrollable-history">
+              ${attendedRecords.length > 0 ? `
+                <table class="sm-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Batch</th>
+                      <th style="text-align:right;">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${attendedRecords.map(rec => `
+                      <tr>
+                        <td class="sm-cell-date">${escapeHtml(rec.date_formatted || rec.attendance_date)}</td>
+                        <td class="sm-cell-batch">${escapeHtml(rec.batch_name || 'Training Session')}</td>
+                        <td style="text-align:right;"><span class="badge-status-present">✓ Present</span></td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              ` : `
+                <div class="sm-empty-box">
+                  <p>No attended sessions recorded yet.</p>
+                </div>
+              `}
+            </div>
+          </div>
+        `;
+        break;
+
+      case 'schedule':
+        badge = 'TRAINING SCHEDULE';
+        title = 'Training Schedule';
+        contentHtml = `
+          <div class="sm-hero-compact">
+            <div class="sm-hero-compact-top">
+              <span class="sm-hero-name">${escapeHtml(batch.batch_time || 'Flexible Schedule')}</span>
+              <span class="sm-sport-pill">${escapeHtml(batch.sport || 'Training')}</span>
+            </div>
+            <span class="sm-hero-sub">${escapeHtml(batch.batch_name || 'Assigned Batch')} • ${escapeHtml(batch.batch_location || 'Academy Grounds')}</span>
+          </div>
+
+          <div class="sm-section">
+            <div class="sm-section-heading">Schedule & Location</div>
+            <div class="sm-spec-grid">
+              <div class="sm-spec-item">
+                <span class="sm-spec-label">Training Time</span>
+                <span class="sm-spec-val highlight-gold">${escapeHtml(batch.batch_time || 'Flexible Schedule')}</span>
+              </div>
+              <div class="sm-spec-item">
+                <span class="sm-spec-label">Training Ground</span>
+                <span class="sm-spec-val">${escapeHtml(batch.batch_location || 'Academy Grounds')}</span>
+              </div>
+              <div class="sm-spec-item">
+                <span class="sm-spec-label">Sport Discipline</span>
+                <span class="sm-spec-val">${escapeHtml(batch.sport || 'General Sports')}</span>
+              </div>
+              <div class="sm-spec-item">
+                <span class="sm-spec-label">Batch Group</span>
+                <span class="sm-spec-val">${escapeHtml(batch.batch_name || 'No Batch')}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sm-section">
+            <div class="sm-section-heading">Lead Coach</div>
+            <div class="sm-coach-card">
+              <div class="sm-coach-avatar">
+                ${batch.coach_photo 
+                  ? `<img src="${escapeHtml(batch.coach_photo)}" alt="${escapeHtml(batch.coach_name || 'Coach')}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`
+                  : getInitials(batch.coach_name || 'Coach', 'C')}
+              </div>
+              <div class="sm-coach-details">
+                <span class="sm-coach-role">Lead Coach</span>
+                <span class="sm-coach-name">${escapeHtml(batch.coach_name || 'Unassigned')}</span>
+                <span class="sm-coach-contact">${escapeHtml(batch.coach_email || 'No email registered')}</span>
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+
+      case 'training':
+        badge = 'MY TRAINING';
+        title = 'Training Program & Staff';
+        contentHtml = `
+          <div class="sm-hero-compact">
+            <div class="sm-hero-compact-top">
+              <span class="sm-hero-name">${escapeHtml(batch.batch_name || 'Training Group')}</span>
+              <span class="sm-sport-pill">${escapeHtml(batch.sport || 'Training')}</span>
+            </div>
+            <span class="sm-hero-sub">${escapeHtml(batch.batch_location || 'Academy Grounds')} • ${escapeHtml(batch.batch_time || 'Flexible Schedule')}</span>
+          </div>
+
+          <div class="sm-section">
+            <div class="sm-section-heading">Program Details</div>
+            <div class="sm-spec-grid">
+              <div class="sm-spec-item">
+                <span class="sm-spec-label">Training Ground</span>
+                <span class="sm-spec-val">${escapeHtml(batch.batch_location || 'Academy Grounds')}</span>
+              </div>
+              <div class="sm-spec-item">
+                <span class="sm-spec-label">Daily Schedule</span>
+                <span class="sm-spec-val">${escapeHtml(batch.batch_time || 'Flexible Schedule')}</span>
+              </div>
+              <div class="sm-spec-item">
+                <span class="sm-spec-label">Sport Discipline</span>
+                <span class="sm-spec-val">${escapeHtml(batch.sport || 'General Sports')}</span>
+              </div>
+              <div class="sm-spec-item">
+                <span class="sm-spec-label">Athlete Profile</span>
+                <span class="sm-spec-val">${escapeHtml(user.name || 'Student')}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sm-section">
+            <div class="sm-section-heading">Assigned Coaching Staff</div>
+            <div class="sm-coach-card">
+              <div class="sm-coach-avatar">
+                ${batch.coach_photo 
+                  ? `<img src="${escapeHtml(batch.coach_photo)}" alt="${escapeHtml(batch.coach_name || 'Coach')}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`
+                  : getInitials(batch.coach_name || 'Coach', 'C')}
+              </div>
+              <div class="sm-coach-details">
+                <span class="sm-coach-role">Certified Lead Coach</span>
+                <span class="sm-coach-name">${escapeHtml(batch.coach_name || 'Unassigned')}</span>
+                <span class="sm-coach-contact">${escapeHtml(batch.coach_email || 'No email registered')}</span>
+                ${batch.coach_phone ? `<span class="sm-coach-phone">${escapeHtml(batch.coach_phone)}</span>` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+
+      case 'history':
+      default:
+        badge = 'ATTENDANCE HISTORY';
+        title = 'Attendance History';
+        contentHtml = `
+          <div class="sm-history-sub-header">
+            <span class="sm-history-desc">All recorded training session check-ins for your profile</span>
+            <span class="sm-history-count">${history.length} Record${history.length === 1 ? '' : 's'}</span>
+          </div>
+
+          <div class="sm-scrollable-history" style="max-height: 55vh;">
+            ${history.length > 0 ? `
+              <table class="sm-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Batch</th>
+                    <th style="text-align:right;">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${history.map(rec => `
+                    <tr>
+                      <td class="sm-cell-date">${escapeHtml(rec.date_formatted || rec.attendance_date)}</td>
+                      <td class="sm-cell-batch">${escapeHtml(rec.batch_name || 'Training Batch')}</td>
+                      <td style="text-align:right;">${formatStatusBadge(rec.status)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            ` : `
+              <div class="sm-empty-box">
+                <p>No attendance records found.</p>
+              </div>
+            `}
+          </div>
+        `;
+        break;
+    }
+
+    if (badgeEl) badgeEl.textContent = badge;
+    if (titleEl) titleEl.textContent = title;
+    bodyEl.innerHTML = contentHtml;
+
+    if (typeof openModal === 'function') {
+      openModal('studentDetailModal');
+    } else {
+      modal.style.display = 'flex';
+    }
   }
 
   // ============================================================================

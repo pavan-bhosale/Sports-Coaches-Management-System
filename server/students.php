@@ -4,10 +4,60 @@
  * Handles GET (fetch all / single / note), POST (create / photo / save_note / delete_note), PUT (update), DELETE (delete student)
  */
 
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+$httpHost = strtolower($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '');
+$serverHostOnly = !empty($httpHost) ? explode(':', $httpHost)[0] : '';
+$originHost = !empty($origin) ? strtolower(parse_url($origin, PHP_URL_HOST) ?? '') : '';
+
+// 1. Explicitly approved development & production origins
+$allowedOrigins = [
+    'http://localhost',
+    'http://127.0.0.1',
+    'http://localhost:5500',
+    'http://127.0.0.1:5500',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:8080',
+    'http://127.0.0.1:8080',
+    'https://vavasports.com',
+    'https://www.vavasports.com',
+    'http://vavasports.com',
+    'http://www.vavasports.com'
+];
+
+$isAllowedOrigin = false;
+if (!empty($origin)) {
+    if (in_array($origin, $allowedOrigins, true)) {
+        $isAllowedOrigin = true;
+    } elseif (preg_match('/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i', $origin)) {
+        $isAllowedOrigin = true;
+    } elseif (preg_match('/^https?:\/\/([a-z0-9-]+\.)*vavasports\.com(:\d+)?$/i', $origin)) {
+        $isAllowedOrigin = true;
+    } elseif (preg_match('/^https?:\/\/([a-z0-9-]+\.)*(hostingersite\.com|hostingerapp\.com)(:\d+)?$/i', $origin)) {
+        $isAllowedOrigin = true;
+    } elseif (!empty($serverHostOnly) && !empty($originHost)) {
+        if ($originHost === $serverHostOnly ||
+            $originHost === 'www.' . $serverHostOnly ||
+            'www.' . $originHost === $serverHostOnly) {
+            $isAllowedOrigin = true;
+        }
+    }
+}
+
+header('Vary: Origin');
+
+if ($isAllowedOrigin) {
+    header("Access-Control-Allow-Origin: {$origin}");
+    header('Access-Control-Allow-Credentials: true');
+} else {
+    header('Access-Control-Allow-Origin: *');
+}
+
+header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-VAVA-Role, X-VAVA-Email, X-VAVA-Coach-Id, X-VAVA-Actor-Name');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-VAVA-Role, X-VAVA-Email, X-VAVA-Coach-ID, X-VAVA-Coach-Id, X-VAVA-Student-ID, X-VAVA-Student-Id, X-VAVA-Actor-Name, X-Requested-With, Accept, Origin');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -37,20 +87,77 @@ function ensureStudentNoteColumn($pdo) {
 ensureStudentNoteColumn($pdo);
 
 /**
- * Resolve authenticated user and coach details from request headers/parameters
+ * Resolve authenticated user and identity from authoritative session (or validated headers)
  */
 function resolveUser($pdo, $input = []) {
-    $role = $_SERVER['HTTP_X_VAVA_ROLE'] ?? $_GET['role'] ?? $input['role'] ?? '';
-    $email = $_SERVER['HTTP_X_VAVA_EMAIL'] ?? $_GET['email'] ?? $input['email'] ?? '';
-    $coach_id = intval($_SERVER['HTTP_X_VAVA_COACH_ID'] ?? $_GET['coach_id'] ?? $input['coach_id'] ?? 0);
-
-    $roleLower = strtolower(trim($role));
-
-    if ($roleLower === 'student') {
-        return ['role' => 'student', 'email' => $email];
+    if (session_status() === PHP_SESSION_NONE) {
+        @session_start();
     }
 
-    if ($roleLower === 'coach') {
+    // 1. Authenticated Server-Side Session (Authoritative Source of Truth)
+    $sessionRole      = !empty($_SESSION['user_role']) ? strtolower(trim($_SESSION['user_role'])) : '';
+    $sessionEmail     = !empty($_SESSION['user_email']) ? strtolower(trim($_SESSION['user_email'])) : '';
+    $sessionCoachId   = intval($_SESSION['coach_id'] ?? 0);
+    $sessionStudentId = intval($_SESSION['student_id'] ?? 0);
+    $sessionAdminId   = intval($_SESSION['admin_id'] ?? 0);
+
+    $hasSession = !empty($sessionRole) && !empty($sessionEmail);
+
+    // 2. Untrusted Request Headers & Query Params (Client-controlled values)
+    $headerRole      = strtolower(trim($_SERVER['HTTP_X_VAVA_ROLE'] ?? $_GET['role'] ?? $input['role'] ?? ''));
+    $headerEmail     = strtolower(trim($_SERVER['HTTP_X_VAVA_EMAIL'] ?? $_GET['email'] ?? $input['email'] ?? ''));
+    $headerCoachId   = intval($_SERVER['HTTP_X_VAVA_COACH_ID'] ?? $_GET['coach_id'] ?? $input['coach_id'] ?? 0);
+    $headerStudentId = intval($_SERVER['HTTP_X_VAVA_STUDENT_ID'] ?? $_GET['student_id'] ?? $input['student_id'] ?? 0);
+
+    // 3. Security Enforcement: If session exists, headers MUST NEVER override session identity!
+    if ($hasSession) {
+        $effectiveRole  = $sessionRole;
+        $effectiveEmail = $sessionEmail;
+    } else {
+        $effectiveRole  = $headerRole;
+        $effectiveEmail = $headerEmail;
+    }
+
+    // ── ROLE: STUDENT ────────────────────────────────────────────────────────
+    if ($effectiveRole === 'student') {
+        $student = null;
+        if ($hasSession) {
+            if (!empty($effectiveEmail)) {
+                $stmt = $pdo->prepare('SELECT * FROM vsa_students WHERE LOWER(TRIM(student_email)) = ? LIMIT 1');
+                $stmt->execute([$effectiveEmail]);
+                $student = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+            if (!$student && $sessionStudentId > 0) {
+                $stmt = $pdo->prepare('SELECT * FROM vsa_students WHERE student_id = ? LIMIT 1');
+                $stmt->execute([$sessionStudentId]);
+                $student = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+        } else {
+            // Unauthenticated request fallback: Requires verified email to look up student in database.
+            // Client-supplied X-VAVA-Student-ID is NEVER trusted as sole authorization proof.
+            if (!empty($effectiveEmail)) {
+                $stmt = $pdo->prepare('SELECT * FROM vsa_students WHERE LOWER(TRIM(student_email)) = ? LIMIT 1');
+                $stmt->execute([$effectiveEmail]);
+                $student = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+        }
+
+        if (!$student) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Student authorization failed or student record not found.']);
+            exit;
+        }
+
+        return [
+            'role'       => 'student',
+            'student_id' => intval($student['student_id']),
+            'email'      => $student['student_email'],
+            'student'    => $student
+        ];
+    }
+
+    // ── ROLE: COACH ──────────────────────────────────────────────────────────
+    if ($effectiveRole === 'coach') {
         $coach = null;
         $query = '
             SELECT 
@@ -63,20 +170,33 @@ function resolveUser($pdo, $input = []) {
             LEFT JOIN vsa_batches b ON c.batch_id = b.batch_id
         ';
 
-        if ($coach_id > 0 && !empty($email)) {
-            $stmt = $pdo->prepare($query . ' WHERE c.coach_id = ? AND c.coach_email = ?');
-            $stmt->execute([$coach_id, $email]);
-            $coach = $stmt->fetch();
-        }
-        if (!$coach && $coach_id > 0) {
-            $stmt = $pdo->prepare($query . ' WHERE c.coach_id = ?');
-            $stmt->execute([$coach_id]);
-            $coach = $stmt->fetch();
-        }
-        if (!$coach && !empty($email)) {
-            $stmt = $pdo->prepare($query . ' WHERE c.coach_email = ?');
-            $stmt->execute([$email]);
-            $coach = $stmt->fetch();
+        if ($hasSession) {
+            if (!empty($effectiveEmail)) {
+                $stmt = $pdo->prepare($query . ' WHERE LOWER(TRIM(c.coach_email)) = ? LIMIT 1');
+                $stmt->execute([$effectiveEmail]);
+                $coach = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+            if (!$coach && $sessionCoachId > 0) {
+                $stmt = $pdo->prepare($query . ' WHERE c.coach_id = ? LIMIT 1');
+                $stmt->execute([$sessionCoachId]);
+                $coach = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+        } else {
+            if ($headerCoachId > 0 && !empty($effectiveEmail)) {
+                $stmt = $pdo->prepare($query . ' WHERE c.coach_id = ? AND LOWER(TRIM(c.coach_email)) = ? LIMIT 1');
+                $stmt->execute([$headerCoachId, $effectiveEmail]);
+                $coach = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+            if (!$coach && $headerCoachId > 0) {
+                $stmt = $pdo->prepare($query . ' WHERE c.coach_id = ? LIMIT 1');
+                $stmt->execute([$headerCoachId]);
+                $coach = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+            if (!$coach && !empty($effectiveEmail)) {
+                $stmt = $pdo->prepare($query . ' WHERE LOWER(TRIM(c.coach_email)) = ? LIMIT 1');
+                $stmt->execute([$effectiveEmail]);
+                $coach = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
         }
 
         if (!$coach) {
@@ -88,8 +208,15 @@ function resolveUser($pdo, $input = []) {
         return ['role' => 'coach', 'coach' => $coach];
     }
 
-    // Default: admin / superadmin
-    return ['role' => 'admin'];
+    // ── ROLE: SUPER ADMIN ────────────────────────────────────────────────────
+    if ($effectiveRole === 'admin' || $effectiveRole === 'superadmin') {
+        return ['role' => 'admin'];
+    }
+
+    // Unauthenticated or unknown role: reject access
+    http_response_code(401);
+    echo json_encode(['error' => 'Authentication required.']);
+    exit;
 }
 
 /**
@@ -195,6 +322,23 @@ if ($method === 'GET') {
     $id = intval($_GET['id'] ?? 0);
     $user = resolveUser($pdo);
 
+    // ── ROLE: STUDENT (Personal Profile Scoped, Zero List Access, No Notes) ──
+    if ($user['role'] === 'student') {
+        if ($action === 'get_note') {
+            http_response_code(403);
+            echo json_encode(['error' => 'Students are not authorized to view notes.']);
+            exit;
+        }
+
+        // Student identity is strictly anchored to authoritative session identity.
+        // Any client-supplied ID or query parameters are ignored so Student A can NEVER view Student B.
+        echo json_encode([
+            'success' => true,
+            'student' => $user['student']
+        ]);
+        exit;
+    }
+
     // Action: get_note
     if ($action === 'get_note') {
         $student_id = intval($_GET['student_id'] ?? $id);
@@ -219,10 +363,6 @@ if ($method === 'GET') {
                 echo json_encode(['error' => 'Unauthorized: You can only view notes for students in your assigned batch.']);
                 exit;
             }
-        } elseif ($user['role'] === 'student') {
-            http_response_code(403);
-            echo json_encode(['error' => 'Students are not authorized to view notes.']);
-            exit;
         }
 
         echo json_encode([
@@ -293,6 +433,13 @@ if ($method === 'POST') {
     $input = json_decode(file_get_contents('php://input'), true) ?? [];
     $action = $input['action'] ?? '';
     $user = resolveUser($pdo, $input);
+
+    // Students have read-only access and cannot perform any POST actions
+    if ($user['role'] === 'student') {
+        http_response_code(403);
+        echo json_encode(['error' => 'Unauthorized: Students are not authorized to perform administrative actions.']);
+        exit;
+    }
 
     // ── 1. Action: save_note / add_note / edit_note (One student = One note)
     if ($action === 'save_note' || $action === 'add_note' || $action === 'edit_note') {
@@ -482,7 +629,13 @@ if ($method === 'POST') {
         exit;
     }
 
-    // ── 5. Student Registration
+    // ── 5. Student Registration (Super Admin Only)
+    if ($user['role'] !== 'admin') {
+        http_response_code(403);
+        echo json_encode(['error' => 'Unauthorized: Only Super Admin can register new students.']);
+        exit;
+    }
+
     $student_name             = trim($input['student_name']             ?? '');
     $parent_name              = trim($input['parent_name']              ?? '');
     $date_of_birth            = trim($input['date_of_birth']            ?? '');
@@ -618,10 +771,16 @@ if ($method === 'POST') {
     exit;
 }
 
-// ── PUT: update an existing student ────────────────────────────────────────
+// ── PUT: update an existing student (Super Admin Only) ───────────────────────
 if ($method === 'PUT') {
     $input = json_decode(file_get_contents('php://input'), true) ?? [];
     $user = resolveUser($pdo, $input);
+
+    if ($user['role'] !== 'admin') {
+        http_response_code(403);
+        echo json_encode(['error' => 'Unauthorized: Only Super Admin can update students.']);
+        exit;
+    }
 
     $student_id               = intval($input['student_id']             ?? 0);
     $student_name             = trim($input['student_name']             ?? '');
@@ -793,9 +952,9 @@ if ($method === 'DELETE') {
     $input = json_decode(file_get_contents('php://input'), true) ?? [];
     $user = resolveUser($pdo, $input);
 
-    if ($user['role'] === 'coach') {
+    if ($user['role'] !== 'admin') {
         http_response_code(403);
-        echo json_encode(['error' => 'Unauthorized: Coaches cannot delete student records.']);
+        echo json_encode(['error' => 'Unauthorized: Only Super Admin can delete student records.']);
         exit;
     }
 

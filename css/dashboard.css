@@ -13732,22 +13732,40 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   animation: fadeIn 0.25s ease-in-out;
 }
 
-/* Student Welcome Profile Avatar */
+/* Student Welcome Card & Profile Avatar (Integrated Header Alignment) */
 .student-welcome-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-between !important;
+  align-items: flex-start !important;
+  gap: 0.75rem !important;
+  padding: 0.95rem 1.25rem !important;
+}
+
+.student-welcome-card .dash-welcome-left {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-right: 0.5rem;
 }
 
 .student-welcome-profile {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 2px;
+  cursor: pointer;
+  outline: none;
+}
+
+.student-welcome-profile:focus-visible .student-welcome-avatar {
+  outline: 2px solid var(--gold-primary);
+  outline-offset: 2px;
 }
 
 .student-welcome-avatar {
-  width: 52px;
-  height: 52px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 2px solid var(--gold-primary);
   background: var(--bg-elevated);
@@ -13756,10 +13774,26 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   align-items: center;
   justify-content: center;
   font-family: var(--font-heading);
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 700;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.student-welcome-profile:hover .student-welcome-avatar {
+  border-color: #FACC15;
+  transform: scale(1.05);
+  box-shadow: 0 0 14px rgba(234, 179, 8, 0.35);
+}
+
+.user-profile-chip {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.user-profile-chip:hover {
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .student-welcome-avatar img {
@@ -13918,12 +13952,1141 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   font-weight: 700;
 }
 
-/* Responsive Overrides */
+/* Responsive Overrides & Student Dashboard Extensions */
 @media (max-width: 640px) {
   .student-training-info-grid {
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+   STUDENT DASHBOARD UX, ATTENDANCE RING & REUSABLE MODAL SYSTEM
+   ========================================================================== */
+
+/* Clickable Dashboard Cards & Interactive Affordances */
+.dash-clickable {
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dash-clickable:hover {
+  transform: translateY(-2px);
+  border-color: rgba(201, 162, 39, 0.45);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 0 12px rgba(201, 162, 39, 0.12);
+}
+
+.dash-clickable:active {
+  transform: translateY(0);
+}
+
+.dash-clickable:focus-visible {
+  outline: 2px solid var(--gold-primary);
+  outline-offset: 2px;
+}
+
+.dash-clickable-panel {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dash-clickable-panel:hover {
+  border-color: rgba(201, 162, 39, 0.35);
+}
+
+.btn-dash-text-action {
+  background: transparent;
+  border: none;
+  color: var(--gold-primary);
+  font-family: var(--font-body);
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  transition: color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.btn-dash-text-action:hover {
+  color: var(--gold-highlight);
+  background: rgba(201, 162, 39, 0.1);
+  transform: translateX(2px);
+}
+
+/* Student 4-KPI Grid (Desktop 4-col, Tablet 2-col, Mobile 2-col) */
+#dashStudentView .student-kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 992px) {
+  #dashStudentView .student-kpis-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.85rem;
+  }
+}
+
+/* Student Attendance Donut Ring & Summary Pills */
+.student-att-main-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.student-att-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 1.25rem;
+  padding: 0.5rem 0;
+}
+
+.student-ring-wrap {
+  position: relative;
+  width: 124px;
+  height: 124px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.student-ring-chart {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.student-ring-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 3.6;
+}
+
+.student-ring-fg {
+  fill: none;
+  stroke-width: 3.6;
+  stroke-linecap: round;
+  stroke: var(--gold-primary);
+  transition: stroke-dasharray 0.8s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.3s ease;
+}
+
+.student-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+}
+
+.student-ring-rate {
+  font-family: var(--font-heading);
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  line-height: 1;
+}
+
+.student-ring-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.student-att-stat-pills {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 130px;
+  flex: 1;
+  max-width: 200px;
+}
+
+.student-stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  padding: 0.45rem 0.8rem;
+  transition: border-color 0.15s ease;
+}
+
+.student-stat-pill:hover {
+  border-color: rgba(201, 162, 39, 0.3);
+}
+
+.pill-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-present {
+  background: #22C55E;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+}
+
+.dot-absent {
+  background: #EF4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+}
+
+.dot-total {
+  background: var(--gold-primary);
+  box-shadow: 0 0 8px rgba(201, 162, 39, 0.4);
+}
+
+.pill-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  width: 100%;
+}
+
+.pill-num {
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.pill-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* Chronological Timeline Track */
+.student-timeline-section {
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.student-timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.7rem;
+}
+
+.student-timeline-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.student-timeline-hint {
+  font-size: 0.68rem;
+  color: var(--gold-primary);
+  font-weight: 600;
+}
+
+.student-timeline-track {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 2px 8px 2px;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.student-timeline-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 38px;
+  flex-shrink: 0;
+}
+
+.student-timeline-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  margin-bottom: 5px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.student-timeline-badge:hover {
+  transform: scale(1.12);
+}
+
+.student-timeline-badge.is-present {
+  background: rgba(34, 197, 94, 0.14);
+  color: #22C55E;
+  border: 1.5px solid rgba(34, 197, 94, 0.45);
+}
+
+.student-timeline-badge.is-absent {
+  background: rgba(239, 68, 68, 0.14);
+  color: #EF4444;
+  border: 1.5px solid rgba(239, 68, 68, 0.45);
+}
+
+.student-timeline-date {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.student-timeline-day {
+  font-size: 0.58rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.student-timeline-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 1.25rem 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+/* ==========================================================================
+   REUSABLE STUDENT DASHBOARD DETAIL MODAL STYLES (REFINED TYPOGRAPHY)
+   ========================================================================== */
+#studentDetailModal .sb-modal.student-detail-modal {
+  max-width: 480px;
+  background: var(--bg-card);
+  border: 1px solid rgba(201, 162, 39, 0.35);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 24px rgba(201, 162, 39, 0.08);
+  border-radius: 12px;
+}
+
+.student-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 0.85rem 1.15rem;
+  border-bottom: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
+}
+
+.student-modal-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding-right: 12px;
+}
+
+.student-modal-badge {
+  background: rgba(201, 162, 39, 0.15);
+  color: var(--gold-highlight);
+  border: 1px solid rgba(201, 162, 39, 0.3);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: inline-block;
+  align-self: flex-start;
+}
+
+#studentModalTitle.sb-modal-title {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.student-modal-body {
+  padding: 1rem 1.15rem;
+  max-height: 70vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Modal Hero Block */
+.sm-hero-compact {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  margin-bottom: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sm-hero-compact-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.sm-hero-name {
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.sm-sport-pill {
+  background: rgba(201, 162, 39, 0.15);
+  color: var(--gold-highlight);
+  border: 1px solid rgba(201, 162, 39, 0.3);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.sm-hero-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+/* Modal Content Sections & Typography Hierarchy */
+.sm-section {
+  margin-bottom: 0.85rem;
+}
+
+.sm-section:last-child {
+  margin-bottom: 0;
+}
+
+.sm-section-heading {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+}
+
+.sm-spec-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.45rem;
+}
+
+.sm-spec-item {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  padding: 0.45rem 0.65rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.sm-spec-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.sm-spec-val {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  word-break: break-word;
+}
+
+/* Modal Coach Card */
+.sm-coach-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  padding: 0.55rem 0.75rem;
+}
+
+.sm-coach-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(201, 162, 39, 0.4);
+  background: rgba(201, 162, 39, 0.12);
+  color: var(--gold-highlight);
+  font-family: var(--font-heading);
+  font-size: 0.92rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.sm-coach-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sm-coach-role {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--gold-primary);
+  letter-spacing: 0.05em;
+}
+
+.sm-coach-name {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  line-height: 1.2;
+}
+
+.sm-coach-contact {
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sm-coach-phone {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+/* Modal Stat Highlight Boxes */
+.sm-stat-highlight-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.45rem;
+  margin-bottom: 0.85rem;
+}
+
+.sm-stat-box {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  padding: 0.45rem 0.55rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.sm-stat-num {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.sm-stat-sub {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-top: 2px;
+}
+
+/* Modal History Sub-Header */
+.sm-history-header,
+.sm-history-sub-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.55rem;
+}
+
+.sm-history-desc {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.sm-history-count {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--gold-primary);
+  background: rgba(201, 162, 39, 0.1);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+/* Modal Compact History Table */
+.sm-scrollable-history {
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  overflow-y: auto;
+  background: var(--bg-secondary);
+}
+
+.sm-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sm-table th {
+  padding: 5px 8px;
+  font-size: 0.64rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--border-primary);
+  letter-spacing: 0.04em;
+  text-align: left;
+}
+
+.sm-table td {
+  padding: 6px 8px;
+  font-size: 0.76rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.sm-table tr:last-child td {
+  border-bottom: none;
+}
+
+.sm-cell-date {
+  font-weight: 600;
+  color: #FFFFFF;
+  white-space: nowrap;
+}
+
+.sm-cell-batch {
+  color: var(--text-muted);
+}
+
+.sm-empty-box {
+  padding: 1.25rem 0.5rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+/* ==========================================================================
+   CONSISTENT ATTENDANCE STATUS BADGES (PRESENT = GREEN, ABSENT = RED)
+   ========================================================================== */
+.badge-status-present,
+.badge-present {
+  background: rgba(34, 197, 94, 0.12) !important;
+  color: #22C55E !important;
+  border: 1px solid rgba(34, 197, 94, 0.3) !important;
+  padding: 2px 7px !important;
+  border-radius: 4px !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  white-space: nowrap !important;
+  line-height: 1.2 !important;
+}
+
+.badge-status-absent,
+.badge-absent,
+.badge-inactive {
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: #EF4444 !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  padding: 2px 7px !important;
+  border-radius: 4px !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  white-space: nowrap !important;
+  line-height: 1.2 !important;
+}
+
+/* ==========================================================================
+   ATTENDANCE TIMELINE (SCALED TO FIT WITHOUT EDGE CLIPPING)
+   ========================================================================== */
+.student-timeline-track {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 4px 2px 6px 2px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.student-timeline-track::-webkit-scrollbar {
+  display: none;
+}
+
+.student-timeline-item,
+.student-timeline-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 32px;
+  flex-shrink: 0;
+}
+
+.student-timeline-dot,
+.student-timeline-badge {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  margin-bottom: 4px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.student-timeline-dot:hover,
+.student-timeline-badge:hover {
+  transform: scale(1.1);
+}
+
+.student-timeline-dot.dot-present,
+.student-timeline-dot.is-present,
+.student-timeline-badge.is-present {
+  background: rgba(34, 197, 94, 0.14);
+  color: #22C55E;
+  border: 1.5px solid rgba(34, 197, 94, 0.45);
+}
+
+.student-timeline-dot.dot-absent,
+.student-timeline-dot.is-absent,
+.student-timeline-badge.is-absent {
+  background: rgba(239, 68, 68, 0.14);
+  color: #EF4444;
+  border: 1.5px solid rgba(239, 68, 68, 0.45);
+}
+
+.student-timeline-date {
+  font-size: 0.64rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.student-timeline-day {
+  font-size: 0.54rem;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+/* ==========================================================================
+   MOBILE & TABLET RESPONSIVE RULES (GUARANTEED 2-COLUMN KPI GRID)
+   ========================================================================== */
+
+/* Tablet & Mobile Screens (<= 860px down to 320px) */
+@media (max-width: 860px) {
+  #dashStudentView .student-kpis-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.65rem !important;
+    margin-bottom: 1.25rem !important;
+  }
+}
+
+/* Mobile Screens (<= 480px) */
+@media (max-width: 480px) {
+  /* 2x2 KPI Grid Enforcement (Never Stack to 1-Column) */
+  #dashStudentView .student-kpis-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.55rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  #dashStudentView .student-kpis-grid .dash-kpi-card {
+    padding: 0.65rem 0.6rem !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    height: 100% !important;
+  }
+
+  #dashStudentView .student-kpis-grid .dash-kpi-top {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin-bottom: 0.2rem !important;
+  }
+
+  #dashStudentView .student-kpis-grid .dash-kpi-label {
+    font-size: 0.6rem !important;
+    letter-spacing: 0.02em !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    min-width: 0 !important;
+  }
+
+  #dashStudentView .student-kpis-grid .dash-kpi-icon {
+    width: 26px !important;
+    height: 26px !important;
+    flex-shrink: 0 !important;
+  }
+
+  #dashStudentView .student-kpis-grid .dash-kpi-icon svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+
+  #dashStudentView .student-kpis-grid .dash-kpi-value {
+    font-size: 1.15rem !important;
+    line-height: 1.1 !important;
+    margin: 0.15rem 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  #dashStudentView .student-kpis-grid .dash-kpi-footer {
+    margin-top: 0.2rem !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 3px !important;
+  }
+
+  #dashStudentView .student-kpis-grid .dash-kpi-badge {
+    font-size: 0.58rem !important;
+    padding: 1px 4px !important;
+  }
+
+  #dashStudentView .student-kpis-grid .dash-kpi-subtext {
+    font-size: 0.58rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* Compact Welcome Card on Mobile (No Bottom Photo Placement) */
+  .student-welcome-card {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    gap: 0.5rem !important;
+    padding: 0.7rem 0.85rem !important;
+  }
+
+  .student-welcome-card .dash-welcome-left {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    padding-right: 0.4rem !important;
+  }
+
+  .student-welcome-profile {
+    flex: 0 0 auto !important;
+    align-self: flex-start !important;
+    margin-top: 2px !important;
+  }
+
+  .student-welcome-avatar {
+    width: 38px !important;
+    height: 38px !important;
+    font-size: 0.88rem !important;
+    border-width: 1.5px !important;
+  }
+
+  .student-welcome-card .dash-welcome-title {
+    font-size: 1.05rem !important;
+    line-height: 1.25 !important;
+    margin: 0.2rem 0 !important;
+  }
+
+  .student-welcome-card .dash-welcome-subtitle {
+    font-size: 0.7rem !important;
+    line-height: 1.3 !important;
+    flex-wrap: wrap !important;
+  }
+
+  .student-welcome-card .dash-welcome-badge {
+    margin-bottom: 0.2rem !important;
+    font-size: 0.62rem !important;
+    padding: 2px 6px !important;
+  }
+
+  /* Compact Panels on Mobile */
+  #dashStudentView .dash-panel-card {
+    padding: 0.75rem 0.85rem !important;
+    min-width: 0 !important;
+  }
+
+  #dashStudentView .dash-panel-header {
+    flex-wrap: wrap !important;
+    gap: 0.4rem !important;
+  }
+
+  /* Compact Attendance Panel on Mobile */
+  .student-att-top-row {
+    gap: 0.65rem !important;
+    padding: 0.2rem 0 !important;
+  }
+
+  .student-ring-wrap {
+    width: 98px !important;
+    height: 98px !important;
+  }
+
+  .student-ring-rate {
+    font-size: 1.2rem !important;
+  }
+
+  .student-ring-label {
+    font-size: 0.52rem !important;
+  }
+
+  .student-att-stat-pills {
+    min-width: 110px !important;
+    gap: 0.35rem !important;
+  }
+
+  .student-stat-pill {
+    padding: 0.3rem 0.55rem !important;
+  }
+
+  .pill-num {
+    font-size: 0.82rem !important;
+  }
+
+  .pill-label {
+    font-size: 0.62rem !important;
+  }
+
+  /* Timeline Scaling on Mobile */
+  .student-timeline-item,
+  .student-timeline-node {
+    min-width: 28px !important;
+  }
+
+  .student-timeline-dot,
+  .student-timeline-badge {
+    width: 22px !important;
+    height: 22px !important;
+    font-size: 0.66rem !important;
+    margin-bottom: 3px !important;
+  }
+
+  .student-timeline-date {
+    font-size: 0.58rem !important;
+  }
+
+  .student-timeline-day {
+    font-size: 0.5rem !important;
+  }
+
+  .student-timeline-track {
+    gap: 3px !important;
+    padding: 3px 2px 4px 2px !important;
+  }
+
+  /* Compact Training Info Grid on Mobile */
+  .student-training-info-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.45rem !important;
+  }
+
+  .training-info-item {
+    padding: 0.45rem 0.6rem !important;
+  }
+
+  .training-info-label {
+    font-size: 0.58rem !important;
+  }
+
+  .training-info-val {
+    font-size: 0.78rem !important;
+  }
+
+  .student-coach-chip {
+    padding: 0.55rem 0.75rem !important;
+    gap: 8px !important;
+    min-width: 0 !important;
+  }
+
+  .student-coach-details {
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .student-coach-avatar {
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 0.82rem !important;
+  }
+
+  .student-coach-name {
+    font-size: 0.82rem !important;
+  }
+
+  .student-coach-contact {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    max-width: 100% !important;
+  }
+
+  /* Mobile Bottom-Sheet Behavior for Detail Modal */
+  #studentDetailModal.sb-modal-overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+
+  #studentDetailModal .sb-modal.student-detail-modal {
+    max-width: 100% !important;
+    width: 100% !important;
+    border-radius: 14px 14px 0 0 !important;
+    max-height: 85vh !important;
+    border-bottom: none !important;
+  }
+
+  .student-modal-body {
+    max-height: 70vh !important;
+    padding: 0.85rem 1rem !important;
+  }
+
+  .sm-stat-highlight-row {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.4rem !important;
+  }
+}
+
+/* Extra-Narrow Mobile Screens (<= 360px down to 320px) */
+@media (max-width: 360px) {
+  #dashStudentView .dash-panel-card {
+    padding: 0.6rem 0.65rem !important;
+  }
+
+  #dashStudentView .student-kpis-grid {
+    gap: 0.4rem !important;
+  }
+
+  #dashStudentView .student-kpis-grid .dash-kpi-card {
+    padding: 0.55rem 0.45rem !important;
+  }
+
+  #dashStudentView .student-kpis-grid .dash-kpi-value {
+    font-size: 1.05rem !important;
+  }
+
+  #dashStudentView .student-kpis-grid .dash-kpi-label {
+    font-size: 0.56rem !important;
+  }
+
+  #dashStudentView .student-kpis-grid .dash-kpi-badge,
+  #dashStudentView .student-kpis-grid .dash-kpi-subtext {
+    font-size: 0.54rem !important;
+  }
+
+  .student-welcome-avatar {
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .student-timeline-item,
+  .student-timeline-node {
+    min-width: 25px !important;
+  }
+
+  .student-timeline-dot,
+  .student-timeline-badge {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 0.62rem !important;
+  }
+
+  .student-timeline-date {
+    font-size: 0.55rem !important;
+  }
+
+  .student-timeline-day {
+    font-size: 0.48rem !important;
+  }
+
+  .student-timeline-track {
+    gap: 2px !important;
+  }
+
+  .student-att-top-row {
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+
+  .student-att-stat-pills {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 0.3rem !important;
+  }
+
+  .student-stat-pill {
+    padding: 0.25rem 0.35rem !important;
+    flex-direction: column !important;
+    text-align: center !important;
+    gap: 2px !important;
+  }
+
+  .pill-meta {
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+
+  .pill-dot {
+    display: none !important;
+  }
+
+  .student-training-info-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .sm-spec-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 
 
 

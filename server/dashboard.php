@@ -943,45 +943,8 @@ try {
         $stTotal   = intval($attRow['total_sessions'] ?? 0);
         $stAttRate = ($stPresent + $stAbsent > 0) ? round(($stPresent / ($stPresent + $stAbsent)) * 100, 1) : null;
 
-        // 3. Student Scoped Latest 7 Active Attendance Dates
-        $stTrendStmt = $pdo->prepare("
-            SELECT 
-                a.attendance_date,
-                a.status,
-                b.batch_name
-            FROM vsa_attendance a
-            LEFT JOIN vsa_batches b ON a.batch_id = b.batch_id
-            WHERE a.student_id = ?
-              AND a.attendance_date IN (
-                  SELECT attendance_date FROM (
-                      SELECT DISTINCT attendance_date
-                      FROM vsa_attendance
-                      WHERE student_id = ?
-                      ORDER BY attendance_date DESC
-                      LIMIT 7
-                  ) AS recent_dates
-              )
-            ORDER BY a.attendance_date ASC
-        ");
-        $stTrendStmt->execute([$studentId, $studentId]);
-        $stSevenDayTrend = [];
-        while ($row = $stTrendStmt->fetch(PDO::FETCH_ASSOC)) {
-            $dt = $row['attendance_date'];
-            $status = $row['status'];
-            $stSevenDayTrend[] = [
-                'date'           => $dt,
-                'date_label'     => date('M j', strtotime($dt)),
-                'date_formatted' => date('M j', strtotime($dt)),
-                'day_name'       => date('D', strtotime($dt)),
-                'present'        => ($status === 'Present') ? 1 : 0,
-                'absent'         => ($status === 'Absent')  ? 1 : 0,
-                'status'         => $status,
-                'batch_name'     => $row['batch_name'] ?: 'Training Batch'
-            ];
-        }
-
-        // 4. Student Recent Attendance List (Latest 5 records)
-        $stRecentStmt = $pdo->prepare("
+        // 3. Student Scoped Attendance Records (Chronological & Full History)
+        $stAllStmt = $pdo->prepare("
             SELECT 
                 a.attendance_id,
                 a.attendance_date,
@@ -991,19 +954,43 @@ try {
             LEFT JOIN vsa_batches b ON a.batch_id = b.batch_id
             WHERE a.student_id = ?
             ORDER BY a.attendance_date DESC, a.attendance_id DESC
-            LIMIT 5
         ");
-        $stRecentStmt->execute([$studentId]);
-        $stRecentAttendance = [];
-        while ($row = $stRecentStmt->fetch(PDO::FETCH_ASSOC)) {
-            $stRecentAttendance[] = [
+        $stAllStmt->execute([$studentId]);
+        $stAllAttendance = [];
+        while ($row = $stAllStmt->fetch(PDO::FETCH_ASSOC)) {
+            $dt = $row['attendance_date'];
+            $stAllAttendance[] = [
                 'attendance_id'   => intval($row['attendance_id']),
-                'attendance_date' => $row['attendance_date'],
-                'date_formatted'  => date('M j, Y', strtotime($row['attendance_date'])),
+                'attendance_date' => $dt,
+                'date_formatted'  => date('M j, Y', strtotime($dt)),
+                'date_short'      => date('M j', strtotime($dt)),
+                'day_name'        => date('D', strtotime($dt)),
                 'batch_name'      => $row['batch_name'],
                 'status'          => $row['status']
             ];
         }
+
+        // 4. Chronological Timeline (Latest up to 7 recorded sessions, ordered past -> present)
+        $stLatest7 = array_slice($stAllAttendance, 0, 7);
+        $stTimeline = array_reverse($stLatest7);
+
+        // Keep 7-day trend array for backward compatibility
+        $stSevenDayTrend = [];
+        foreach ($stTimeline as $item) {
+            $stSevenDayTrend[] = [
+                'date'           => $item['attendance_date'],
+                'date_label'     => $item['date_short'],
+                'date_formatted' => $item['date_short'],
+                'day_name'       => $item['day_name'],
+                'present'        => ($item['status'] === 'Present') ? 1 : 0,
+                'absent'         => ($item['status'] === 'Absent')  ? 1 : 0,
+                'status'         => $item['status'],
+                'batch_name'     => $item['batch_name']
+            ];
+        }
+
+        // 5. Compact Recent Attendance (First 4 latest records for summary preview)
+        $stRecentAttendance = array_slice($stAllAttendance, 0, 4);
 
         // Build Student Response (Personal Athlete Portal - Zero academy/financial exposure)
         $studentResponseData = [
@@ -1028,8 +1015,10 @@ try {
             'batch'           => [
                 'batch_id'       => intval($stInfo['batch_id'] ?? 0),
                 'batch_name'     => $stInfo['batch_name'] ?: 'No Batch Assigned',
+                'coach_id'       => intval($stInfo['coach_id'] ?? 0),
                 'coach_name'     => $stInfo['coach_name'] ?: 'Unassigned',
                 'coach_email'    => $stInfo['coach_email'] ?: '',
+                'coach_phone'    => $stInfo['coach_phone'] ?: '',
                 'coach_photo'    => $stInfo['coach_photo'] ?: '',
                 'batch_location' => $stInfo['batch_location'] ?: 'Academy Grounds',
                 'batch_time'     => $stInfo['batch_time'] ?: 'Flexible Schedule',
@@ -1040,8 +1029,10 @@ try {
                 'present'         => $stPresent,
                 'absent'          => $stAbsent,
                 'total'           => $stTotal,
+                'timeline'        => $stTimeline,
                 'seven_day_trend' => $stSevenDayTrend,
-                'recent'          => $stRecentAttendance
+                'recent'          => $stRecentAttendance,
+                'history'         => $stAllAttendance
             ]
         ];
 

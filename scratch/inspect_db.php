@@ -1,17 +1,8 @@
 <?php
 require_once __DIR__ . '/../server/db_connect.php';
-
-function showCols($pdo, $table) {
-    echo "--- Table: $table ---\n";
-    $cols = $pdo->query("DESCRIBE $table")->fetchAll(PDO::FETCH_ASSOC);
-    foreach ($cols as $col) {
-        echo "{$col['Field']} ({$col['Type']}) " . ($col['Null'] === 'YES' ? 'NULL' : 'NOT NULL') . " Key:{$col['Key']} Default:{$col['Default']}\n";
-    }
+$stmt = $pdo->query("SELECT student_id, student_name, student_email, batch_name, coach_name FROM vsa_students LIMIT 10");
+$students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+echo "Students in vsa_students:\n";
+foreach ($students as $s) {
+    echo "ID: {$s['student_id']} | Name: {$s['student_name']} | Email: {$s['student_email']} | Batch: {$s['batch_name']} | Coach: {$s['coach_name']}\n";
 }
-
-showCols($pdo, 'vsa_superadmin');
-showCols($pdo, 'vsa_coaches');
-showCols($pdo, 'vsa_students');
-showCols($pdo, 'vsa_batches');
-showCols($pdo, 'vsa_attendance');
-showCols($pdo, 'vsa_student_fees');

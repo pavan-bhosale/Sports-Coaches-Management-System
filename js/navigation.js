@@ -57,8 +57,25 @@ function navigateToSection(targetHref, showToastNotice = true) {
   const isCoach = (storedRole === 'coach');
   const isStudent = (storedRole === 'student');
 
+  // 0. Student Profile Direct Modal Action
+  if (targetHref === '#profile') {
+    if (isStudent && typeof window.openStudentProfile === 'function') {
+      window.openStudentProfile();
+    }
+    const overviewLink = document.querySelector('.sidebar-nav .nav-link[href="#overview"]');
+    if (overviewLink) {
+      navLinks.forEach(l => l.classList.remove('active'));
+      overviewLink.classList.add('active');
+    }
+    if (window.innerWidth <= 1024 && appSidebar) {
+      const layout = document.querySelector('.dashboard-layout');
+      if (layout) layout.classList.remove('sidebar-mobile-open');
+    }
+    return;
+  }
+
   // 1. Role-based Student Access Protection (Personal Overview Only)
-  if (isStudent && targetHref !== '#overview') {
+  if (isStudent && targetHref !== '#overview' && targetHref !== '#profile') {
     if (showToastNotice && typeof showToast === 'function') {
       showToast('Access denied. Athlete portal is restricted to personal overview.', 'error');
     }
@@ -190,6 +207,14 @@ function handleHashRoute() {
   const isCoach = (storedRole === 'coach');
   const isStudent = (storedRole === 'student');
 
+  if (isStudent && currentHash === '#profile') {
+    window.location.hash = '#overview';
+    navigateToSection('#overview', false);
+    if (typeof window.openStudentProfile === 'function') {
+      window.openStudentProfile();
+    }
+    return;
+  }
   if (isStudent && currentHash !== '#overview') {
     window.location.hash = '#overview';
     navigateToSection('#overview', false);
@@ -218,6 +243,9 @@ function handleHashRoute() {
 
 // ── Dynamic Sidebar Profile Element Initialization ───────
 function initSidebarUserProfile() {
+  if (typeof applySidebarRolePermissions === 'function') {
+    applySidebarRolePermissions();
+  }
   const emailEl = document.getElementById('sidebarUserEmail');
   const roleEl = document.getElementById('sidebarUserRole');
   const avatarEl = document.getElementById('sidebarUserAvatar');
@@ -315,23 +343,25 @@ function initSidebarUserProfile() {
       }
     });
   }
-}
-window.initSidebarUserProfile = initSidebarUserProfile;
 
-// ── Navigation Initialization & Event Listeners ───────────
-document.addEventListener('DOMContentLoaded', () => {
-  // 1. Role Title Setting & Attendance Nav Visibility
-  const dashboardTitles = {
-    admin:   'Super Admin Dashboard',
-    coach:   'Coach Dashboard',
-    student: 'Student Dashboard'
-  };
-  const storedRole = localStorage.getItem('vava_role') || 'admin';
-  const pageTitleEl = document.getElementById('pageTitle');
-  if (pageTitleEl) {
-    pageTitleEl.textContent = dashboardTitles[storedRole] || 'Super Admin Dashboard';
+  // 6. Student Profile Click Handling (Opens existing student profile view)
+  if (chipEl && !chipEl._hasProfileClickBound) {
+    chipEl._hasProfileClickBound = true;
+    chipEl.addEventListener('click', (e) => {
+      if (e.target.closest('#sidebarLogoutBtn')) return;
+      const currentRole = (localStorage.getItem('vava_role') || 'admin').toLowerCase();
+      if (currentRole === 'student' && typeof window.openStudentProfile === 'function') {
+        window.openStudentProfile();
+        if (window.innerWidth <= 1024) {
+          const layout = document.querySelector('.dashboard-layout');
+          if (layout) layout.classList.remove('sidebar-mobile-open');
+        }
+      }
+    });
   }
-
+}
+function applySidebarRolePermissions() {
+  const storedRole = (localStorage.getItem('vava_role') || 'admin').toLowerCase();
   const navAttendanceEl = document.getElementById('nav-attendance');
   const navFeesEl = document.getElementById('nav-fees');
   const navInventoryEl = document.getElementById('nav-inventory');
@@ -339,12 +369,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const navBatchesEl = document.getElementById('nav-batches');
   const navCoachesEl = document.getElementById('nav-coaches');
   const navReportsEl = document.getElementById('nav-reports');
+  const navStudentProfileEl = document.getElementById('nav-student-profile');
 
   const isSuperAdminUser = (storedRole === 'admin' || storedRole === 'superadmin');
   const isCoachUser = (storedRole === 'coach');
   const isStudentUser = (storedRole === 'student');
 
   if (isStudentUser) {
+    if (navStudentProfileEl) navStudentProfileEl.style.display = 'flex';
     if (navAttendanceEl) navAttendanceEl.style.display = 'none';
     if (navFeesEl) navFeesEl.style.display = 'none';
     if (navInventoryEl) navInventoryEl.style.display = 'none';
@@ -355,6 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sectionTitles = document.querySelectorAll('.sidebar-nav .nav-section-title');
     sectionTitles.forEach(t => { t.style.display = 'none'; });
   } else {
+    if (navStudentProfileEl) navStudentProfileEl.style.display = 'none';
     if (navAttendanceEl) {
       navAttendanceEl.style.display = (isCoachUser || isSuperAdminUser) ? '' : 'none';
     }
@@ -371,6 +404,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const sectionTitles = document.querySelectorAll('.sidebar-nav .nav-section-title');
     sectionTitles.forEach(t => { t.style.display = ''; });
   }
+}
+window.applySidebarRolePermissions = applySidebarRolePermissions;
+
+// ── Navigation Initialization & Event Listeners ───────────
+document.addEventListener('DOMContentLoaded', () => {
+  // 1. Role Title Setting & Attendance Nav Visibility
+  const dashboardTitles = {
+    admin:   'Super Admin Dashboard',
+    coach:   'Coach Dashboard',
+    student: 'Student Dashboard'
+  };
+  const storedRole = localStorage.getItem('vava_role') || 'admin';
+  const pageTitleEl = document.getElementById('pageTitle');
+  if (pageTitleEl) {
+    pageTitleEl.textContent = dashboardTitles[storedRole] || 'Super Admin Dashboard';
+  }
+
+  applySidebarRolePermissions();
 
   // Initialize Sidebar Profile Element dynamically
   initSidebarUserProfile();
