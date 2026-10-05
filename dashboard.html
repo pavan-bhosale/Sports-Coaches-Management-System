@@ -933,12 +933,12 @@
                 </div>
               </div>
 
-              <!-- Student Panel: Fees & Payments (Overall Status, Visual Progress & Monthly Grid) -->
-              <div class="dash-panel-card" id="panelStudentFees">
+              <!-- Student Panel: Fees & Payments (Compact Graphical Summary) -->
+              <div class="dash-panel-card dash-clickable-panel" id="panelStudentFees" role="button" tabindex="0" aria-label="Fees and Payments Overview. Click to view detailed monthly payment history.">
                 <div class="dash-panel-header">
                   <div>
                     <h3 class="dash-panel-title">Fees &amp; Payments</h3>
-                    <p class="dash-panel-subtitle">Personal monthly fee payment records and status</p>
+                    <p class="dash-panel-subtitle">Personal monthly fee payment summary</p>
                   </div>
                   <div style="display:flex; align-items:center; gap:8px;">
                     <span class="dash-pill-tag" id="studentFeesOverviewPill">-- / -- Paid</span>
@@ -947,49 +947,64 @@
                 </div>
 
                 <div class="student-fees-panel-body" id="studentFeesPanelContent">
-                  <!-- Level 1: Overall Status & Visual Progress Indicator -->
-                  <div class="student-fees-summary-card">
-                    <div class="sf-summary-top">
-                      <div class="sf-summary-main">
-                        <span class="sf-summary-ratio" id="studentFeesMainRatio">-- / --</span>
-                        <span class="sf-summary-label">MONTHS PAID</span>
-                      </div>
-                      <div class="sf-summary-cur-month" id="studentFeesCurMonthBlock">
-                        <span class="sf-cur-label">CURRENT MONTH</span>
-                        <span class="sf-cur-val" id="studentFeesCurMonthName">--</span>
-                        <span class="sf-cur-badge" id="studentFeesCurMonthBadge">--</span>
+                  <!-- Graphical Donut / Ring Part-to-Whole Summary -->
+                  <div class="sf-graph-main-row" id="studentFeesGraphRow">
+                    <div class="sf-ring-container">
+                      <div class="sf-ring-wrap" id="studentFeesRingWrap" aria-label="Monthly payment ratio chart">
+                        <svg viewBox="0 0 36 36" class="sf-ring-chart" aria-hidden="true">
+                          <path class="sf-ring-bg" id="studentFeesRingBg"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                          <path class="sf-ring-fg" id="studentFeesRingFg"
+                            stroke-dasharray="0, 100"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                        </svg>
+                        <div class="sf-ring-center">
+                          <span class="sf-ring-ratio" id="studentFeesRingRatio">-- / --</span>
+                          <span class="sf-ring-label">MONTHS PAID</span>
+                        </div>
                       </div>
                     </div>
 
-                    <!-- Compact Horizontal Progress Indicator -->
-                    <div class="sf-progress-wrap">
-                      <div class="sf-progress-bar-bg" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="studentFeesProgressAria">
-                        <div class="sf-progress-bar-fill" id="studentFeesProgressFill" style="width: 0%;"></div>
-                      </div>
-                      <div class="sf-progress-meta">
-                        <span class="sf-progress-pct" id="studentFeesProgressPct">0% of expected months paid</span>
-                        <div class="sf-progress-counts">
-                          <span class="sf-count-paid">Paid: <strong id="studentFeesPaidCount">0</strong></span>
-                          <span class="dash-separator">•</span>
-                          <span class="sf-count-due">Due: <strong id="studentFeesDueCount">0</strong></span>
+                    <!-- Legend with Count Badges & Progress Metric -->
+                    <div class="sf-stat-legend-col">
+                      <div class="sf-legend-items">
+                        <div class="sf-legend-pill pill-paid">
+                          <span class="sf-legend-icon">✓</span>
+                          <div class="sf-legend-meta">
+                            <span class="sf-legend-num text-success" id="studentFeesPaidCount">0</span>
+                            <span class="sf-legend-label">Paid</span>
+                          </div>
                         </div>
+                        <div class="sf-legend-pill pill-due">
+                          <span class="sf-legend-icon">✕</span>
+                          <div class="sf-legend-meta">
+                            <span class="sf-legend-num text-danger" id="studentFeesDueCount">0</span>
+                            <span class="sf-legend-label">Due</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="sf-pct-note">
+                        <span id="studentFeesProgressPct">0% of expected months paid</span>
                       </div>
                     </div>
                   </div>
 
-                  <!-- Level 2: Monthly Payment Status Grid -->
-                  <div class="student-fees-grid-section">
-                    <div class="sf-grid-header">
-                      <span class="sf-grid-title">MONTHLY PAYMENT STATUS</span>
-                      <span class="sf-grid-hint" id="studentFeesGridHint">Click a month tile to view details</span>
+                  <!-- Small Secondary Current Month Footer & Action -->
+                  <div class="sf-card-footer">
+                    <div class="sf-cur-month-mini" id="studentFeesCurMonthBlock">
+                      <span class="sf-cur-mini-label">Current Month:</span>
+                      <span class="sf-cur-mini-val" id="studentFeesCurMonthName">--</span>
+                      <span class="sf-cur-mini-dot">•</span>
+                      <span class="sf-cur-mini-status" id="studentFeesCurMonthBadge">--</span>
                     </div>
-                    <div class="student-months-grid" id="studentMonthsGrid">
-                      <!-- Populated dynamically with actual expected month tiles -->
-                    </div>
-                    <div class="sf-empty-state" id="studentFeesEmptyState" style="display:none;">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-                      <span>No fee or payment records are currently available for your profile.</span>
-                    </div>
+                    <span class="sf-view-details-link">View Payment Details →</span>
+                  </div>
+
+                  <div class="sf-empty-state" id="studentFeesEmptyState" style="display:none;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                    <span>No fee or payment records are currently available for your profile.</span>
                   </div>
                 </div>
               </div>

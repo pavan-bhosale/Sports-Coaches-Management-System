@@ -1657,101 +1657,79 @@
   function renderStudentFeesOverview(feesData) {
     const fees = feesData || {};
     const pill = document.getElementById('studentFeesOverviewPill');
-    const mainRatio = document.getElementById('studentFeesMainRatio');
-    const curMonthName = document.getElementById('studentFeesCurMonthName');
-    const curMonthBadge = document.getElementById('studentFeesCurMonthBadge');
-    const progressFill = document.getElementById('studentFeesProgressFill');
-    const progressPct = document.getElementById('studentFeesProgressPct');
-    const progressAria = document.getElementById('studentFeesProgressAria');
+    const ringWrap = document.getElementById('studentFeesRingWrap');
+    const ringRatioEl = document.getElementById('studentFeesRingRatio');
+    const ringFgEl = document.getElementById('studentFeesRingFg');
+    const ringBgEl = document.getElementById('studentFeesRingBg');
     const paidCountEl = document.getElementById('studentFeesPaidCount');
     const dueCountEl = document.getElementById('studentFeesDueCount');
-    const gridEl = document.getElementById('studentMonthsGrid');
+    const progressPctEl = document.getElementById('studentFeesProgressPct');
+    const curMonthName = document.getElementById('studentFeesCurMonthName');
+    const curMonthBadge = document.getElementById('studentFeesCurMonthBadge');
+    const graphRow = document.getElementById('studentFeesGraphRow');
     const emptyState = document.getElementById('studentFeesEmptyState');
 
     if (!fees.has_fees) {
       if (pill) pill.textContent = '0 Months Paid';
-      if (mainRatio) mainRatio.textContent = '-- / --';
-      if (curMonthName) curMonthName.textContent = fees.current_month?.label || 'Current Month';
-      if (curMonthBadge) {
-        curMonthBadge.className = 'sf-cur-badge badge-neutral';
-        curMonthBadge.textContent = 'Not Applicable';
-      }
-      if (progressFill) progressFill.style.width = '0%';
-      if (progressPct) progressPct.textContent = 'No payment records available';
-      if (progressAria) progressAria.setAttribute('aria-valuenow', '0');
+      if (ringRatioEl) ringRatioEl.textContent = '-- / --';
+      if (ringFgEl) ringFgEl.setAttribute('stroke-dasharray', '0, 100');
+      if (ringBgEl) ringBgEl.style.stroke = 'rgba(255, 255, 255, 0.08)';
       if (paidCountEl) paidCountEl.textContent = '0';
       if (dueCountEl) dueCountEl.textContent = '0';
-      if (gridEl) gridEl.innerHTML = '';
+      if (progressPctEl) progressPctEl.textContent = 'No payment records available';
+      if (curMonthName) curMonthName.textContent = fees.current_month?.label || 'Current Month';
+      if (curMonthBadge) {
+        curMonthBadge.className = 'sf-cur-mini-status status-neutral';
+        curMonthBadge.textContent = 'Not Applicable';
+      }
+      if (graphRow) graphRow.style.display = 'none';
       if (emptyState) emptyState.style.display = 'flex';
       return;
     }
 
     if (emptyState) emptyState.style.display = 'none';
+    if (graphRow) graphRow.style.display = 'flex';
 
-    if (pill) pill.textContent = `${fees.paid_count} / ${fees.total_expected} Paid`;
-    if (mainRatio) mainRatio.textContent = `${fees.paid_count} / ${fees.total_expected}`;
+    const total = Number(fees.total_expected || 0);
+    const paid = Number(fees.paid_count || 0);
+    const due = Number(fees.due_count || 0);
+    const pct = Math.max(0, Math.min(100, Math.round(Number(fees.percentage_paid ?? (total > 0 ? (paid / total) * 100 : 0)))));
 
+    if (pill) pill.textContent = `${paid} / ${total} Paid`;
+    if (ringRatioEl) ringRatioEl.textContent = `${paid} / ${total}`;
+    if (paidCountEl) paidCountEl.textContent = paid;
+    if (dueCountEl) dueCountEl.textContent = due;
+    if (progressPctEl) progressPctEl.textContent = `${pct}% of expected months paid`;
+
+    // SVG Donut Ring Part-to-Whole Representation
+    if (ringFgEl) {
+      ringFgEl.setAttribute('stroke-dasharray', `${pct}, 100`);
+      ringFgEl.style.stroke = (pct === 100) ? '#10B981' : (pct > 0 ? '#10B981' : 'transparent');
+    }
+    if (ringBgEl) {
+      // Due months represented by red track arc; neutral track if 0 due months
+      ringBgEl.style.stroke = (due > 0) ? 'rgba(239, 68, 68, 0.45)' : 'rgba(255, 255, 255, 0.08)';
+    }
+    if (ringWrap) {
+      ringWrap.setAttribute('aria-label', `${paid} of ${total} expected months paid, ${due} months due.`);
+    }
+
+    // Small Secondary Current Month Footer
     const curM = fees.current_month || {};
     if (curMonthName) curMonthName.textContent = curM.label || 'Current Month';
     if (curMonthBadge) {
       if (curM.has_record) {
         if (curM.status === 'PAID') {
-          curMonthBadge.className = 'sf-cur-badge badge-present';
-          curMonthBadge.textContent = '✓ PAID';
+          curMonthBadge.className = 'sf-cur-mini-status status-paid';
+          curMonthBadge.textContent = '✓ Paid';
         } else {
-          curMonthBadge.className = 'sf-cur-badge badge-absent';
-          curMonthBadge.textContent = '✕ PAYMENT DUE';
+          curMonthBadge.className = 'sf-cur-mini-status status-due';
+          curMonthBadge.textContent = '✕ Payment Due';
         }
       } else {
-        curMonthBadge.className = 'sf-cur-badge badge-neutral';
-        curMonthBadge.textContent = 'NOT APPLICABLE';
+        curMonthBadge.className = 'sf-cur-mini-status status-neutral';
+        curMonthBadge.textContent = 'Not Applicable';
       }
-    }
-
-    // Horizontal Progress bar (Paid expected months / Total expected months)
-    const pct = Math.max(0, Math.min(100, fees.percentage_paid || 0));
-    if (progressFill) {
-      progressFill.style.width = `${pct}%`;
-      progressFill.style.backgroundColor = (pct === 100) ? '#22C55E' : (pct > 0 ? '#C9A227' : '#EF4444');
-    }
-    if (progressPct) progressPct.textContent = `${pct}% of expected months paid`;
-    if (progressAria) progressAria.setAttribute('aria-valuenow', pct.toString());
-    if (paidCountEl) paidCountEl.textContent = fees.paid_count ?? 0;
-    if (dueCountEl) dueCountEl.textContent = fees.due_count ?? 0;
-
-    // Render monthly payment status grid with actual expected months
-    if (gridEl) {
-      gridEl.innerHTML = '';
-      (fees.months || []).forEach(m => {
-        const isPaid = (m.status === 'PAID');
-        const tile = document.createElement('div');
-        tile.className = `student-month-tile ${isPaid ? 'tile-paid' : 'tile-due'} ${m.is_current_month ? 'tile-current' : ''}`;
-        tile.setAttribute('role', 'button');
-        tile.setAttribute('tabindex', '0');
-        tile.setAttribute('aria-label', `Payment status for ${m.month_label}: ${isPaid ? 'Paid' : 'Payment Due'}`);
-
-        tile.innerHTML = `
-          ${m.is_current_month ? '<span class="tile-current-tag">CURRENT</span>' : ''}
-          <div class="tile-month-text">${escapeHtml(m.month_short)}</div>
-          <div class="tile-year-text">${escapeHtml(m.year)}</div>
-          <div class="tile-status-pill ${isPaid ? 'status-paid' : 'status-due'}">
-            ${isPaid ? '✓ PAID' : '✕ DUE'}
-          </div>
-        `;
-
-        tile.addEventListener('click', (e) => {
-          e.stopPropagation();
-          openStudentMonthDetailModal(m);
-        });
-        tile.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            openStudentMonthDetailModal(m);
-          }
-        });
-
-        gridEl.appendChild(tile);
-      });
     }
   }
 
@@ -1875,8 +1853,9 @@
     bindInteractive('cardStudentAttRate', 'attendance');
     bindInteractive('btnStudentViewAttDetails', 'attendance');
 
-    // 3. My Fees Card & Button
+    // 3. My Fees Card, Panel & Button
     bindInteractive('cardStudentFees', 'fees');
+    bindInteractive('panelStudentFees', 'fees');
     bindInteractive('btnStudentViewFeesModal', 'fees');
     bindInteractive('cardStudentSessions', 'fees'); // backward-compatibility fallback
 
