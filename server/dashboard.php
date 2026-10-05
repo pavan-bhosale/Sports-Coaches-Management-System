@@ -11,8 +11,19 @@
  * - Student: Forbidden (HTTP 403).
  */
 
-// Dynamic CORS configuration allowing localhost/127.0.0.1 development origins with credentials
+// ============================================================================
+// DYNAMIC & SECURE CORS CONFIGURATION
+// Supports Localhost/127.0.0.1 development, Live Server, and Hostinger Production.
+// Strictly enforces exact origin reflection + credentials for approved origins.
+// NEVER outputs wildcard (*) for credentialed requests.
+// ============================================================================
+
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+$httpHost = strtolower($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '');
+$serverHostOnly = !empty($httpHost) ? explode(':', $httpHost)[0] : '';
+$originHost = !empty($origin) ? strtolower(parse_url($origin, PHP_URL_HOST) ?? '') : '';
+
+// 1. Explicitly approved development & production origins
 $allowedOrigins = [
     'http://localhost',
     'http://127.0.0.1',
@@ -21,23 +32,62 @@ $allowedOrigins = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'http://localhost:5173',
-    'http://127.0.0.1:5173'
+    'http://127.0.0.1:5173',
+    'http://localhost:8080',
+    'http://127.0.0.1:8080',
+    'https://vavasports.com',
+    'https://www.vavasports.com',
+    'http://vavasports.com',
+    'http://www.vavasports.com'
 ];
 
-if (!empty($origin) && (in_array($origin, $allowedOrigins) || preg_match('/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i', $origin))) {
+// 2. Evaluated whitelist check:
+// - Exact match in $allowedOrigins
+// - Local development host (localhost or 127.0.0.1 on any port)
+// - Production VAVA Sports domain or subdomain (*.vavasports.com)
+// - Hostinger preview/production domains (*.hostingersite.com, *.hostingerapp.com)
+// - Verified same-host origin (origin host matches current web server HTTP_HOST)
+$isAllowedOrigin = false;
+
+if (!empty($origin)) {
+    if (in_array($origin, $allowedOrigins, true)) {
+        $isAllowedOrigin = true;
+    } elseif (preg_match('/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i', $origin)) {
+        $isAllowedOrigin = true;
+    } elseif (preg_match('/^https?:\/\/([a-z0-9-]+\.)*vavasports\.com(:\d+)?$/i', $origin)) {
+        $isAllowedOrigin = true;
+    } elseif (preg_match('/^https?:\/\/([a-z0-9-]+\.)*(hostingersite\.com|hostingerapp\.com)(:\d+)?$/i', $origin)) {
+        $isAllowedOrigin = true;
+    } elseif (!empty($serverHostOnly) && !empty($originHost)) {
+        // Matches current host or apex/www pair of current host
+        if ($originHost === $serverHostOnly ||
+            $originHost === 'www.' . $serverHostOnly ||
+            'www.' . $originHost === $serverHostOnly) {
+            $isAllowedOrigin = true;
+        }
+    }
+}
+
+// 3. Emit CORS Headers
+header('Vary: Origin');
+
+if ($isAllowedOrigin) {
     header("Access-Control-Allow-Origin: {$origin}");
     header('Access-Control-Allow-Credentials: true');
-} else {
-    header('Access-Control-Allow-Origin: *');
 }
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-VAVA-Role, X-VAVA-Email, X-VAVA-Coach-ID, X-VAVA-Coach-Id, X-VAVA-Student-ID, X-VAVA-Student-Id, X-VAVA-Actor-Name, X-Requested-With, Accept, Origin, *');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-VAVA-Role, X-VAVA-Email, X-VAVA-Coach-ID, X-VAVA-Coach-Id, X-VAVA-Student-ID, X-VAVA-Student-Id, X-VAVA-Actor-Name, X-Requested-With, Accept, Origin');
 
-// Handle preflight OPTIONS request
+// 4. Handle preflight OPTIONS request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
+    if ($isAllowedOrigin) {
+        header('Access-Control-Max-Age: 86400');
+        http_response_code(200);
+    } else {
+        http_response_code(403);
+    }
     exit;
 }
 
