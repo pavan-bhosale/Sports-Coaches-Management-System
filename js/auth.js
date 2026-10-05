@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const res = await fetch(verifyUrl, {
         method: 'POST',
-        credentials: 'same-origin',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json'
         },

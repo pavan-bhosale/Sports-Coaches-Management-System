@@ -52,11 +52,22 @@ function navigateToSection(targetHref, showToastNotice = true) {
     window.cleanDashboardCharts();
   }
 
-  const storedRole = localStorage.getItem('vava_role') || 'admin';
+  const storedRole = (localStorage.getItem('vava_role') || 'admin').toLowerCase();
   const isSuperAdmin = (storedRole === 'admin' || storedRole === 'superadmin');
   const isCoach = (storedRole === 'coach');
+  const isStudent = (storedRole === 'student');
 
-  // 1. Role-based Attendance Access Protection
+  // 1. Role-based Student Access Protection (Personal Overview Only)
+  if (isStudent && targetHref !== '#overview') {
+    if (showToastNotice && typeof showToast === 'function') {
+      showToast('Access denied. Athlete portal is restricted to personal overview.', 'error');
+    }
+    window.location.hash = '#overview';
+    navigateToSection('#overview', false);
+    return;
+  }
+
+  // 2. Role-based Attendance Access Protection
   if (targetHref === '#attendance' && !isCoach && !isSuperAdmin) {
     if (showToastNotice && typeof showToast === 'function') {
       showToast('Access denied. Attendance is not accessible to your role.', 'error');
@@ -66,7 +77,7 @@ function navigateToSection(targetHref, showToastNotice = true) {
     return;
   }
 
-  // 2. Role-based Fees & Collections Access Protection (Super Admin Only)
+  // 3. Role-based Fees & Collections Access Protection (Super Admin Only)
   if (targetHref === '#fees' && !isSuperAdmin) {
     if (showToastNotice && typeof showToast === 'function') {
       showToast('Access denied. Fees & Collections is accessible to Super Admin only.', 'error');
@@ -76,7 +87,7 @@ function navigateToSection(targetHref, showToastNotice = true) {
     return;
   }
 
-  // 3. Role-based Inventory & Equipment Access Protection (Super Admin Only)
+  // 4. Role-based Inventory & Equipment Access Protection (Super Admin Only)
   if (targetHref === '#inventory' && !isSuperAdmin) {
     if (showToastNotice && typeof showToast === 'function') {
       showToast('Access denied. Inventory & Equipment is accessible to Super Admin only.', 'error');
@@ -174,9 +185,16 @@ function handleHashRoute() {
     currentHash = '#overview';
     window.location.hash = '#overview';
   }
-  const storedRole = localStorage.getItem('vava_role') || 'admin';
+  const storedRole = (localStorage.getItem('vava_role') || 'admin').toLowerCase();
   const isSuperAdmin = (storedRole === 'admin' || storedRole === 'superadmin');
   const isCoach = (storedRole === 'coach');
+  const isStudent = (storedRole === 'student');
+
+  if (isStudent && currentHash !== '#overview') {
+    window.location.hash = '#overview';
+    navigateToSection('#overview', false);
+    return;
+  }
   if (currentHash === '#attendance' && !isCoach && !isSuperAdmin) {
     window.location.hash = '#overview';
     navigateToSection('#overview', false);
@@ -317,27 +335,41 @@ document.addEventListener('DOMContentLoaded', () => {
   const navAttendanceEl = document.getElementById('nav-attendance');
   const navFeesEl = document.getElementById('nav-fees');
   const navInventoryEl = document.getElementById('nav-inventory');
+  const navStudentsEl = document.getElementById('nav-students');
+  const navBatchesEl = document.getElementById('nav-batches');
+  const navCoachesEl = document.getElementById('nav-coaches');
+  const navReportsEl = document.getElementById('nav-reports');
+
   const isSuperAdminUser = (storedRole === 'admin' || storedRole === 'superadmin');
-  if (navAttendanceEl) {
-    if (storedRole !== 'coach' && !isSuperAdminUser) {
-      navAttendanceEl.style.display = 'none';
-    } else {
-      navAttendanceEl.style.display = '';
+  const isCoachUser = (storedRole === 'coach');
+  const isStudentUser = (storedRole === 'student');
+
+  if (isStudentUser) {
+    if (navAttendanceEl) navAttendanceEl.style.display = 'none';
+    if (navFeesEl) navFeesEl.style.display = 'none';
+    if (navInventoryEl) navInventoryEl.style.display = 'none';
+    if (navStudentsEl) navStudentsEl.style.display = 'none';
+    if (navBatchesEl) navBatchesEl.style.display = 'none';
+    if (navCoachesEl) navCoachesEl.style.display = 'none';
+    if (navReportsEl) navReportsEl.style.display = 'none';
+    const sectionTitles = document.querySelectorAll('.sidebar-nav .nav-section-title');
+    sectionTitles.forEach(t => { t.style.display = 'none'; });
+  } else {
+    if (navAttendanceEl) {
+      navAttendanceEl.style.display = (isCoachUser || isSuperAdminUser) ? '' : 'none';
     }
-  }
-  if (navFeesEl) {
-    if (!isSuperAdminUser) {
-      navFeesEl.style.display = 'none';
-    } else {
-      navFeesEl.style.display = '';
+    if (navFeesEl) {
+      navFeesEl.style.display = isSuperAdminUser ? '' : 'none';
     }
-  }
-  if (navInventoryEl) {
-    if (!isSuperAdminUser) {
-      navInventoryEl.style.display = 'none';
-    } else {
-      navInventoryEl.style.display = '';
+    if (navInventoryEl) {
+      navInventoryEl.style.display = isSuperAdminUser ? '' : 'none';
     }
+    if (navStudentsEl) navStudentsEl.style.display = '';
+    if (navBatchesEl) navBatchesEl.style.display = '';
+    if (navCoachesEl) navCoachesEl.style.display = '';
+    if (navReportsEl) navReportsEl.style.display = '';
+    const sectionTitles = document.querySelectorAll('.sidebar-nav .nav-section-title');
+    sectionTitles.forEach(t => { t.style.display = ''; });
   }
 
   // Initialize Sidebar Profile Element dynamically

@@ -17,10 +17,14 @@ $allowedOrigins = [
     'http://localhost',
     'http://127.0.0.1',
     'http://localhost:5500',
-    'http://127.0.0.1:5500'
+    'http://127.0.0.1:5500',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173'
 ];
 
-if (in_array($origin, $allowedOrigins) || preg_match('/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/', $origin)) {
+if (!empty($origin) && (in_array($origin, $allowedOrigins) || preg_match('/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i', $origin))) {
     header("Access-Control-Allow-Origin: {$origin}");
     header('Access-Control-Allow-Credentials: true');
 } else {
@@ -28,8 +32,8 @@ if (in_array($origin, $allowedOrigins) || preg_match('/^https?:\/\/(localhost|12
 }
 
 header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Methods: GET, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-VAVA-Role, X-VAVA-Email, X-VAVA-Coach-ID');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-VAVA-Role, X-VAVA-Email, X-VAVA-Coach-ID, X-VAVA-Coach-Id, X-VAVA-Student-ID, X-VAVA-Student-Id, X-VAVA-Actor-Name, X-Requested-With, Accept, Origin, *');
 
 // Handle preflight OPTIONS request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -63,49 +67,121 @@ function updateOverdueStatuses($pdo) {
 
 // ── Role & Authentication Resolution ─────────────────────────────────────────
 function resolveDashboardUser($pdo) {
-    $role          = $_SERVER['HTTP_X_VAVA_ROLE']       ?? $_GET['role']       ?? '';
-    $email         = $_SERVER['HTTP_X_VAVA_EMAIL']      ?? $_GET['email']      ?? '';
-    $coachIdHeader = intval($_SERVER['HTTP_X_VAVA_COACH_ID'] ?? $_GET['coach_id'] ?? 0);
-
     if (session_status() === PHP_SESSION_NONE) {
         @session_start();
     }
-    if (empty($role) && !empty($_SESSION['user_role'])) {
-        $role = $_SESSION['user_role'];
-    }
-    if (empty($email) && !empty($_SESSION['user_email'])) {
-        $email = $_SESSION['user_email'];
+
+    // 1. Authenticated Server-Side Session (Authoritative Source of Truth)
+    $sessionRole      = !empty($_SESSION['user_role']) ? strtolower(trim($_SESSION['user_role'])) : '';
+    $sessionEmail     = !empty($_SESSION['user_email']) ? strtolower(trim($_SESSION['user_email'])) : '';
+    $sessionCoachId   = intval($_SESSION['coach_id'] ?? 0);
+    $sessionStudentId = intval($_SESSION['student_id'] ?? 0);
+    $sessionAdminId   = intval($_SESSION['admin_id'] ?? 0);
+
+    $hasSession = !empty($sessionRole) && !empty($sessionEmail);
+
+    // 2. Untrusted Request Headers & Query Params (Client-controlled values)
+    $headerRole      = strtolower(trim($_SERVER['HTTP_X_VAVA_ROLE'] ?? $_GET['role'] ?? ''));
+    $headerEmail     = strtolower(trim($_SERVER['HTTP_X_VAVA_EMAIL'] ?? $_GET['email'] ?? ''));
+    $headerCoachId   = intval($_SERVER['HTTP_X_VAVA_COACH_ID'] ?? $_GET['coach_id'] ?? 0);
+    $headerStudentId = intval($_SERVER['HTTP_X_VAVA_STUDENT_ID'] ?? $_GET['student_id'] ?? 0);
+
+    // 3. Security Enforcement:
+    // If an authenticated session exists, headers MUST NEVER override session identity,
+    // escalate roles, or switch to another user's records.
+    if ($hasSession) {
+        $effectiveRole  = $sessionRole;
+        $effectiveEmail = $sessionEmail;
+    } else {
+        $effectiveRole  = $headerRole;
+        $effectiveEmail = $headerEmail;
     }
 
-    $cleanRole  = strtolower(trim($role));
-    $cleanEmail = strtolower(trim($email));
+    // ── ROLE: STUDENT ────────────────────────────────────────────────────────
+    if ($effectiveRole === 'student') {
+        $student = null;
 
-    // Reject Student role explicitly
-    if ($cleanRole === 'student') {
-        http_response_code(403);
-        echo json_encode([
-            'success' => false,
-            'error'   => 'Access denied. The dashboard overview is available to staff only.'
-        ]);
-        exit;
+        if ($hasSession) {
+            // Strictly resolve from trusted session identity
+            if (!empty($effectiveEmail)) {
+                $stmt = $pdo->prepare('SELECT * FROM vsa_students WHERE LOWER(TRIM(student_email)) = ? LIMIT 1');
+                $stmt->execute([$effectiveEmail]);
+                $student = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+            if (!$student && $sessionStudentId > 0) {
+                $stmt = $pdo->prepare('SELECT * FROM vsa_students WHERE student_id = ? LIMIT 1');
+                $stmt->execute([$sessionStudentId]);
+                $student = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+        } else {
+            // Unauthenticated request: Requires verified email to look up student in database.
+            // Client-supplied X-VAVA-Student-ID is NEVER trusted as sole authorization proof.
+            if (empty($effectiveEmail)) {
+                http_response_code(403);
+                echo json_encode([
+                    'success' => false,
+                    'error'   => 'Student authorization failed. No verified identity provided.'
+                ]);
+                exit;
+            }
+            $stmt = $pdo->prepare('SELECT * FROM vsa_students WHERE LOWER(TRIM(student_email)) = ? LIMIT 1');
+            $stmt->execute([$effectiveEmail]);
+            $student = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+
+        if (!$student) {
+            http_response_code(403);
+            echo json_encode([
+                'success' => false,
+                'error'   => 'Student authorization failed. Verified student profile record not found.'
+            ]);
+            exit;
+        }
+
+        // Authoritative Student ID derived strictly from database record
+        $trustedStudentId = intval($student['student_id']);
+
+        return [
+            'role'       => 'student',
+            'student_id' => $trustedStudentId,
+            'name'       => $student['student_name'] ?: 'Student',
+            'email'      => $student['student_email'],
+            'batch_id'   => intval($student['batch_id'] ?? 0),
+            'coach_id'   => intval($student['coach_id'] ?? 0),
+            'photo'      => $student['student_photo'] ?? '',
+            'raw'        => $student
+        ];
     }
 
-    // 1. COACH ACCESS
-    if ($cleanRole === 'coach') {
+    // ── ROLE: COACH ──────────────────────────────────────────────────────────
+    if ($effectiveRole === 'coach') {
         $coach = null;
-        if (!empty($cleanEmail)) {
-            $stmt = $pdo->prepare('SELECT coach_id, coach_name, coach_email, batch_id FROM vsa_coaches WHERE LOWER(TRIM(coach_email)) = ? LIMIT 1');
-            $stmt->execute([$cleanEmail]);
-            $coach = $stmt->fetch(PDO::FETCH_ASSOC);
-        }
-        if (!$coach && $coachIdHeader > 0) {
-            $stmt = $pdo->prepare('SELECT coach_id, coach_name, coach_email, batch_id FROM vsa_coaches WHERE coach_id = ? LIMIT 1');
-            $stmt->execute([$coachIdHeader]);
-            $coach = $stmt->fetch(PDO::FETCH_ASSOC);
-        }
-        if (!$coach && !empty($_SESSION['coach_id'])) {
-            $stmt = $pdo->prepare('SELECT coach_id, coach_name, coach_email, batch_id FROM vsa_coaches WHERE coach_id = ? LIMIT 1');
-            $stmt->execute([intval($_SESSION['coach_id'])]);
+
+        if ($hasSession) {
+            // Strictly resolve from trusted session identity
+            if (!empty($effectiveEmail)) {
+                $stmt = $pdo->prepare('SELECT coach_id, coach_name, coach_email, batch_id, coach_photo FROM vsa_coaches WHERE LOWER(TRIM(coach_email)) = ? LIMIT 1');
+                $stmt->execute([$effectiveEmail]);
+                $coach = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+            if (!$coach && $sessionCoachId > 0) {
+                $stmt = $pdo->prepare('SELECT coach_id, coach_name, coach_email, batch_id, coach_photo FROM vsa_coaches WHERE coach_id = ? LIMIT 1');
+                $stmt->execute([$sessionCoachId]);
+                $coach = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+        } else {
+            // Unauthenticated request: Requires verified email to look up coach in database.
+            // Client-supplied X-VAVA-Coach-ID is NEVER trusted as sole authorization proof.
+            if (empty($effectiveEmail)) {
+                http_response_code(403);
+                echo json_encode([
+                    'success' => false,
+                    'error'   => 'Coach authorization failed. No verified identity provided.'
+                ]);
+                exit;
+            }
+            $stmt = $pdo->prepare('SELECT coach_id, coach_name, coach_email, batch_id, coach_photo FROM vsa_coaches WHERE LOWER(TRIM(coach_email)) = ? LIMIT 1');
+            $stmt->execute([$effectiveEmail]);
             $coach = $stmt->fetch(PDO::FETCH_ASSOC);
         }
 
@@ -118,27 +194,54 @@ function resolveDashboardUser($pdo) {
             exit;
         }
 
+        // Authoritative Coach ID derived strictly from database record
+        $trustedCoachId = intval($coach['coach_id']);
+
         return [
             'role'       => 'coach',
-            'coach_id'   => intval($coach['coach_id']),
+            'coach_id'   => $trustedCoachId,
             'name'       => $coach['coach_name'] ?: 'Coach',
             'email'      => $coach['coach_email'],
-            'batch_id'   => intval($coach['batch_id'] ?? 0)
+            'batch_id'   => intval($coach['batch_id'] ?? 0),
+            'photo'      => $coach['coach_photo'] ?? ''
         ];
     }
 
-    // 2. SUPER ADMIN / ADMIN (DEFAULT)
-    if ($cleanRole === 'admin' || $cleanRole === 'superadmin' || empty($cleanRole)) {
+    // ── ROLE: SUPER ADMIN / ADMIN ────────────────────────────────────────────
+    if ($effectiveRole === 'admin' || $effectiveRole === 'superadmin' || empty($effectiveRole)) {
         $admin = null;
-        if (!empty($cleanEmail)) {
+
+        if ($hasSession) {
+            // Must verify against vsa_superadmin table
             $stmt = $pdo->prepare("SELECT admin_id, admin_name, admin_email FROM vsa_superadmin WHERE LOWER(TRIM(REPLACE(REPLACE(admin_email, '\r', ''), '\n', ''))) = ? LIMIT 1");
-            $stmt->execute([$cleanEmail]);
+            $stmt->execute([$effectiveEmail]);
             $admin = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$admin && $sessionAdminId > 0) {
+                $stmt = $pdo->prepare("SELECT admin_id, admin_name, admin_email FROM vsa_superadmin WHERE admin_id = ? LIMIT 1");
+                $stmt->execute([$sessionAdminId]);
+                $admin = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+        } else {
+            if (!empty($effectiveEmail)) {
+                $stmt = $pdo->prepare("SELECT admin_id, admin_name, admin_email FROM vsa_superadmin WHERE LOWER(TRIM(REPLACE(REPLACE(admin_email, '\r', ''), '\n', ''))) = ? LIMIT 1");
+                $stmt->execute([$effectiveEmail]);
+                $admin = $stmt->fetch(PDO::FETCH_ASSOC);
+                if (!$admin) {
+                    http_response_code(403);
+                    echo json_encode([
+                        'success' => false,
+                        'error'   => 'Access denied. You do not have administrative privileges.'
+                    ]);
+                    exit;
+                }
+            } else {
+                // Local dev / smoke test fallback (e.g. CLI or direct endpoint probe)
+                $stmt = $pdo->query('SELECT admin_id, admin_name, admin_email FROM vsa_superadmin ORDER BY admin_id ASC LIMIT 1');
+                $admin = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
         }
-        if (!$admin) {
-            $stmt = $pdo->query('SELECT admin_id, admin_name, admin_email FROM vsa_superadmin ORDER BY admin_id ASC LIMIT 1');
-            $admin = $stmt->fetch(PDO::FETCH_ASSOC);
-        }
+
         if ($admin) {
             return [
                 'role'     => 'superadmin',
@@ -446,100 +549,111 @@ try {
     // =========================================================================
     // CASE B: COACH DASHBOARD (Scoped to Assigned Batches & Students Only)
     // =========================================================================
-    $coachId = $currentUser['coach_id'];
+    if ($currentUser['role'] === 'coach') {
+        $coachId = $currentUser['coach_id'];
 
-    // 1. Resolve Assigned Batches
-    $assignedStmt = $pdo->prepare("
-        SELECT 
-            b.batch_id,
-            b.batch_name,
-            b.batch_time,
-            b.batch_location,
-            COALESCE(b.sport, 'Football') AS sport,
-            b.max_students AS capacity
-        FROM vsa_batches b
-        WHERE (b.coach_id = ? OR b.batch_id = ?) AND b.status = 'Active'
-        ORDER BY b.batch_name ASC
-    ");
-    $assignedStmt->execute([$coachId, $currentUser['batch_id']]);
-    $coachBatchesRaw = $assignedStmt->fetchAll(PDO::FETCH_ASSOC);
+        // 1. Resolve Assigned Batches
+        $assignedStmt = $pdo->prepare("
+            SELECT 
+                b.batch_id,
+                b.batch_name,
+                b.batch_time,
+                b.batch_location,
+                COALESCE(b.sport, 'Football') AS sport,
+                b.max_students AS capacity
+            FROM vsa_batches b
+            WHERE (b.coach_id = ? OR b.batch_id = ?) AND b.status = 'Active'
+            ORDER BY b.batch_name ASC
+        ");
+        $assignedStmt->execute([$coachId, $currentUser['batch_id']]);
+        $coachBatchesRaw = $assignedStmt->fetchAll(PDO::FETCH_ASSOC);
 
-    $assignedBatchIds = array_column($coachBatchesRaw, 'batch_id');
+        $assignedBatchIds = array_column($coachBatchesRaw, 'batch_id');
 
-    if (empty($assignedBatchIds)) {
-        // Coach has no assigned batches
-        echo json_encode([
-            'success'      => true,
-            'role'         => 'coach',
-            'user'         => [
-                'coach_id' => $coachId,
-                'name'     => $currentUser['name'],
-                'email'    => $currentUser['email']
-            ],
-            'generated_at' => date('Y-m-d H:i:s'),
-            'current_date' => date('l, F j, Y'),
-            'kpis'         => [
-                'students' => ['total' => 0, 'active' => 0],
-                'batches'  => ['total' => 0, 'active' => 0],
-                'attendance_today' => [
-                    'present'         => 0,
-                    'absent'          => 0,
-                    'total'           => 0,
-                    'batches_marked'  => 0,
-                    'attendance_rate' => null,
-                    'has_sessions'    => false
+        if (empty($assignedBatchIds)) {
+            // Coach has no assigned batches
+            $emptyCoachData = [
+                'role'         => 'coach',
+                'user'         => [
+                    'coach_id' => $coachId,
+                    'name'     => $currentUser['name'],
+                    'email'    => $currentUser['email'],
+                    'photo'    => $currentUser['photo'] ?? ''
+                ],
+                'user_name'    => $currentUser['name'],
+                'generated_at' => date('Y-m-d H:i:s'),
+                'current_date' => date('l, F j, Y'),
+                'kpis'         => [
+                    'students' => ['total' => 0, 'active' => 0],
+                    'batches'  => ['total' => 0, 'active' => 0],
+                    'attendance_today' => [
+                        'present'         => 0,
+                        'absent'          => 0,
+                        'total'           => 0,
+                        'batches_marked'  => 0,
+                        'attendance_rate' => null,
+                        'has_sessions'    => false
+                    ]
+                ],
+                'attendance'   => [
+                    'present_today'        => 0,
+                    'absent_today'         => 0,
+                    'batches_marked_today' => 0,
+                    'attendance_rate'      => null,
+                    'has_sessions_today'   => false,
+                    'seven_day_trend'      => []
+                ],
+                'batches'      => [
+                    'total' => 0,
+                    'list'  => []
+                ],
+                'students'     => [
+                    'total' => 0,
+                    'list'  => []
                 ]
-            ],
-            'attendance'   => [
-                'present_today'        => 0,
-                'absent_today'         => 0,
-                'batches_marked_today' => 0,
-                'attendance_rate'      => null,
-                'has_sessions_today'   => false,
-                'seven_day_trend'      => []
-            ],
-            'batches'         => [],
-            'recent_activity' => []
-        ]);
-        exit;
-    }
+            ];
+            echo json_encode(array_merge([
+                'success' => true,
+                'data'    => $emptyCoachData
+            ], $emptyCoachData));
+            exit;
+        }
 
-    $inPlaceholders = implode(',', array_fill(0, count($assignedBatchIds), '?'));
+        $inPlaceholders = implode(',', array_fill(0, count($assignedBatchIds), '?'));
 
-    // 2. Scoped Students KPI
-    $coachStudentsStmt = $pdo->prepare("
-        SELECT 
-            COUNT(*) AS total_students,
-            COALESCE(SUM(CASE WHEN status = 'Active' THEN 1 ELSE 0 END), 0) AS active_students
-        FROM vsa_students
-        WHERE batch_id IN ($inPlaceholders)
-    ");
-    $coachStudentsStmt->execute($assignedBatchIds);
-    $cStudents = $coachStudentsStmt->fetch(PDO::FETCH_ASSOC);
+        // 2. Scoped Students KPI
+        $coachStudentsStmt = $pdo->prepare("
+            SELECT 
+                COUNT(*) AS total_students,
+                COALESCE(SUM(CASE WHEN status = 'Active' THEN 1 ELSE 0 END), 0) AS active_students
+            FROM vsa_students
+            WHERE batch_id IN ($inPlaceholders)
+        ");
+        $coachStudentsStmt->execute($assignedBatchIds);
+        $cStudents = $coachStudentsStmt->fetch(PDO::FETCH_ASSOC);
 
-    // 3. Scoped Today Attendance
-    $cTodayAttStmt = $pdo->prepare("
-        SELECT 
-            COALESCE(SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END), 0) AS present_today,
-            COALESCE(SUM(CASE WHEN status = 'Absent' THEN 1 ELSE 0 END), 0) AS absent_today,
-            COUNT(attendance_id) AS total_today,
-            COUNT(DISTINCT batch_id) AS batches_marked_today
-        FROM vsa_attendance
-        WHERE attendance_date = ? AND batch_id IN ($inPlaceholders)
-    ");
-    $cTodayAttStmt->execute(array_merge([$today], $assignedBatchIds));
-    $cTodayAtt = $cTodayAttStmt->fetch(PDO::FETCH_ASSOC);
+        // 3. Scoped Today Attendance
+        $cTodayAttStmt = $pdo->prepare("
+            SELECT 
+                COALESCE(SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END), 0) AS present_today,
+                COALESCE(SUM(CASE WHEN status = 'Absent' THEN 1 ELSE 0 END), 0) AS absent_today,
+                COUNT(attendance_id) AS total_today,
+                COUNT(DISTINCT batch_id) AS batches_marked_today
+            FROM vsa_attendance
+            WHERE attendance_date = ? AND batch_id IN ($inPlaceholders)
+        ");
+        $cTodayAttStmt->execute(array_merge([$today], $assignedBatchIds));
+        $cTodayAtt = $cTodayAttStmt->fetch(PDO::FETCH_ASSOC);
 
-    $cPresentToday = intval($cTodayAtt['present_today'] ?? 0);
-    $cAbsentToday  = intval($cTodayAtt['absent_today'] ?? 0);
-    $cTotalToday   = intval($cTodayAtt['total_today'] ?? 0);
-    $cBatchesToday = intval($cTodayAtt['batches_marked_today'] ?? 0);
-    $cAttRateToday = $cTotalToday > 0 ? round(($cPresentToday / $cTotalToday) * 100, 1) : null;
-    $cHasSessions  = ($cTotalToday > 0);
+        $cPresentToday = intval($cTodayAtt['present_today'] ?? 0);
+        $cAbsentToday  = intval($cTodayAtt['absent_today'] ?? 0);
+        $cTotalToday   = intval($cTodayAtt['total_today'] ?? 0);
+        $cBatchesToday = intval($cTodayAtt['batches_marked_today'] ?? 0);
+        $cAttRateToday = $cTotalToday > 0 ? round(($cPresentToday / $cTotalToday) * 100, 1) : null;
+        $cHasSessions  = ($cTotalToday > 0);
 
-    // 4. Coach Scoped Latest 7 Active Attendance Dates Trend
-    $cSevenDayTrend = [];
-    if (!empty($assignedBatchIds)) {
+        // 4. Coach Scoped Latest 7 Active Attendance Dates Trend
+        $cSevenDayTrend = [];
         $cTrendStmt = $pdo->prepare("
             SELECT 
                 attendance_date,
@@ -577,123 +691,316 @@ try {
                 'rate'           => $t > 0 ? round(($p / $t) * 100, 1) : null
             ];
         }
-    }
 
-    // 5. Scoped Batches with Student Count
-    $cBatchListStmt = $pdo->prepare("
-        SELECT 
-            b.batch_id,
-            b.coach_id,
-            b.batch_name,
-            b.batch_time,
-            b.batch_location,
-            COALESCE(b.sport, 'Football') AS sport,
-            b.max_students AS capacity,
-            COUNT(DISTINCT s.student_id) AS student_count
-        FROM vsa_batches b
-        LEFT JOIN vsa_students s ON s.batch_id = b.batch_id AND s.status = 'Active'
-        WHERE b.batch_id IN ($inPlaceholders)
-        GROUP BY b.batch_id, b.coach_id, b.batch_name, b.batch_time, b.batch_location, b.sport, b.max_students
-        ORDER BY student_count DESC, b.batch_name ASC
-    ");
-    $cBatchListStmt->execute($assignedBatchIds);
-    $coachBatches = [];
-    while ($b = $cBatchListStmt->fetch(PDO::FETCH_ASSOC)) {
-        $cap = intval($b['capacity'] ?? 0);
-        $cnt = intval($b['student_count'] ?? 0);
-        $util = $cap > 0 ? round(($cnt / $cap) * 100, 1) : 0;
-        $coachBatches[] = [
-            'batch_id'         => intval($b['batch_id']),
-            'coach_id'         => intval($b['coach_id'] ?? $coachId),
-            'batch_name'       => $b['batch_name'],
-            'batch_time'       => $b['batch_time'] ?: 'Flexible Schedule',
-            'batch_location'   => $b['batch_location'] ?: 'Academy Grounds',
-            'sport'            => $b['sport'],
-            'coach_name'       => $currentUser['name'],
-            'student_count'    => $cnt,
-            'capacity'         => $cap,
-            'max_capacity'     => $cap,
-            'utilization_rate' => $util
-        ];
-    }
+        // 5. Scoped Batches with Student Count & Utilization
+        $cBatchListStmt = $pdo->prepare("
+            SELECT 
+                b.batch_id,
+                b.coach_id,
+                b.batch_name,
+                b.batch_time,
+                b.batch_location,
+                COALESCE(b.sport, 'Football') AS sport,
+                b.max_students AS capacity,
+                COUNT(DISTINCT s.student_id) AS student_count
+            FROM vsa_batches b
+            LEFT JOIN vsa_students s ON s.batch_id = b.batch_id AND s.status = 'Active'
+            WHERE b.batch_id IN ($inPlaceholders) AND b.status = 'Active'
+            GROUP BY b.batch_id, b.coach_id, b.batch_name, b.batch_time, b.batch_location, b.sport, b.max_students
+            ORDER BY student_count DESC, b.batch_name ASC
+        ");
+        $cBatchListStmt->execute($assignedBatchIds);
+        $coachBatches = [];
+        while ($b = $cBatchListStmt->fetch(PDO::FETCH_ASSOC)) {
+            $cap = intval($b['capacity'] ?? 0);
+            $cnt = intval($b['student_count'] ?? 0);
+            $util = $cap > 0 ? round(($cnt / $cap) * 100, 1) : 0;
+            $coachBatches[] = [
+                'batch_id'         => intval($b['batch_id']),
+                'coach_id'         => intval($b['coach_id'] ?? $coachId),
+                'batch_name'       => $b['batch_name'],
+                'batch_time'       => $b['batch_time'] ?: 'Flexible Schedule',
+                'batch_location'   => $b['batch_location'] ?: 'Academy Grounds',
+                'sport'            => $b['sport'],
+                'coach_name'       => $currentUser['name'],
+                'student_count'    => $cnt,
+                'capacity'         => $cap,
+                'max_capacity'     => $cap,
+                'utilization_rate' => $util
+            ];
+        }
 
-    // 6. Coach Scoped Activity Log
-    $cActStmt = $pdo->prepare("
-        SELECT 
-            activity_id,
-            COALESCE(actor_name, 'System') AS actor_name,
-            actor_role,
-            module,
-            action_type,
-            COALESCE(description, action_type) AS action,
-            target_type,
-            target_name,
-            description,
-            DATE_FORMAT(created_at, '%Y-%m-%d %H:%i') AS created_at,
-            DATE_FORMAT(created_at, '%b %e, %Y at %l:%i %p') AS formatted_time
-        FROM vsa_activity_log
-        WHERE (actor_role = 'coach' AND actor_id = ?)
-           OR (target_type = 'Batch' AND target_id IN ($inPlaceholders))
-        ORDER BY created_at DESC, activity_id DESC
-        LIMIT 8
-    ");
-    $cActStmt->execute(array_merge([$coachId], $assignedBatchIds));
-    $coachActivity = $cActStmt->fetchAll(PDO::FETCH_ASSOC);
+        // 6. Coach Scoped Students List (My Students Card)
+        $cStudentsListStmt = $pdo->prepare("
+            SELECT 
+                s.student_id,
+                s.student_name,
+                s.student_photo,
+                s.student_phone,
+                s.status,
+                s.batch_id,
+                b.batch_name,
+                (
+                    SELECT a.status 
+                    FROM vsa_attendance a 
+                    WHERE a.student_id = s.student_id 
+                    ORDER BY a.attendance_date DESC, a.attendance_id DESC 
+                    LIMIT 1
+                ) AS latest_attendance_status,
+                (
+                    SELECT a.attendance_date 
+                    FROM vsa_attendance a 
+                    WHERE a.student_id = s.student_id 
+                    ORDER BY a.attendance_date DESC, a.attendance_id DESC 
+                    LIMIT 1
+                ) AS latest_attendance_date
+            FROM vsa_students s
+            LEFT JOIN vsa_batches b ON s.batch_id = b.batch_id
+            WHERE s.batch_id IN ($inPlaceholders) AND s.status = 'Active'
+            ORDER BY s.student_name ASC
+            LIMIT 15
+        ");
+        $cStudentsListStmt->execute($assignedBatchIds);
+        $coachStudents = [];
+        while ($st = $cStudentsListStmt->fetch(PDO::FETCH_ASSOC)) {
+            $coachStudents[] = [
+                'student_id'               => intval($st['student_id']),
+                'student_name'             => $st['student_name'],
+                'student_photo'            => $st['student_photo'] ?: '',
+                'student_phone'            => $st['student_phone'] ?: '',
+                'batch_id'                 => intval($st['batch_id']),
+                'batch_name'               => $st['batch_name'] ?: 'Unassigned',
+                'status'                   => $st['status'],
+                'latest_attendance_status' => $st['latest_attendance_status'] ?: 'No records',
+                'latest_attendance_date'   => $st['latest_attendance_date'] ?: ''
+            ];
+        }
 
-    // Build Coach Response (CRITICAL: Zero financial properties returned)
-    $coachResponseData = [
-        'role'            => 'coach',
-        'user'            => [
-            'coach_id' => $coachId,
-            'name'     => $currentUser['name'],
-            'email'    => $currentUser['email']
-        ],
-        'user_name'       => $currentUser['name'],
-        'generated_at'    => date('Y-m-d H:i:s'),
-        'current_date'    => date('l, F j, Y'),
-        'kpis'            => [
-            'students' => [
-                'total'  => intval($cStudents['total_students'] ?? 0),
-                'active' => intval($cStudents['active_students'] ?? 0)
+        // Build Coach Response (CRITICAL: Zero financial properties returned)
+        $coachResponseData = [
+            'role'            => 'coach',
+            'user'            => [
+                'coach_id' => $coachId,
+                'name'     => $currentUser['name'],
+                'email'    => $currentUser['email'],
+                'photo'    => $currentUser['photo'] ?? ''
             ],
-            'batches'  => [
-                'total'  => count($assignedBatchIds),
-                'active' => count($assignedBatchIds)
+            'user_name'       => $currentUser['name'],
+            'generated_at'    => date('Y-m-d H:i:s'),
+            'current_date'    => date('l, F j, Y'),
+            'kpis'            => [
+                'students' => [
+                    'total'  => intval($cStudents['total_students'] ?? 0),
+                    'active' => intval($cStudents['active_students'] ?? 0)
+                ],
+                'batches'  => [
+                    'total'  => count($assignedBatchIds),
+                    'active' => count($assignedBatchIds)
+                ],
+                'attendance_today' => [
+                    'present'         => $cPresentToday,
+                    'absent'          => $cAbsentToday,
+                    'total'           => $cTotalToday,
+                    'batches_marked'  => $cBatchesToday,
+                    'attendance_rate' => $cAttRateToday,
+                    'has_sessions'    => $cHasSessions
+                ]
             ],
-            'attendance_today' => [
-                'present'         => $cPresentToday,
-                'absent'          => $cAbsentToday,
-                'total'           => $cTotalToday,
-                'batches_marked'  => $cBatchesToday,
-                'attendance_rate' => $cAttRateToday,
-                'has_sessions'    => $cHasSessions
+            'attendance'      => [
+                'present_today'        => $cPresentToday,
+                'absent_today'         => $cAbsentToday,
+                'batches_marked'       => $cBatchesToday,
+                'batches_marked_today' => $cBatchesToday,
+                'attendance_rate'      => $cAttRateToday,
+                'session_status'       => $cHasSessions ? 'recorded' : 'none',
+                'has_sessions_today'   => $cHasSessions,
+                'seven_day_trend'      => $cSevenDayTrend
+            ],
+            'batches'         => [
+                'total' => count($coachBatches),
+                'list'  => $coachBatches
+            ],
+            'students'        => [
+                'total' => count($coachStudents),
+                'list'  => $coachStudents
             ]
-        ],
-        'attendance'      => [
-            'present_today'        => $cPresentToday,
-            'absent_today'         => $cAbsentToday,
-            'batches_marked'       => $cBatchesToday,
-            'batches_marked_today' => $cBatchesToday,
-            'attendance_rate'      => $cAttRateToday,
-            'session_status'       => $cHasSessions ? 'recorded' : 'none',
-            'has_sessions_today'   => $cHasSessions,
-            'seven_day_trend'      => $cSevenDayTrend
-        ],
-        'batches'         => [
-            'total' => count($coachBatches),
-            'list'  => $coachBatches
-        ],
-        'recent_activity' => [
-            'total' => count($coachActivity),
-            'list'  => $coachActivity
-        ]
-    ];
+        ];
 
-    echo json_encode(array_merge([
-        'success' => true,
-        'data'    => $coachResponseData
-    ], $coachResponseData));
-    exit;
+        echo json_encode(array_merge([
+            'success' => true,
+            'data'    => $coachResponseData
+        ], $coachResponseData));
+        exit;
+    }
+
+    // =========================================================================
+    // CASE C: STUDENT DASHBOARD (Personal Athlete Portal)
+    // =========================================================================
+    if ($currentUser['role'] === 'student') {
+        $studentId = $currentUser['student_id'];
+
+        // 1. Resolve Student with Batch and Coach Details
+        $stInfoStmt = $pdo->prepare("
+            SELECT 
+                s.student_id,
+                s.student_name,
+                s.student_email,
+                s.student_phone,
+                s.student_photo,
+                s.status,
+                b.batch_id,
+                b.batch_name,
+                b.batch_time,
+                b.batch_location,
+                COALESCE(b.sport, 'Football') AS sport,
+                c.coach_id,
+                c.coach_name,
+                c.coach_email,
+                c.coach_phone,
+                c.coach_photo
+            FROM vsa_students s
+            LEFT JOIN vsa_batches b ON s.batch_id = b.batch_id
+            LEFT JOIN vsa_coaches c ON b.coach_id = c.coach_id
+            WHERE s.student_id = ?
+            LIMIT 1
+        ");
+        $stInfoStmt->execute([$studentId]);
+        $stInfo = $stInfoStmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$stInfo) {
+            http_response_code(404);
+            echo json_encode([
+                'success' => false,
+                'error'   => 'Student profile data could not be located.'
+            ]);
+            exit;
+        }
+
+        // 2. Personal Attendance Statistics
+        $stAttStmt = $pdo->prepare("
+            SELECT 
+                COUNT(attendance_id) AS total_sessions,
+                COALESCE(SUM(CASE WHEN status = 'Present' THEN 1 ELSE 0 END), 0) AS present_count,
+                COALESCE(SUM(CASE WHEN status = 'Absent' THEN 1 ELSE 0 END), 0) AS absent_count
+            FROM vsa_attendance
+            WHERE student_id = ?
+        ");
+        $stAttStmt->execute([$studentId]);
+        $attRow = $stAttStmt->fetch(PDO::FETCH_ASSOC);
+
+        $stPresent = intval($attRow['present_count'] ?? 0);
+        $stAbsent  = intval($attRow['absent_count'] ?? 0);
+        $stTotal   = intval($attRow['total_sessions'] ?? 0);
+        $stAttRate = ($stPresent + $stAbsent > 0) ? round(($stPresent / ($stPresent + $stAbsent)) * 100, 1) : null;
+
+        // 3. Student Scoped Latest 7 Active Attendance Dates
+        $stTrendStmt = $pdo->prepare("
+            SELECT 
+                a.attendance_date,
+                a.status,
+                b.batch_name
+            FROM vsa_attendance a
+            LEFT JOIN vsa_batches b ON a.batch_id = b.batch_id
+            WHERE a.student_id = ?
+              AND a.attendance_date IN (
+                  SELECT attendance_date FROM (
+                      SELECT DISTINCT attendance_date
+                      FROM vsa_attendance
+                      WHERE student_id = ?
+                      ORDER BY attendance_date DESC
+                      LIMIT 7
+                  ) AS recent_dates
+              )
+            ORDER BY a.attendance_date ASC
+        ");
+        $stTrendStmt->execute([$studentId, $studentId]);
+        $stSevenDayTrend = [];
+        while ($row = $stTrendStmt->fetch(PDO::FETCH_ASSOC)) {
+            $dt = $row['attendance_date'];
+            $status = $row['status'];
+            $stSevenDayTrend[] = [
+                'date'           => $dt,
+                'date_label'     => date('M j', strtotime($dt)),
+                'date_formatted' => date('M j', strtotime($dt)),
+                'day_name'       => date('D', strtotime($dt)),
+                'present'        => ($status === 'Present') ? 1 : 0,
+                'absent'         => ($status === 'Absent')  ? 1 : 0,
+                'status'         => $status,
+                'batch_name'     => $row['batch_name'] ?: 'Training Batch'
+            ];
+        }
+
+        // 4. Student Recent Attendance List (Latest 5 records)
+        $stRecentStmt = $pdo->prepare("
+            SELECT 
+                a.attendance_id,
+                a.attendance_date,
+                a.status,
+                COALESCE(b.batch_name, 'Training Batch') AS batch_name
+            FROM vsa_attendance a
+            LEFT JOIN vsa_batches b ON a.batch_id = b.batch_id
+            WHERE a.student_id = ?
+            ORDER BY a.attendance_date DESC, a.attendance_id DESC
+            LIMIT 5
+        ");
+        $stRecentStmt->execute([$studentId]);
+        $stRecentAttendance = [];
+        while ($row = $stRecentStmt->fetch(PDO::FETCH_ASSOC)) {
+            $stRecentAttendance[] = [
+                'attendance_id'   => intval($row['attendance_id']),
+                'attendance_date' => $row['attendance_date'],
+                'date_formatted'  => date('M j, Y', strtotime($row['attendance_date'])),
+                'batch_name'      => $row['batch_name'],
+                'status'          => $row['status']
+            ];
+        }
+
+        // Build Student Response (Personal Athlete Portal - Zero academy/financial exposure)
+        $studentResponseData = [
+            'role'            => 'student',
+            'user'            => [
+                'student_id' => $studentId,
+                'name'       => $currentUser['name'],
+                'email'      => $currentUser['email'],
+                'photo'      => $stInfo['student_photo'] ?: ($currentUser['photo'] ?? '')
+            ],
+            'user_name'       => $currentUser['name'],
+            'generated_at'    => date('Y-m-d H:i:s'),
+            'current_date'    => date('l, F j, Y'),
+            'kpis'            => [
+                'batch'             => $stInfo['batch_name'] ?: 'No Batch Assigned',
+                'attendance_rate'   => $stAttRate,
+                'sessions_attended' => $stPresent,
+                'total_sessions'    => $stTotal,
+                'absent_sessions'   => $stAbsent,
+                'sport'             => $stInfo['sport'] ?: 'Football'
+            ],
+            'batch'           => [
+                'batch_id'       => intval($stInfo['batch_id'] ?? 0),
+                'batch_name'     => $stInfo['batch_name'] ?: 'No Batch Assigned',
+                'coach_name'     => $stInfo['coach_name'] ?: 'Unassigned',
+                'coach_email'    => $stInfo['coach_email'] ?: '',
+                'coach_photo'    => $stInfo['coach_photo'] ?: '',
+                'batch_location' => $stInfo['batch_location'] ?: 'Academy Grounds',
+                'batch_time'     => $stInfo['batch_time'] ?: 'Flexible Schedule',
+                'sport'          => $stInfo['sport'] ?: 'Football'
+            ],
+            'attendance'      => [
+                'rate'            => $stAttRate,
+                'present'         => $stPresent,
+                'absent'          => $stAbsent,
+                'total'           => $stTotal,
+                'seven_day_trend' => $stSevenDayTrend,
+                'recent'          => $stRecentAttendance
+            ]
+        ];
+
+        echo json_encode(array_merge([
+            'success' => true,
+            'data'    => $studentResponseData
+        ], $studentResponseData));
+        exit;
+    }
 
 } catch (PDOException $e) {
     http_response_code(500);

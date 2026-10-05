@@ -1,7 +1,9 @@
 /**
  * VAVA Sports Academy - Dashboard Overview Module
- * Handles real-time KPI aggregations, attendance analytics, financial collections,
- * active batches, recent activity log and Chart.js visualization.
+ * Handles role-based dashboard rendering:
+ * 1. Super Admin Dashboard (Academy-wide operations, KPIs, financial analytics, batches, activity log)
+ * 2. Coach Dashboard (Assigned batches, athletes, batch capacity, today's sessions, attendance trend)
+ * 3. Student Dashboard (Personal athlete portal, training details, attendance rate, session history)
  */
 
 (function () {
@@ -10,8 +12,12 @@
   // Module-scoped chart instances and state
   let attendanceChartInstance = null;
   let financialChartInstance = null;
+  let coachAttendanceChartInstance = null;
+  let studentAttendanceChartInstance = null;
+
   let isDashboardLoading = false;
   let quickActionsBound = false;
+  let coachActionsBound = false;
   let clickableNavigationBound = false;
   let isChartLegendInteracting = false;
 
@@ -113,22 +119,35 @@
     return 'dash-act-system';
   }
 
+  function getInitials(name, fallback = 'U') {
+    if (!name || typeof name !== 'string') return fallback;
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    } else if (parts.length === 1 && parts[0].length >= 2) {
+      return parts[0].substring(0, 2).toUpperCase();
+    } else if (parts.length === 1) {
+      return parts[0].toUpperCase();
+    }
+    return fallback;
+  }
+
   function cleanChartInstances() {
     if (attendanceChartInstance) {
-      try {
-        attendanceChartInstance.destroy();
-      } catch (e) {
-        console.warn('Error destroying attendanceChartInstance:', e);
-      }
+      try { attendanceChartInstance.destroy(); } catch (e) {}
       attendanceChartInstance = null;
     }
     if (financialChartInstance) {
-      try {
-        financialChartInstance.destroy();
-      } catch (e) {
-        console.warn('Error destroying financialChartInstance:', e);
-      }
+      try { financialChartInstance.destroy(); } catch (e) {}
       financialChartInstance = null;
+    }
+    if (coachAttendanceChartInstance) {
+      try { coachAttendanceChartInstance.destroy(); } catch (e) {}
+      coachAttendanceChartInstance = null;
+    }
+    if (studentAttendanceChartInstance) {
+      try { studentAttendanceChartInstance.destroy(); } catch (e) {}
+      studentAttendanceChartInstance = null;
     }
   }
 
@@ -136,7 +155,7 @@
   // 2. QUICK ACTIONS & CLICKABLE NAVIGATION BINDINGS
   // ============================================================================
 
-  function bindQuickActionButtons() {
+  function bindSuperAdminQuickActions() {
     if (quickActionsBound) return;
     quickActionsBound = true;
 
@@ -175,45 +194,54 @@
       });
     }
 
-    // Coach Quick Actions (Preserved)
+    // Legacy Coach Quick Actions (in SuperAdmin view header if shown)
     const btnCoachTakeAttendance = document.getElementById('btnDashCoachTakeAttendance');
     if (btnCoachTakeAttendance) {
-      btnCoachTakeAttendance.addEventListener('click', () => {
-        goToSection('#attendance');
-      });
+      btnCoachTakeAttendance.addEventListener('click', () => goToSection('#attendance'));
     }
-
     const btnCoachViewBatches = document.getElementById('btnDashCoachViewBatches');
     if (btnCoachViewBatches) {
-      btnCoachViewBatches.addEventListener('click', () => {
-        goToSection('#batches');
-      });
+      btnCoachViewBatches.addEventListener('click', () => goToSection('#batches'));
     }
-
     const btnCoachViewStudents = document.getElementById('btnDashCoachViewStudents');
     if (btnCoachViewStudents) {
-      btnCoachViewStudents.addEventListener('click', () => {
-        goToSection('#students');
-      });
+      btnCoachViewStudents.addEventListener('click', () => goToSection('#students'));
     }
 
     // Retry Button
     const btnRetry = document.getElementById('btnDashRetry');
     if (btnRetry) {
-      btnRetry.addEventListener('click', () => {
-        loadDashboardOverview();
-      });
+      btnRetry.addEventListener('click', () => loadDashboardOverview());
     }
   }
 
-  function bindClickableNavigation() {
+  function bindCoachQuickActions() {
+    if (coachActionsBound) return;
+    coachActionsBound = true;
+
+    const btnTakeAtt = document.getElementById('btnCoachTakeAttendanceDirect');
+    if (btnTakeAtt) {
+      btnTakeAtt.addEventListener('click', () => goToSection('#attendance'));
+    }
+
+    const btnBatches = document.getElementById('btnCoachViewBatchesDirect');
+    if (btnBatches) {
+      btnBatches.addEventListener('click', () => goToSection('#batches'));
+    }
+
+    const btnStudents = document.getElementById('btnCoachViewStudentsDirect');
+    if (btnStudents) {
+      btnStudents.addEventListener('click', () => goToSection('#students'));
+    }
+  }
+
+  function bindSuperAdminClickableNavigation() {
     if (clickableNavigationBound) return;
     clickableNavigationBound = true;
 
     function attachNavClick(el, destinationFn) {
       if (!el) return;
       el.addEventListener('click', (e) => {
-        // If clicking on an internal link or button, let that element handle it directly
         if (e.target.closest('button, a, .dash-panel-link') && e.target.closest('button, a, .dash-panel-link') !== el) {
           return;
         }
@@ -231,45 +259,35 @@
     const cardStudents = document.getElementById('cardKpiStudents');
     attachNavClick(cardStudents, () => goToSection('#students'));
 
-    // 2. KPI 2: Coaches -> #coaches (Admin) / #batches (Coach - My Batches)
+    // 2. KPI 2: Coaches -> #coaches
     const cardCoaches = document.getElementById('cardKpiCoaches');
-    attachNavClick(cardCoaches, () => {
-      goToSection(isCurrentCoach() ? '#batches' : '#coaches');
-    });
+    attachNavClick(cardCoaches, () => goToSection('#coaches'));
 
-    // 3. KPI 3: Batches -> #batches (Admin) / #attendance (Coach - Today's sessions)
+    // 3. KPI 3: Batches -> #batches
     const cardBatches = document.getElementById('cardKpiBatches');
-    attachNavClick(cardBatches, () => {
-      goToSection(isCurrentCoach() ? '#attendance' : '#batches');
-    });
+    attachNavClick(cardBatches, () => goToSection('#batches'));
 
     // 4. KPI 4: Today's Attendance -> #attendance
     const cardAttendance = document.getElementById('cardKpiAttendance');
     attachNavClick(cardAttendance, () => goToSection('#attendance'));
 
-    // 5. Attendance Overview Card & Trend Chart -> Reports -> Attendance Report
+    // 5. Attendance Overview Card -> Reports -> Attendance Report
     const panelAttendance = document.getElementById('panelAttendanceOverview');
     attachNavClick(panelAttendance, () => {
       if (isChartLegendInteracting) return;
       openAttendanceReport();
     });
 
-    // 6. Financial Overview Card -> Reports -> Fees & Payments Report (Super Admin strictly)
+    // 6. Financial Overview Card -> Reports -> Fees & Payments Report
     const panelFinancial = document.getElementById('panelFinancialOverview');
-    attachNavClick(panelFinancial, () => {
-      if (!isCurrentCoach()) {
-        openFeesReport();
-      }
-    });
+    attachNavClick(panelFinancial, () => openFeesReport());
 
     const linkManageFees = document.getElementById('linkDashManageFees');
     if (linkManageFees) {
       linkManageFees.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (!isCurrentCoach()) {
-          openFeesReport();
-        }
+        openFeesReport();
       });
     }
 
@@ -286,7 +304,7 @@
       });
     }
 
-    // 8. Recent Activity Overview & Full Audit -> Activity Report
+    // 8. Recent Activity Overview -> Activity Report
     const panelActivity = document.getElementById('panelActivityOverview');
     attachNavClick(panelActivity, () => openActivityReport());
 
@@ -300,8 +318,78 @@
     }
   }
 
+  function bindCoachClickableNavigation() {
+    function attachNavClick(el, destinationFn) {
+      if (!el || el._navBound) return;
+      el._navBound = true;
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('button, a, .dash-panel-link') && e.target.closest('button, a, .dash-panel-link') !== el) {
+          return;
+        }
+        destinationFn(e);
+      });
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          destinationFn(e);
+        }
+      });
+    }
+
+    // Coach KPI Card 1: My Students -> #students
+    const cardCoachStudents = document.getElementById('cardCoachKpiStudents');
+    attachNavClick(cardCoachStudents, () => goToSection('#students'));
+
+    // Coach KPI Card 2: My Batches -> #batches
+    const cardCoachBatches = document.getElementById('cardCoachKpiBatches');
+    attachNavClick(cardCoachBatches, () => goToSection('#batches'));
+
+    // Coach KPI Card 3: Today's Attendance -> #attendance
+    const cardCoachAtt = document.getElementById('cardCoachKpiAttendance');
+    attachNavClick(cardCoachAtt, () => goToSection('#attendance'));
+
+    // Coach KPI Card 4: Sessions Today -> #attendance
+    const cardCoachSessions = document.getElementById('cardCoachKpiSessions');
+    attachNavClick(cardCoachSessions, () => goToSection('#attendance'));
+
+    // Coach Attendance Overview Panel -> #attendance
+    const panelCoachAtt = document.getElementById('panelCoachAttendanceOverview');
+    attachNavClick(panelCoachAtt, () => {
+      if (isChartLegendInteracting) return;
+      goToSection('#attendance');
+    });
+
+    // Coach Batches Panel -> #batches
+    const panelCoachBatches = document.getElementById('panelCoachBatchesOverview');
+    attachNavClick(panelCoachBatches, () => goToSection('#batches'));
+
+    const linkCoachBatches = document.getElementById('linkCoachViewBatches');
+    if (linkCoachBatches && !linkCoachBatches._navBound) {
+      linkCoachBatches._navBound = true;
+      linkCoachBatches.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        goToSection('#batches');
+      });
+    }
+
+    // Coach Students Panel -> #students
+    const panelCoachStudents = document.getElementById('panelCoachStudentsOverview');
+    attachNavClick(panelCoachStudents, () => goToSection('#students'));
+
+    const linkCoachStudents = document.getElementById('linkCoachViewStudents');
+    if (linkCoachStudents && !linkCoachStudents._navBound) {
+      linkCoachStudents._navBound = true;
+      linkCoachStudents.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        goToSection('#students');
+      });
+    }
+  }
+
   // ============================================================================
-  // 3. MAIN DASHBOARD DATA RETRIEVAL
+  // 3. MAIN DASHBOARD DATA RETRIEVAL (ROLE ROUTED)
   // ============================================================================
 
   async function loadDashboardOverview() {
@@ -312,23 +400,38 @@
     const errorState = document.getElementById('dashErrorState');
     const mainContent = document.getElementById('dashMainContent');
 
+    const superAdminView = document.getElementById('dashSuperAdminView');
+    const coachView = document.getElementById('dashCoachView');
+    const studentView = document.getElementById('dashStudentView');
+
+    // Prevent any flash of previous/inappropriate dashboard views
+    if (superAdminView) superAdminView.style.display = 'none';
+    if (coachView) coachView.style.display = 'none';
+    if (studentView) studentView.style.display = 'none';
+
     if (loadingState) loadingState.style.display = 'block';
     if (errorState) errorState.style.display = 'none';
+    if (mainContent) mainContent.style.display = 'none';
 
-    // Gather verified authentication credentials from storage
+    // Gather verified credentials from client storage
     const storedRole = (localStorage.getItem('vava_role') || 'admin').toLowerCase();
-    const storedEmail = localStorage.getItem('vava_email') || localStorage.getItem('vava_user_email') || '';
+    let storedEmail = localStorage.getItem('vava_email') || localStorage.getItem('vava_user_email') || '';
     let coachId = localStorage.getItem('vava_coach_id') || '0';
-    let userName = 'Administrator';
+    let studentId = localStorage.getItem('vava_student_id') || '0';
+    let userName = '';
 
     try {
       const u = JSON.parse(localStorage.getItem('vava_user') || '{}');
-      if (u.coach_id) coachId = u.coach_id;
+      if (!storedEmail && u.email) storedEmail = u.email;
+      if (coachId === '0' && u.coach_id) coachId = u.coach_id;
+      if (studentId === '0' && u.student_id) studentId = u.student_id;
       if (u.name) userName = u.name;
       else if (u.full_name) userName = u.full_name;
+      else if (u.coach_name) userName = u.coach_name;
+      else if (u.student_name) userName = u.student_name;
     } catch (e) {}
 
-    // Resolve API endpoint URL (supports Apache and Live Server)
+    // Resolve API endpoint URL
     const endpointUrl = (typeof getApiEndpoint === 'function')
       ? getApiEndpoint('dashboard')
       : 'server/dashboard.php';
@@ -336,31 +439,59 @@
     try {
       const response = await fetch(endpointUrl, {
         method: 'GET',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'X-VAVA-Role': storedRole,
           'X-VAVA-Email': storedEmail,
-          'X-VAVA-Coach-ID': String(coachId)
+          'X-VAVA-Coach-ID': String(coachId),
+          'X-VAVA-Student-ID': String(studentId)
         }
       });
 
       if (!response.ok) {
-        if (response.status === 403) {
-          throw new Error('Access denied. You do not have permission to view the academy dashboard.');
-        } else if (response.status === 401) {
-          throw new Error('Authentication required. Please log in again to continue.');
-        } else {
-          throw new Error(`Server returned HTTP ${response.status} while fetching dashboard data.`);
+        let errorMsg = `Server returned HTTP ${response.status} while compiling dashboard data.`;
+        try {
+          const errPayload = await response.json();
+          if (errPayload && errPayload.error) {
+            errorMsg = errPayload.error;
+          }
+        } catch (e) {
+          if (response.status === 403) {
+            errorMsg = 'Access denied. You do not have permission to view this dashboard.';
+          } else if (response.status === 401) {
+            errorMsg = 'Authentication required. Please log in again to continue.';
+          }
         }
+        throw new Error(errorMsg);
       }
 
-      const res = await response.json();
+      let res;
+      try {
+        res = await response.json();
+      } catch (jsonErr) {
+        throw new Error('Dashboard returned an invalid response.');
+      }
+
       if (!res.success) {
         throw new Error(res.error || 'Failed to retrieve dashboard analytics.');
       }
 
-      // Render dashboard with verified data
-      renderDashboard(res.data || res, storedRole, userName);
+      const payload = res.data || res;
+      const verifiedRole = (payload.role || storedRole).toLowerCase();
+
+      // Cleanly route to role-appropriate renderer
+      if (verifiedRole === 'coach') {
+        if (coachView) coachView.style.display = 'block';
+        renderCoachDashboard(payload);
+      } else if (verifiedRole === 'student') {
+        if (studentView) studentView.style.display = 'block';
+        renderStudentDashboard(payload);
+      } else {
+        // Super Admin (default)
+        if (superAdminView) superAdminView.style.display = 'block';
+        renderSuperAdminDashboard(payload, userName);
+      }
 
       if (loadingState) loadingState.style.display = 'none';
       if (mainContent) mainContent.style.display = 'block';
@@ -371,7 +502,13 @@
       if (errorState) {
         errorState.style.display = 'block';
         const msgEl = document.getElementById('dashErrorMsg');
-        if (msgEl) msgEl.textContent = err.message || 'An unexpected error occurred while loading dashboard metrics.';
+        let userMessage = 'An unexpected error occurred while loading dashboard metrics.';
+        if (err.name === 'TypeError' && err.message && err.message.toLowerCase().includes('failed to fetch')) {
+          userMessage = 'Unable to connect to the dashboard service. Please check your network connection or server status.';
+        } else if (err.message) {
+          userMessage = err.message;
+        }
+        if (msgEl) msgEl.textContent = userMessage;
       }
     } finally {
       isDashboardLoading = false;
@@ -379,26 +516,24 @@
   }
 
   // ============================================================================
-  // 4. RENDERING ORCHESTRATION
+  // 4. SUPER ADMIN DASHBOARD RENDERING (UNTOUCHED LOGIC)
   // ============================================================================
 
-  function renderDashboard(data, currentRole, fallbackUserName) {
-    bindQuickActionButtons();
-    bindClickableNavigation();
-
-    const isCoach = (data.role === 'coach' || currentRole === 'coach');
+  function renderSuperAdminDashboard(data, fallbackUserName) {
+    bindSuperAdminQuickActions();
+    bindSuperAdminClickableNavigation();
 
     // 1. Welcome Card
-    renderWelcomeSection(data, isCoach, fallbackUserName);
+    renderWelcomeSection(data, false, fallbackUserName);
 
     // 2. KPI Cards
-    renderKpiCards(data, isCoach);
+    renderKpiCards(data, false);
 
     // 3. Attendance Overview & Chart
     renderAttendanceOverview(data.attendance);
 
     // 4. Financial Overview (Super Admin strictly)
-    renderFinancialOverview(data.financial, isCoach);
+    renderFinancialOverview(data.financial, false);
 
     // 5. Active Batches Overview
     renderBatchesOverview(data.batches);
@@ -407,9 +542,6 @@
     renderActivityOverview(data.recent_activity);
   }
 
-  // ----------------------------------------------------------------------------
-  // A. Welcome Section
-  // ----------------------------------------------------------------------------
   function renderWelcomeSection(data, isCoach, fallbackUserName) {
     const welcomeName = document.getElementById('dashWelcomeName');
     const currentDate = document.getElementById('dashCurrentDate');
@@ -417,26 +549,18 @@
     const adminActions = document.getElementById('dashAdminActions');
     const coachActions = document.getElementById('dashCoachActions');
 
-    const displayName = data.user_name || fallbackUserName || (isCoach ? 'Coach' : 'Administrator');
+    const displayName = data.user_name || fallbackUserName || 'Administrator';
     if (welcomeName) welcomeName.textContent = displayName;
     if (currentDate) currentDate.textContent = getFormattedCurrentDate();
 
     if (roleBadge) {
-      roleBadge.textContent = isCoach ? 'Coach Operations Console' : 'Super Admin Console';
+      roleBadge.textContent = 'Super Admin Console';
     }
 
-    if (isCoach) {
-      if (adminActions) adminActions.style.display = 'none';
-      if (coachActions) coachActions.style.display = 'flex';
-    } else {
-      if (adminActions) adminActions.style.display = 'flex';
-      if (coachActions) coachActions.style.display = 'none';
-    }
+    if (adminActions) adminActions.style.display = 'flex';
+    if (coachActions) coachActions.style.display = 'none';
   }
 
-  // ----------------------------------------------------------------------------
-  // B. KPI Cards
-  // ----------------------------------------------------------------------------
   function renderKpiCards(data, isCoach) {
     const kpis = data.kpis || {};
     const att = data.attendance || {};
@@ -449,46 +573,30 @@
 
     if (valStudentsTotal) valStudentsTotal.textContent = kpis.students?.total ?? 0;
     if (valStudentsActive) valStudentsActive.textContent = kpis.students?.active ?? 0;
-    if (labelStudents) labelStudents.textContent = isCoach ? 'MY ATHLETES' : 'TOTAL STUDENTS';
-    if (subStudents) subStudents.textContent = isCoach ? 'Assigned Enrolled' : 'Enrolled Athletes';
+    if (labelStudents) labelStudents.textContent = 'TOTAL STUDENTS';
+    if (subStudents) subStudents.textContent = 'Enrolled Athletes';
 
-    // 2. Coaches / Batches Scoped KPI
-    const cardCoaches = document.getElementById('cardKpiCoaches');
+    // 2. Coaches KPI
     const labelCoaches = document.getElementById('labelKpiCoaches');
     const valCoachesTotal = document.getElementById('dashKpiCoachesTotal');
     const valCoachesActive = document.getElementById('dashKpiCoachesActive');
     const subCoaches = document.getElementById('dashKpiCoachesSub');
 
-    if (isCoach) {
-      if (labelCoaches) labelCoaches.textContent = 'MY BATCHES';
-      if (valCoachesTotal) valCoachesTotal.textContent = kpis.batches?.total ?? 0;
-      if (valCoachesActive) valCoachesActive.textContent = kpis.batches?.active ?? 0;
-      if (subCoaches) subCoaches.textContent = 'Assigned Programs';
-    } else {
-      if (labelCoaches) labelCoaches.textContent = 'TOTAL COACHES';
-      if (valCoachesTotal) valCoachesTotal.textContent = kpis.coaches?.total ?? 0;
-      if (valCoachesActive) valCoachesActive.textContent = kpis.coaches?.active ?? 0;
-      if (subCoaches) subCoaches.textContent = 'Certified Staff';
-    }
+    if (labelCoaches) labelCoaches.textContent = 'TOTAL COACHES';
+    if (valCoachesTotal) valCoachesTotal.textContent = kpis.coaches?.total ?? 0;
+    if (valCoachesActive) valCoachesActive.textContent = kpis.coaches?.active ?? 0;
+    if (subCoaches) subCoaches.textContent = 'Certified Staff';
 
-    // 3. Batches / Sessions KPI
+    // 3. Batches KPI
     const labelBatches = document.getElementById('labelKpiBatches');
     const valBatchesTotal = document.getElementById('dashKpiBatchesTotal');
     const valBatchesActive = document.getElementById('dashKpiBatchesActive');
     const subBatches = document.getElementById('dashKpiBatchesSub');
 
-    if (isCoach) {
-      if (labelBatches) labelBatches.textContent = "TODAY'S SESSIONS";
-      if (valBatchesTotal) valBatchesTotal.textContent = att.batches_marked ?? 0;
-      const checkedIn = (att.present_today || 0) + (att.absent_today || 0);
-      if (valBatchesActive) valBatchesActive.textContent = checkedIn;
-      if (subBatches) subBatches.textContent = 'Athletes Checked In';
-    } else {
-      if (labelBatches) labelBatches.textContent = 'TOTAL BATCHES';
-      if (valBatchesTotal) valBatchesTotal.textContent = kpis.batches?.total ?? 0;
-      if (valBatchesActive) valBatchesActive.textContent = kpis.batches?.active ?? 0;
-      if (subBatches) subBatches.textContent = 'Training Programs';
-    }
+    if (labelBatches) labelBatches.textContent = 'TOTAL BATCHES';
+    if (valBatchesTotal) valBatchesTotal.textContent = kpis.batches?.total ?? 0;
+    if (valBatchesActive) valBatchesActive.textContent = kpis.batches?.active ?? 0;
+    if (subBatches) subBatches.textContent = 'Training Programs';
 
     // 4. Today's Attendance KPI
     const valAttRate = document.getElementById('dashKpiAttRate');
@@ -516,9 +624,6 @@
     }
   }
 
-  // ----------------------------------------------------------------------------
-  // C. Attendance Overview & Chart
-  // ----------------------------------------------------------------------------
   function renderAttendanceOverview(att) {
     if (!att) return;
 
@@ -547,7 +652,6 @@
       }
     }
 
-    // Render 7-day Attendance Trend Chart
     renderAttendanceChart(att.seven_day_trend || []);
   }
 
@@ -561,7 +665,6 @@
     const emptyState = document.getElementById('dashAttChartEmpty');
     if (!canvas) return;
 
-    // Clean previous Chart.js instance to prevent memory leaks and duplicate renders
     if (attendanceChartInstance) {
       attendanceChartInstance.destroy();
       attendanceChartInstance = null;
@@ -663,7 +766,6 @@
       }
     });
 
-    // Intercept clicks directly on the legend items to toggle datasets without triggering card navigation
     canvas.onclick = (e) => {
       if (attendanceChartInstance && attendanceChartInstance.legend) {
         const rect = canvas.getBoundingClientRect();
@@ -685,14 +787,10 @@
     };
   }
 
-  // ----------------------------------------------------------------------------
-  // D. Financial Overview (Super Admin Strictly)
-  // ----------------------------------------------------------------------------
   function renderFinancialOverview(financial, isCoach) {
     const finPanel = document.getElementById('panelFinancialOverview');
     if (!finPanel) return;
 
-    // Zero financial exposure to coaches
     if (isCoach || !financial) {
       finPanel.style.display = 'none';
       if (financialChartInstance) {
@@ -712,7 +810,6 @@
     if (outEl) outEl.textContent = formatCurrency(financial.total_outstanding);
     if (ovrEl) ovrEl.textContent = formatCurrency(financial.total_overdue);
 
-    // 6-month collection trend chart
     renderFinancialChart(financial.six_month_trend || []);
   }
 
@@ -744,8 +841,6 @@
     const amounts = trendData.map(m => m.collected);
 
     const ctx = canvas.getContext('2d');
-
-    // Create subtle gold metallic gradient for area fill
     let gradientFill = 'rgba(201, 162, 39, 0.12)';
     try {
       const gradient = ctx.createLinearGradient(0, 0, 0, 240);
@@ -779,9 +874,7 @@
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: {
-            display: false
-          },
+          legend: { display: false },
           tooltip: {
             backgroundColor: '#1B2028',
             titleColor: '#FFFFFF',
@@ -813,14 +906,9 @@
     });
   }
 
-  // ----------------------------------------------------------------------------
-  // E. Active Batches Overview
-  // ----------------------------------------------------------------------------
   function renderBatchesOverview(batchesData) {
     const tbody = document.getElementById('dashBatchTableBody');
     const emptyState = document.getElementById('dashBatchesEmpty');
-    const titleEl = document.getElementById('dashBatchesTitle');
-
     if (!tbody) return;
     tbody.innerHTML = '';
 
@@ -834,10 +922,9 @@
 
     list.forEach(b => {
       const studentCount = Number(b.student_count || 0);
-      const maxCapacity = Number(b.max_capacity || 0);
+      const maxCapacity = Number(b.max_capacity || b.capacity || 0);
       const pct = maxCapacity > 0 ? Math.min(100, Math.round((studentCount / maxCapacity) * 100)) : 0;
 
-      // Color progress based on utilization
       let progressColor = 'var(--gradient-gold-metallic)';
       if (pct >= 90) {
         progressColor = 'linear-gradient(135deg, #EF4444 0%, #F87171 100%)';
@@ -846,12 +933,10 @@
       }
 
       const branchName = (typeof formatBranchLabel === 'function')
-        ? formatBranchLabel(b.branch)
-        : (b.branch || '—');
+        ? formatBranchLabel(b.branch || b.batch_location)
+        : (b.branch || b.batch_location || '—');
 
-      const timeStr = (typeof formatBatchTime === 'function' && b.start_time)
-        ? `${formatBatchTime(b.start_time)} - ${formatBatchTime(b.end_time)}`
-        : '';
+      const timeStr = b.batch_time || '';
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -883,13 +968,9 @@
     });
   }
 
-  // ----------------------------------------------------------------------------
-  // F. Recent Activity Timeline
-  // ----------------------------------------------------------------------------
   function renderActivityOverview(activityData) {
     const timeline = document.getElementById('dashActivityTimeline');
     const emptyState = document.getElementById('dashActivityEmpty');
-
     if (!timeline) return;
     timeline.innerHTML = '';
 
@@ -928,18 +1009,646 @@
   }
 
   // ============================================================================
-  // 5. GLOBAL ATTACHMENT & INITIALIZATION
+  // 5. COACH DASHBOARD RENDERING (SCOPED OPERATIONS)
+  // ============================================================================
+
+  function renderCoachDashboard(data) {
+    bindCoachQuickActions();
+    bindCoachClickableNavigation();
+
+    // 1. Welcome Card
+    const coachWelcomeName = document.getElementById('coachWelcomeName');
+    const coachCurrentDate = document.getElementById('coachCurrentDate');
+    const displayName = data.user_name || data.user?.name || 'Coach';
+
+    if (coachWelcomeName) coachWelcomeName.textContent = displayName;
+    if (coachCurrentDate) coachCurrentDate.textContent = getFormattedCurrentDate();
+
+    // 2. 4 Coach KPI Cards
+    renderCoachKpis(data);
+
+    // 3. Attendance Overview & Chart
+    renderCoachAttendanceOverview(data.attendance);
+
+    // 4. My Training Batches (with Capacity Progress)
+    renderCoachBatches(data.batches);
+
+    // 5. My Students (Scoped athlete roster)
+    renderCoachStudents(data.students);
+  }
+
+  function renderCoachKpis(data) {
+    const kpis = data.kpis || {};
+    const att = data.attendance || {};
+
+    // Card 1: My Students
+    const elStudentsTotal = document.getElementById('coachKpiStudentsTotal');
+    const elStudentsBadge = document.getElementById('coachKpiStudentsBadge');
+    const activeStudents = kpis.students?.active ?? 0;
+    if (elStudentsTotal) elStudentsTotal.textContent = activeStudents;
+    if (elStudentsBadge) elStudentsBadge.textContent = `${activeStudents} Active`;
+
+    // Card 2: My Batches
+    const elBatchesTotal = document.getElementById('coachKpiBatchesTotal');
+    const elBatchesBadge = document.getElementById('coachKpiBatchesBadge');
+    const activeBatches = kpis.batches?.active ?? (data.batches?.total ?? 0);
+    if (elBatchesTotal) elBatchesTotal.textContent = activeBatches;
+    if (elBatchesBadge) elBatchesBadge.textContent = `${activeBatches} Active`;
+
+    // Card 3: Today's Attendance
+    const elAttRate = document.getElementById('coachKpiAttRate');
+    const elAttBadge = document.getElementById('coachKpiAttBadge');
+    const elAttCounts = document.getElementById('coachKpiAttCounts');
+
+    const present = att.present_today || 0;
+    const absent = att.absent_today || 0;
+    const totalToday = present + absent;
+    const rate = att.attendance_rate;
+
+    if (totalToday === 0 || att.session_status === 'none' || rate === null) {
+      if (elAttRate) elAttRate.textContent = '--';
+      if (elAttBadge) {
+        elAttBadge.className = 'dash-kpi-badge badge-neutral';
+        elAttBadge.textContent = 'No Sessions';
+      }
+      if (elAttCounts) elAttCounts.textContent = 'No Sessions Today';
+    } else {
+      if (elAttRate) elAttRate.textContent = `${rate}%`;
+      if (elAttBadge) {
+        elAttBadge.className = 'dash-kpi-badge badge-active';
+        elAttBadge.textContent = `${att.batches_marked_today || att.batches_marked || 0} Batches`;
+      }
+      if (elAttCounts) elAttCounts.textContent = `${present} Present • ${absent} Absent`;
+    }
+
+    // Card 4: Sessions Today
+    const elSessionsTotal = document.getElementById('coachKpiSessionsTotal');
+    const elSessionsBadge = document.getElementById('coachKpiSessionsBadge');
+    const batchesMarked = att.batches_marked_today || att.batches_marked || 0;
+    if (elSessionsTotal) elSessionsTotal.textContent = batchesMarked;
+    if (elSessionsBadge) elSessionsBadge.textContent = `${batchesMarked} Batches`;
+  }
+
+  function renderCoachAttendanceOverview(att) {
+    if (!att) return;
+
+    const presentEl = document.getElementById('coachAttPresent');
+    const absentEl = document.getElementById('coachAttAbsent');
+    const batchesEl = document.getElementById('coachAttBatches');
+    const statusEl = document.getElementById('coachAttSessionStatus');
+    const pillEl = document.getElementById('coachAttLivePill');
+
+    const present = att.present_today || 0;
+    const absent = att.absent_today || 0;
+    const batches = att.batches_marked_today || att.batches_marked || 0;
+    const rate = att.attendance_rate;
+
+    if (presentEl) presentEl.textContent = present;
+    if (absentEl) absentEl.textContent = absent;
+    if (batchesEl) batchesEl.textContent = batches;
+    if (pillEl) pillEl.textContent = `${batches} Batches Marked`;
+
+    if (statusEl) {
+      if (batches === 0 || (present + absent) === 0 || rate === null) {
+        statusEl.textContent = 'No Sessions Recorded Today';
+        statusEl.className = 'dash-ribbon-val';
+      } else {
+        statusEl.textContent = `${rate}% Attendance`;
+        statusEl.className = 'dash-ribbon-val text-success';
+      }
+    }
+
+    // Render Scoped 7-Day Trend Chart
+    renderCoachAttendanceChart(att.seven_day_trend || []);
+  }
+
+  function renderCoachAttendanceChart(trendData) {
+    if (typeof Chart === 'undefined') {
+      console.warn('Chart.js library is not loaded. Skipping coach attendance chart render.');
+      return;
+    }
+
+    const canvas = document.getElementById('coachAttendanceChart');
+    const emptyState = document.getElementById('coachAttChartEmpty');
+    if (!canvas) return;
+
+    if (coachAttendanceChartInstance) {
+      coachAttendanceChartInstance.destroy();
+      coachAttendanceChartInstance = null;
+    }
+
+    if (!trendData || trendData.length === 0) {
+      if (emptyState) emptyState.style.display = 'flex';
+      canvas.style.display = 'none';
+      return;
+    }
+
+    if (emptyState) emptyState.style.display = 'none';
+    canvas.style.display = 'block';
+
+    const labels = trendData.map(d => d.date_formatted);
+    const presentData = trendData.map(d => d.present);
+    const absentData = trendData.map(d => d.absent);
+
+    const ctx = canvas.getContext('2d');
+    coachAttendanceChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Present',
+            data: presentData,
+            backgroundColor: 'rgba(34, 197, 94, 0.85)',
+            borderColor: '#22C55E',
+            borderWidth: 1,
+            borderRadius: 4,
+            maxBarThickness: 28
+          },
+          {
+            label: 'Absent',
+            data: absentData,
+            backgroundColor: 'rgba(239, 68, 68, 0.8)',
+            borderColor: '#EF4444',
+            borderWidth: 1,
+            borderRadius: 4,
+            maxBarThickness: 28
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            labels: {
+              color: '#A7AFBC',
+              boxWidth: 12,
+              padding: 12,
+              font: { family: "'Plus Jakarta Sans', sans-serif", size: 12 }
+            },
+            onClick: (e, legendItem, legend) => {
+              isChartLegendInteracting = true;
+              setTimeout(() => { isChartLegendInteracting = false; }, 350);
+              const index = legendItem.datasetIndex;
+              const ci = legend.chart;
+              if (ci.isDatasetVisible(index)) {
+                ci.hide(index);
+                legendItem.hidden = true;
+              } else {
+                ci.show(index);
+                legendItem.hidden = false;
+              }
+            }
+          },
+          tooltip: {
+            backgroundColor: '#1B2028',
+            titleColor: '#FFFFFF',
+            bodyColor: '#A7AFBC',
+            borderColor: 'rgba(201, 162, 39, 0.3)',
+            borderWidth: 1,
+            padding: 10,
+            callbacks: {
+              footer: (items) => {
+                let total = 0;
+                items.forEach(i => { total += (i.raw || 0); });
+                return `Total Attendees: ${total}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(255, 255, 255, 0.04)' },
+            ticks: { color: '#737C89', font: { size: 11 } }
+          },
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(255, 255, 255, 0.04)' },
+            ticks: { color: '#737C89', precision: 0, font: { size: 11 } }
+          }
+        }
+      }
+    });
+
+    canvas.onclick = (e) => {
+      if (coachAttendanceChartInstance && coachAttendanceChartInstance.legend) {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const hitBoxes = coachAttendanceChartInstance.legend.legendHitBoxes || [];
+        const isLegendHit = hitBoxes.some(box => (
+          x >= (box.left - 4) &&
+          x <= (box.left + box.width + 4) &&
+          y >= (box.top - 4) &&
+          y <= (box.top + box.height + 4)
+        ));
+        if (isLegendHit) {
+          isChartLegendInteracting = true;
+          setTimeout(() => { isChartLegendInteracting = false; }, 350);
+          e.stopPropagation();
+        }
+      }
+    };
+  }
+
+  function renderCoachBatches(batchesData) {
+    const tbody = document.getElementById('coachBatchTableBody');
+    const emptyState = document.getElementById('coachBatchesEmpty');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const list = Array.isArray(batchesData) ? batchesData : (batchesData?.list || []);
+    if (list.length === 0) {
+      if (emptyState) emptyState.style.display = 'block';
+      return;
+    }
+
+    if (emptyState) emptyState.style.display = 'none';
+
+    list.forEach(b => {
+      const studentCount = Number(b.student_count || 0);
+      const maxCapacity = Number(b.max_capacity || b.capacity || 0);
+      const pct = maxCapacity > 0 ? Math.min(100, Math.round((studentCount / maxCapacity) * 100)) : 0;
+
+      let progressColor = 'var(--gradient-gold-metallic)';
+      if (pct >= 90) {
+        progressColor = 'linear-gradient(135deg, #EF4444 0%, #F87171 100%)';
+      } else if (pct >= 75) {
+        progressColor = 'linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%)';
+      }
+
+      const locationStr = b.batch_location || 'Academy Grounds';
+      const timeStr = b.batch_time || 'Flexible Schedule';
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>
+          <div class="dash-batch-name">${escapeHtml(b.batch_name)}</div>
+          <div style="font-size:0.72rem; color:var(--text-muted);">${escapeHtml(b.sport || 'Sports')}</div>
+        </td>
+        <td>
+          <div style="color: #FFFFFF;">${escapeHtml(locationStr)}</div>
+          <div style="font-size:0.72rem; color:var(--text-muted);">${escapeHtml(timeStr)}</div>
+        </td>
+        <td>
+          <span style="font-weight:700; color:#FFFFFF;">${studentCount}</span>
+          <span style="color:var(--text-muted); font-size:0.75rem;"> athletes</span>
+        </td>
+        <td style="text-align:right;">
+          <div class="dash-capacity-wrap">
+            <div class="dash-progress-track">
+              <div class="dash-progress-fill" style="width: ${pct}%; background: ${progressColor};"></div>
+            </div>
+            <span class="dash-capacity-text">${studentCount} / ${maxCapacity}</span>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderCoachStudents(studentsData) {
+    const tbody = document.getElementById('coachStudentTableBody');
+    const emptyState = document.getElementById('coachStudentsEmpty');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const list = Array.isArray(studentsData) ? studentsData : (studentsData?.list || []);
+    if (list.length === 0) {
+      if (emptyState) emptyState.style.display = 'block';
+      return;
+    }
+
+    if (emptyState) emptyState.style.display = 'none';
+
+    list.forEach(st => {
+      const initials = getInitials(st.student_name, 'A');
+      const avatarHtml = st.student_photo
+        ? `<img src="${escapeHtml(st.student_photo)}" class="coach-student-avatar" alt="${escapeHtml(st.student_name)}" onerror="this.outerHTML='<div class=\\'coach-student-avatar\\'>${initials}</div>'">`
+        : `<div class="coach-student-avatar">${initials}</div>`;
+
+      let badgeClass = 'badge-neutral';
+      let statusText = st.latest_attendance_status || 'No records';
+      if (statusText === 'Present') badgeClass = 'badge-active';
+      else if (statusText === 'Absent') badgeClass = 'badge-inactive';
+
+      const dateStr = st.latest_attendance_date
+        ? ` <span style="font-size:0.70rem; color:var(--text-muted);">(${escapeHtml(st.latest_attendance_date)})</span>`
+        : '';
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>
+          <div style="display:flex; align-items:center; gap:0.6rem;">
+            ${avatarHtml}
+            <div>
+              <div style="font-weight:600; color:#FFFFFF;">${escapeHtml(st.student_name)}</div>
+              <div style="font-size:0.72rem; color:var(--text-muted);">${escapeHtml(st.status || 'Active')}</div>
+            </div>
+          </div>
+        </td>
+        <td>
+          <span style="color:#FFFFFF; font-weight:500;">${escapeHtml(st.batch_name || 'Unassigned')}</span>
+        </td>
+        <td>
+          <span class="dash-kpi-badge ${badgeClass}">${escapeHtml(statusText)}</span>
+          ${dateStr}
+        </td>
+        <td style="color:var(--text-muted); font-size:0.78rem;">
+          ${escapeHtml(st.student_phone || '—')}
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ============================================================================
+  // 6. STUDENT DASHBOARD RENDERING (PERSONAL ATHLETE PORTAL)
+  // ============================================================================
+
+  function renderStudentDashboard(data) {
+    // 1. Personal Welcome Card & Avatar
+    renderStudentWelcome(data);
+
+    // 2. Personal 4 KPI Cards
+    renderStudentKpis(data);
+
+    // 3. Training & Lead Coach Card
+    renderStudentTraining(data.batch);
+
+    // 4. Personal Attendance Overview & Chart
+    renderStudentAttendanceOverview(data.attendance);
+
+    // 5. Recent Attendance Log
+    renderStudentRecentAttendance(data.attendance?.recent || []);
+  }
+
+  function renderStudentWelcome(data) {
+    const welcomeName = document.getElementById('studentWelcomeName');
+    const currentDate = document.getElementById('studentCurrentDate');
+    const avatarEl = document.getElementById('studentWelcomeAvatar');
+
+    const displayName = data.user_name || data.user?.name || 'Athlete';
+    if (welcomeName) welcomeName.textContent = displayName;
+    if (currentDate) currentDate.textContent = getFormattedCurrentDate();
+
+    if (avatarEl) {
+      const photo = data.user?.photo || '';
+      const initials = getInitials(displayName, 'A');
+      if (photo) {
+        avatarEl.innerHTML = `<img src="${escapeHtml(photo)}" alt="${escapeHtml(displayName)}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.parentElement.textContent='${initials}'">`;
+      } else {
+        avatarEl.textContent = initials;
+      }
+    }
+  }
+
+  function renderStudentKpis(data) {
+    const kpis = data.kpis || {};
+    const batch = data.batch || {};
+
+    // Card 1: My Batch
+    const elBatch = document.getElementById('studentKpiBatch');
+    const elBatchBadge = document.getElementById('studentKpiBatchBadge');
+    if (elBatch) elBatch.textContent = kpis.batch || batch.batch_name || 'No Batch Assigned';
+    if (elBatchBadge) elBatchBadge.textContent = batch.sport || 'Assigned';
+
+    // Card 2: Attendance Rate
+    const elAttRate = document.getElementById('studentKpiAttRate');
+    const elAttBadge = document.getElementById('studentKpiAttBadge');
+    if (kpis.attendance_rate !== null && kpis.attendance_rate !== undefined) {
+      if (elAttRate) elAttRate.textContent = `${kpis.attendance_rate}%`;
+      if (elAttBadge) elAttBadge.textContent = `${kpis.sessions_attended || 0} / ${kpis.total_sessions || 0} Attended`;
+    } else {
+      if (elAttRate) elAttRate.textContent = '--';
+      if (elAttBadge) elAttBadge.textContent = 'No Attendance Yet';
+    }
+
+    // Card 3: Sessions Attended
+    const elSessions = document.getElementById('studentKpiSessionsAttended');
+    const elTotalBadge = document.getElementById('studentKpiTotalSessionsBadge');
+    if (elSessions) elSessions.textContent = kpis.sessions_attended ?? 0;
+    if (elTotalBadge) elTotalBadge.textContent = `${kpis.total_sessions ?? 0} Total Recorded`;
+
+    // Card 4: Training Schedule
+    const elScheduleTime = document.getElementById('studentKpiScheduleTime');
+    const elSportBadge = document.getElementById('studentKpiSportBadge');
+    const elLocationSub = document.getElementById('studentKpiLocationSub');
+    if (elScheduleTime) elScheduleTime.textContent = batch.batch_time || 'Flexible';
+    if (elSportBadge) elSportBadge.textContent = batch.sport || 'Sports';
+    if (elLocationSub) elLocationSub.textContent = batch.batch_location || 'Academy Grounds';
+  }
+
+  function renderStudentTraining(batchData) {
+    const batch = batchData || {};
+
+    const sportPill = document.getElementById('studentTrainingSportPill');
+    const batchName = document.getElementById('studentTrainingBatchName');
+    const location = document.getElementById('studentTrainingLocation');
+    const schedule = document.getElementById('studentTrainingSchedule');
+    const sport = document.getElementById('studentTrainingSport');
+
+    if (sportPill) sportPill.textContent = batch.sport || 'Training';
+    if (batchName) batchName.textContent = batch.batch_name || 'No Batch Assigned';
+    if (location) location.textContent = batch.batch_location || 'Academy Grounds';
+    if (schedule) schedule.textContent = batch.batch_time || 'Flexible Schedule';
+    if (sport) sport.textContent = batch.sport || 'General Sports';
+
+    // Lead Coach Chip
+    const coachName = document.getElementById('studentCoachName');
+    const coachEmail = document.getElementById('studentCoachEmail');
+    const coachAvatar = document.getElementById('studentCoachAvatar');
+
+    const leadCoachName = batch.coach_name || 'Unassigned';
+    if (coachName) coachName.textContent = leadCoachName;
+    if (coachEmail) coachEmail.textContent = batch.coach_email || '';
+
+    if (coachAvatar) {
+      const coachPhoto = batch.coach_photo || '';
+      const coachInitials = getInitials(leadCoachName, 'C');
+      if (coachPhoto) {
+        coachAvatar.innerHTML = `<img src="${escapeHtml(coachPhoto)}" alt="${escapeHtml(leadCoachName)}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" onerror="this.parentElement.textContent='${coachInitials}'">`;
+      } else {
+        coachAvatar.textContent = coachInitials;
+      }
+    }
+  }
+
+  function renderStudentAttendanceOverview(att) {
+    if (!att) return;
+
+    const pillEl = document.getElementById('studentAttPill');
+    const presentEl = document.getElementById('studentAttPresent');
+    const absentEl = document.getElementById('studentAttAbsent');
+    const rateEl = document.getElementById('studentAttRate');
+
+    const present = att.present || 0;
+    const absent = att.absent || 0;
+    const rate = att.rate;
+
+    if (presentEl) presentEl.textContent = present;
+    if (absentEl) absentEl.textContent = absent;
+
+    if (rate !== null && rate !== undefined) {
+      if (rateEl) rateEl.textContent = `${rate}%`;
+      if (pillEl) pillEl.textContent = `${rate}% Rate`;
+    } else {
+      if (rateEl) rateEl.textContent = '--';
+      if (pillEl) pillEl.textContent = 'No Rate';
+    }
+
+    renderStudentAttendanceChart(att.seven_day_trend || []);
+  }
+
+  function renderStudentAttendanceChart(trendData) {
+    if (typeof Chart === 'undefined') {
+      console.warn('Chart.js library is not loaded. Skipping student attendance chart render.');
+      return;
+    }
+
+    const canvas = document.getElementById('studentAttendanceChart');
+    const emptyState = document.getElementById('studentAttChartEmpty');
+    if (!canvas) return;
+
+    if (studentAttendanceChartInstance) {
+      studentAttendanceChartInstance.destroy();
+      studentAttendanceChartInstance = null;
+    }
+
+    if (!trendData || trendData.length === 0) {
+      if (emptyState) emptyState.style.display = 'flex';
+      canvas.style.display = 'none';
+      return;
+    }
+
+    if (emptyState) emptyState.style.display = 'none';
+    canvas.style.display = 'block';
+
+    const labels = trendData.map(d => d.date_formatted);
+    const presentData = trendData.map(d => d.present);
+    const absentData = trendData.map(d => d.absent);
+
+    const ctx = canvas.getContext('2d');
+    studentAttendanceChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Present',
+            data: presentData,
+            backgroundColor: 'rgba(34, 197, 94, 0.85)',
+            borderColor: '#22C55E',
+            borderWidth: 1,
+            borderRadius: 4,
+            maxBarThickness: 28
+          },
+          {
+            label: 'Absent',
+            data: absentData,
+            backgroundColor: 'rgba(239, 68, 68, 0.8)',
+            borderColor: '#EF4444',
+            borderWidth: 1,
+            borderRadius: 4,
+            maxBarThickness: 28
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            labels: {
+              color: '#A7AFBC',
+              boxWidth: 12,
+              padding: 12,
+              font: { family: "'Plus Jakarta Sans', sans-serif", size: 12 }
+            }
+          },
+          tooltip: {
+            backgroundColor: '#1B2028',
+            titleColor: '#FFFFFF',
+            bodyColor: '#A7AFBC',
+            borderColor: 'rgba(201, 162, 39, 0.3)',
+            borderWidth: 1,
+            padding: 10,
+            callbacks: {
+              label: (item) => {
+                const isPresent = item.dataset.label === 'Present';
+                const count = item.raw || 0;
+                return `${item.dataset.label}: ${count > 0 ? (isPresent ? 'Attended' : 'Missed') : 'None'}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(255, 255, 255, 0.04)' },
+            ticks: { color: '#737C89', font: { size: 11 } }
+          },
+          y: {
+            beginAtZero: true,
+            max: 1,
+            grid: { color: 'rgba(255, 255, 255, 0.04)' },
+            ticks: {
+              color: '#737C89',
+              stepSize: 1,
+              precision: 0,
+              font: { size: 11 },
+              callback: (val) => (val === 1 ? 'Logged' : '0')
+            }
+          }
+        }
+      }
+    });
+  }
+
+  function renderStudentRecentAttendance(recentList) {
+    const tbody = document.getElementById('studentRecentTableBody');
+    const emptyState = document.getElementById('studentRecentEmpty');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (!recentList || recentList.length === 0) {
+      if (emptyState) emptyState.style.display = 'block';
+      return;
+    }
+
+    if (emptyState) emptyState.style.display = 'none';
+
+    recentList.forEach(rec => {
+      const isPresent = (rec.status === 'Present');
+      const badgeClass = isPresent ? 'badge-active' : 'badge-inactive';
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="font-weight:500; color:#FFFFFF;">${escapeHtml(rec.date_formatted || rec.attendance_date)}</td>
+        <td style="color:var(--text-muted);">${escapeHtml(rec.batch_name || 'Training Batch')}</td>
+        <td style="text-align:right;">
+          <span class="dash-kpi-badge ${badgeClass}">${escapeHtml(rec.status || '—')}</span>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ============================================================================
+  // 7. GLOBAL ATTACHMENT & INITIALIZATION
   // ============================================================================
 
   window.loadDashboardOverview = loadDashboardOverview;
   window.cleanDashboardCharts = cleanChartInstances;
 
   document.addEventListener('DOMContentLoaded', () => {
-    // If handleHashRoute exists in navigation.js, invoke it
     if (typeof handleHashRoute === 'function') {
       handleHashRoute();
     } else {
-      // Direct fallback
       const hash = window.location.hash || '#overview';
       if (hash === '#overview' || hash === '' || hash === '#branches') {
         loadDashboardOverview();

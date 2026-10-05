@@ -241,70 +241,12 @@
         </div>
 
         <!-- ===== DASHBOARD OVERVIEW SECTION ===== -->
+        <!-- ===== DASHBOARD OVERVIEW SECTION ===== -->
         <section id="overviewSection">
-          <!-- 1. Welcome Card & Quick Actions -->
-          <div class="dash-welcome-card">
-            <div class="dash-welcome-left">
-              <div class="dash-welcome-badge">
-                <span class="dash-live-dot"></span>
-                <span id="dashRoleBadge">Super Admin Console</span>
-              </div>
-              <h2 class="dash-welcome-title">
-                Welcome back, <span id="dashWelcomeName" class="highlight-gold">Administrator</span> 👋
-              </h2>
-              <p class="dash-welcome-subtitle">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                  <line x1="16" y1="2" x2="16" y2="6"></line>
-                  <line x1="8" y1="2" x2="8" y2="6"></line>
-                  <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
-                <span id="dashCurrentDate">Today's Operations</span>
-                <span class="dash-separator">•</span>
-                <span id="dashLiveStatus" class="dash-status-text">Operational Data Synced</span>
-              </p>
-            </div>
-            
-            <div class="dash-quick-actions" id="dashQuickActions">
-              <!-- Admin Quick Actions (Dynamically controlled based on role) -->
-              <!-- Admin Quick Actions (Dynamically controlled based on role) -->
-              <div class="dash-actions-admin" id="dashAdminActions">
-                <button type="button" class="btn-dash-action btn-dash-primary" id="btnDashAddStudent">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-                  <span>Add Student</span>
-                </button>
-                <button type="button" class="btn-dash-action" id="btnDashAddCoach">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                  <span>Add Coach</span>
-                </button>
-                <button type="button" class="btn-dash-action" id="btnDashAddBatch">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="9" x2="12" y2="15"/><line x1="9" y1="12" x2="15" y2="12"/></svg>
-                  <span>Add Batch</span>
-                </button>
-              </div>
-
-              <!-- Coach Quick Actions (Displayed for Coach role) -->
-              <div class="dash-actions-coach" id="dashCoachActions" style="display:none;">
-                <button type="button" class="btn-dash-action btn-dash-primary" id="btnDashCoachTakeAttendance">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                  <span>Take Attendance</span>
-                </button>
-                <button type="button" class="btn-dash-action" id="btnDashCoachViewBatches">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                  <span>My Batches</span>
-                </button>
-                <button type="button" class="btn-dash-action" id="btnDashCoachViewStudents">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                  <span>My Students</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
           <!-- Loading & Error Overlays -->
           <div id="dashLoadingState" class="dash-state-container" style="display:none;">
             <div class="dash-spinner"></div>
-            <p>Loading real-time academy analytics...</p>
+            <p id="dashLoadingMsg">Loading your dashboard...</p>
           </div>
 
           <div id="dashErrorState" class="dash-state-container dash-error-card" style="display:none;">
@@ -316,198 +258,653 @@
 
           <!-- Dashboard Content Container (Visible once loaded) -->
           <div id="dashMainContent">
-            <!-- 2. KPI Cards Grid -->
-            <div class="dash-kpis-grid">
-              <!-- KPI 1: Students -->
-              <div class="dash-kpi-card dash-clickable" id="cardKpiStudents" tabindex="0" role="button" aria-label="View Students Module">
-                <div class="dash-kpi-top">
-                  <span class="dash-kpi-label" id="labelKpiStudents">TOTAL STUDENTS</span>
-                  <div class="dash-kpi-icon icon-students">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <!-- ============================================================= -->
+            <!-- 1. SUPER ADMIN DASHBOARD VIEW                                 -->
+            <!-- ============================================================= -->
+            <div id="dashSuperAdminView" class="dash-role-view" style="display:none;">
+              <!-- 1. Welcome Card & Quick Actions -->
+              <div class="dash-welcome-card">
+                <div class="dash-welcome-left">
+                  <div class="dash-welcome-badge">
+                    <span class="dash-live-dot"></span>
+                    <span id="dashRoleBadge">Super Admin Console</span>
                   </div>
+                  <h2 class="dash-welcome-title">
+                    Welcome back, <span id="dashWelcomeName" class="highlight-gold">Administrator</span> 👋
+                  </h2>
+                  <p class="dash-welcome-subtitle">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <span id="dashCurrentDate">Today's Operations</span>
+                    <span class="dash-separator">•</span>
+                    <span id="dashLiveStatus" class="dash-status-text">Operational Data Synced</span>
+                  </p>
                 </div>
-                <div class="dash-kpi-value" id="dashKpiStudentsTotal">0</div>
-                <div class="dash-kpi-footer">
-                  <span class="dash-kpi-badge badge-active" id="dashKpiStudentsBadge">
-                    <span id="dashKpiStudentsActive">0</span> Active
-                  </span>
-                  <span class="dash-kpi-subtext" id="dashKpiStudentsSub">Enrolled Athletes</span>
+                
+                <div class="dash-quick-actions" id="dashQuickActions">
+                  <div class="dash-actions-admin" id="dashAdminActions">
+                    <button type="button" class="btn-dash-action btn-dash-primary" id="btnDashAddStudent">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                      <span>Add Student</span>
+                    </button>
+                    <button type="button" class="btn-dash-action" id="btnDashAddCoach">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                      <span>Add Coach</span>
+                    </button>
+                    <button type="button" class="btn-dash-action" id="btnDashAddBatch">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="9" x2="12" y2="15"/><line x1="9" y1="12" x2="15" y2="12"/></svg>
+                      <span>Add Batch</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <!-- KPI 2: Coaches (Super Admin) / Assigned Batches (Coach) -->
-              <div class="dash-kpi-card dash-clickable" id="cardKpiCoaches" tabindex="0" role="button" aria-label="View Coaches Module">
-                <div class="dash-kpi-top">
-                  <span class="dash-kpi-label" id="labelKpiCoaches">TOTAL COACHES</span>
-                  <div class="dash-kpi-icon icon-coaches">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <!-- 2. KPI Cards Grid -->
+              <div class="dash-kpis-grid">
+                <!-- KPI 1: Students -->
+                <div class="dash-kpi-card dash-clickable" id="cardKpiStudents" tabindex="0" role="button" aria-label="View Students Module">
+                  <div class="dash-kpi-top">
+                    <span class="dash-kpi-label" id="labelKpiStudents">TOTAL STUDENTS</span>
+                    <div class="dash-kpi-icon icon-students">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                  </div>
+                  <div class="dash-kpi-value" id="dashKpiStudentsTotal">0</div>
+                  <div class="dash-kpi-footer">
+                    <span class="dash-kpi-badge badge-active" id="dashKpiStudentsBadge">
+                      <span id="dashKpiStudentsActive">0</span> Active
+                    </span>
+                    <span class="dash-kpi-subtext" id="dashKpiStudentsSub">Enrolled Athletes</span>
                   </div>
                 </div>
-                <div class="dash-kpi-value" id="dashKpiCoachesTotal">0</div>
-                <div class="dash-kpi-footer">
-                  <span class="dash-kpi-badge badge-active" id="dashKpiCoachesBadge">
-                    <span id="dashKpiCoachesActive">0</span> Active
-                  </span>
-                  <span class="dash-kpi-subtext" id="dashKpiCoachesSub">Certified Staff</span>
+
+                <!-- KPI 2: Coaches -->
+                <div class="dash-kpi-card dash-clickable" id="cardKpiCoaches" tabindex="0" role="button" aria-label="View Coaches Module">
+                  <div class="dash-kpi-top">
+                    <span class="dash-kpi-label" id="labelKpiCoaches">TOTAL COACHES</span>
+                    <div class="dash-kpi-icon icon-coaches">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    </div>
+                  </div>
+                  <div class="dash-kpi-value" id="dashKpiCoachesTotal">0</div>
+                  <div class="dash-kpi-footer">
+                    <span class="dash-kpi-badge badge-active" id="dashKpiCoachesBadge">
+                      <span id="dashKpiCoachesActive">0</span> Active
+                    </span>
+                    <span class="dash-kpi-subtext" id="dashKpiCoachesSub">Certified Staff</span>
+                  </div>
+                </div>
+
+                <!-- KPI 3: Batches -->
+                <div class="dash-kpi-card dash-clickable" id="cardKpiBatches" tabindex="0" role="button" aria-label="View Batches Module">
+                  <div class="dash-kpi-top">
+                    <span class="dash-kpi-label" id="labelKpiBatches">TOTAL BATCHES</span>
+                    <div class="dash-kpi-icon icon-batches">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    </div>
+                  </div>
+                  <div class="dash-kpi-value" id="dashKpiBatchesTotal">0</div>
+                  <div class="dash-kpi-footer">
+                    <span class="dash-kpi-badge badge-active" id="dashKpiBatchesBadge">
+                      <span id="dashKpiBatchesActive">0</span> Active
+                    </span>
+                    <span class="dash-kpi-subtext" id="dashKpiBatchesSub">Training Programs</span>
+                  </div>
+                </div>
+
+                <!-- KPI 4: Today's Attendance -->
+                <div class="dash-kpi-card dash-clickable" id="cardKpiAttendance" tabindex="0" role="button" aria-label="View Attendance Module">
+                  <div class="dash-kpi-top">
+                    <span class="dash-kpi-label">TODAY'S ATTENDANCE</span>
+                    <div class="dash-kpi-icon icon-attendance">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    </div>
+                  </div>
+                  <div class="dash-kpi-value" id="dashKpiAttRate">--</div>
+                  <div class="dash-kpi-footer">
+                    <span class="dash-kpi-badge badge-neutral" id="dashKpiAttBadge">No Sessions</span>
+                    <span class="dash-kpi-subtext" id="dashKpiAttCounts">0 Present • 0 Absent</span>
+                  </div>
                 </div>
               </div>
 
-              <!-- KPI 3: Batches -->
-              <div class="dash-kpi-card dash-clickable" id="cardKpiBatches" tabindex="0" role="button" aria-label="View Batches Module">
-                <div class="dash-kpi-top">
-                  <span class="dash-kpi-label" id="labelKpiBatches">TOTAL BATCHES</span>
-                  <div class="dash-kpi-icon icon-batches">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <!-- 3. Analytics Grid: Attendance Trend & Financial Overview -->
+              <div class="dash-analytics-grid" id="dashAnalyticsGrid">
+                <!-- Attendance Analytics Panel -->
+                <div class="dash-panel-card dash-clickable" id="panelAttendanceOverview" tabindex="0" role="button" aria-label="View Attendance Report">
+                  <div class="dash-panel-header">
+                    <div>
+                      <h3 class="dash-panel-title">Attendance Overview</h3>
+                      <p class="dash-panel-subtitle">Today's recorded sessions and recent attendance trend</p>
+                    </div>
+                    <span class="dash-pill-tag" id="dashAttLivePill">0 Batches Marked</span>
+                  </div>
+
+                  <div class="dash-stat-ribbon">
+                    <div class="dash-ribbon-item">
+                      <span class="dash-ribbon-label">Present Today</span>
+                      <span class="dash-ribbon-val text-success" id="dashAttPresent">0</span>
+                    </div>
+                    <div class="dash-ribbon-item">
+                      <span class="dash-ribbon-label">Absent Today</span>
+                      <span class="dash-ribbon-val text-danger" id="dashAttAbsent">0</span>
+                    </div>
+                    <div class="dash-ribbon-item">
+                      <span class="dash-ribbon-label">Batches Conducted</span>
+                      <span class="dash-ribbon-val text-gold" id="dashAttBatches">0</span>
+                    </div>
+                    <div class="dash-ribbon-item">
+                      <span class="dash-ribbon-label">Session Status</span>
+                      <span class="dash-ribbon-val" id="dashAttSessionStatus">No Sessions</span>
+                    </div>
+                  </div>
+
+                  <div class="dash-chart-container">
+                    <canvas id="dashAttendanceChart"></canvas>
+                    <div class="dash-chart-empty" id="dashAttChartEmpty" style="display:none;">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                      <p>No attendance records logged in the past 7 active sessions</p>
+                    </div>
                   </div>
                 </div>
-                <div class="dash-kpi-value" id="dashKpiBatchesTotal">0</div>
-                <div class="dash-kpi-footer">
-                  <span class="dash-kpi-badge badge-active" id="dashKpiBatchesBadge">
-                    <span id="dashKpiBatchesActive">0</span> Active
-                  </span>
-                  <span class="dash-kpi-subtext" id="dashKpiBatchesSub">Training Programs</span>
+
+                <!-- Financial Overview Panel (Super Admin Strictly) -->
+                <div class="dash-panel-card dash-clickable" id="panelFinancialOverview" tabindex="0" role="button" aria-label="View Fees & Payments Report">
+                  <div class="dash-panel-header">
+                    <div>
+                      <h3 class="dash-panel-title">Financial Collections</h3>
+                      <p class="dash-panel-subtitle">Authoritative fee audit from student fee invoices</p>
+                    </div>
+                    <a href="#reports" class="dash-panel-link" id="linkDashManageFees">View Report &rarr;</a>
+                  </div>
+
+                  <div class="dash-stat-ribbon">
+                    <div class="dash-ribbon-item">
+                      <span class="dash-ribbon-label">Collected This Month</span>
+                      <span class="dash-ribbon-val text-success" id="dashFinCollected">₹0</span>
+                    </div>
+                    <div class="dash-ribbon-item">
+                      <span class="dash-ribbon-label">Total Outstanding</span>
+                      <span class="dash-ribbon-val text-warning" id="dashFinOutstanding">₹0</span>
+                    </div>
+                    <div class="dash-ribbon-item">
+                      <span class="dash-ribbon-label">Total Overdue</span>
+                      <span class="dash-ribbon-val text-danger" id="dashFinOverdue">₹0</span>
+                    </div>
+                  </div>
+
+                  <div class="dash-chart-container">
+                    <canvas id="dashFinancialChart"></canvas>
+                    <div class="dash-chart-empty" id="dashFinChartEmpty" style="display:none;">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                      <p>No billing cycles recorded in the last 6 months</p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <!-- KPI 4: Today's Attendance -->
-              <div class="dash-kpi-card dash-clickable" id="cardKpiAttendance" tabindex="0" role="button" aria-label="View Attendance Module">
-                <div class="dash-kpi-top">
-                  <span class="dash-kpi-label">TODAY'S ATTENDANCE</span>
-                  <div class="dash-kpi-icon icon-attendance">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              <!-- 4. Bottom Grid: Batches & Activity Log -->
+              <div class="dash-bottom-grid">
+                <!-- Active Batches Overview -->
+                <div class="dash-panel-card dash-clickable" id="panelBatchesOverview" tabindex="0" role="button" aria-label="View Batches Module">
+                  <div class="dash-panel-header">
+                    <div>
+                      <h3 class="dash-panel-title" id="dashBatchesTitle">Active Training Batches</h3>
+                      <p class="dash-panel-subtitle">Current athlete enrollment vs maximum batch capacity</p>
+                    </div>
+                    <a href="#batches" class="dash-panel-link" id="linkDashViewBatches">View All &rarr;</a>
+                  </div>
+
+                  <div class="dash-table-wrap">
+                    <table class="dash-mini-table">
+                      <thead>
+                        <tr>
+                          <th>Batch Name</th>
+                          <th>Coach</th>
+                          <th>Location & Time</th>
+                          <th>Enrollment</th>
+                          <th style="text-align:right;">Capacity</th>
+                        </tr>
+                      </thead>
+                      <tbody id="dashBatchTableBody">
+                        <!-- Dynamically rendered -->
+                      </tbody>
+                    </table>
+                    <div class="dash-empty-list" id="dashBatchesEmpty" style="display:none;">
+                      <p>No active training batches found.</p>
+                    </div>
                   </div>
                 </div>
-                <div class="dash-kpi-value" id="dashKpiAttRate">--</div>
-                <div class="dash-kpi-footer">
-                  <span class="dash-kpi-badge badge-neutral" id="dashKpiAttBadge">No Sessions</span>
-                  <span class="dash-kpi-subtext" id="dashKpiAttCounts">0 Present • 0 Absent</span>
+
+                <!-- Recent Activity Log -->
+                <div class="dash-panel-card dash-clickable" id="panelActivityOverview" tabindex="0" role="button" aria-label="View Activity Audit Report">
+                  <div class="dash-panel-header">
+                    <div>
+                      <h3 class="dash-panel-title">Recent Academy Activity</h3>
+                      <p class="dash-panel-subtitle">Audit log of system and operational actions</p>
+                    </div>
+                    <a href="#reports" class="dash-panel-link" id="linkDashFullAudit">Full Audit &rarr;</a>
+                  </div>
+
+                  <div class="dash-activity-timeline" id="dashActivityTimeline">
+                    <!-- Dynamically rendered -->
+                  </div>
+                  <div class="dash-empty-list" id="dashActivityEmpty" style="display:none;">
+                    <p>No activity logged yet.</p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- 3. Analytics Grid: Attendance Trend & Financial Overview -->
-            <div class="dash-analytics-grid" id="dashAnalyticsGrid">
-              <!-- Attendance Analytics Panel -->
-              <div class="dash-panel-card dash-clickable" id="panelAttendanceOverview" tabindex="0" role="button" aria-label="View Attendance Report">
-                <div class="dash-panel-header">
-                  <div>
-                    <h3 class="dash-panel-title">Attendance Overview</h3>
-                    <p class="dash-panel-subtitle">Today's recorded sessions and recent attendance trend</p>
+            <!-- ============================================================= -->
+            <!-- 2. COACH DASHBOARD VIEW                                       -->
+            <!-- ============================================================= -->
+            <div id="dashCoachView" class="dash-role-view" style="display:none;">
+              <!-- Coach Welcome Card & Quick Actions -->
+              <div class="dash-welcome-card">
+                <div class="dash-welcome-left">
+                  <div class="dash-welcome-badge">
+                    <span class="dash-live-dot"></span>
+                    <span>COACH CONSOLE</span>
                   </div>
-                  <span class="dash-pill-tag" id="dashAttLivePill">0 Batches Marked</span>
+                  <h2 class="dash-welcome-title">
+                    Welcome back, <span id="coachWelcomeName" class="highlight-gold">Coach</span> 👋
+                  </h2>
+                  <p class="dash-welcome-subtitle">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <span id="coachCurrentDate">Today's Operations</span>
+                    <span class="dash-separator">•</span>
+                    <span class="dash-status-text">Assigned Batches Active</span>
+                  </p>
+                </div>
+                
+                <div class="dash-quick-actions">
+                  <div class="dash-actions-coach">
+                    <button type="button" class="btn-dash-action btn-dash-primary" id="btnCoachTakeAttendanceDirect">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                      <span>Take Attendance</span>
+                    </button>
+                    <button type="button" class="btn-dash-action" id="btnCoachViewBatchesDirect">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                      <span>View Batches</span>
+                    </button>
+                    <button type="button" class="btn-dash-action" id="btnCoachViewStudentsDirect">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                      <span>View Students</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Coach 4 KPI Cards Grid -->
+              <div class="dash-kpis-grid">
+                <!-- Card 1: My Students -->
+                <div class="dash-kpi-card dash-clickable" id="cardCoachKpiStudents" tabindex="0" role="button" aria-label="View My Students">
+                  <div class="dash-kpi-top">
+                    <span class="dash-kpi-label">MY STUDENTS</span>
+                    <div class="dash-kpi-icon icon-students">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                  </div>
+                  <div class="dash-kpi-value" id="coachKpiStudentsTotal">0</div>
+                  <div class="dash-kpi-footer">
+                    <span class="dash-kpi-badge badge-active" id="coachKpiStudentsBadge">0 Active</span>
+                    <span class="dash-kpi-subtext">Assigned Athletes</span>
+                  </div>
                 </div>
 
-                <div class="dash-stat-ribbon">
-                  <div class="dash-ribbon-item">
-                    <span class="dash-ribbon-label">Present Today</span>
-                    <span class="dash-ribbon-val text-success" id="dashAttPresent">0</span>
+                <!-- Card 2: My Batches -->
+                <div class="dash-kpi-card dash-clickable" id="cardCoachKpiBatches" tabindex="0" role="button" aria-label="View My Batches">
+                  <div class="dash-kpi-top">
+                    <span class="dash-kpi-label">MY BATCHES</span>
+                    <div class="dash-kpi-icon icon-batches">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    </div>
                   </div>
-                  <div class="dash-ribbon-item">
-                    <span class="dash-ribbon-label">Absent Today</span>
-                    <span class="dash-ribbon-val text-danger" id="dashAttAbsent">0</span>
-                  </div>
-                  <div class="dash-ribbon-item">
-                    <span class="dash-ribbon-label">Batches Conducted</span>
-                    <span class="dash-ribbon-val text-gold" id="dashAttBatches">0</span>
-                  </div>
-                  <div class="dash-ribbon-item">
-                    <span class="dash-ribbon-label">Session Status</span>
-                    <span class="dash-ribbon-val" id="dashAttSessionStatus">No Sessions</span>
+                  <div class="dash-kpi-value" id="coachKpiBatchesTotal">0</div>
+                  <div class="dash-kpi-footer">
+                    <span class="dash-kpi-badge badge-active" id="coachKpiBatchesBadge">0 Active</span>
+                    <span class="dash-kpi-subtext">Training Groups</span>
                   </div>
                 </div>
 
-                <div class="dash-chart-container">
-                  <canvas id="dashAttendanceChart"></canvas>
-                  <div class="dash-chart-empty" id="dashAttChartEmpty" style="display:none;">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                    <p>No attendance records logged in the past 7 active sessions</p>
+                <!-- Card 3: Today's Attendance -->
+                <div class="dash-kpi-card dash-clickable" id="cardCoachKpiAttendance" tabindex="0" role="button" aria-label="Record Attendance">
+                  <div class="dash-kpi-top">
+                    <span class="dash-kpi-label">TODAY'S ATTENDANCE</span>
+                    <div class="dash-kpi-icon icon-attendance">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    </div>
+                  </div>
+                  <div class="dash-kpi-value" id="coachKpiAttRate">--</div>
+                  <div class="dash-kpi-footer">
+                    <span class="dash-kpi-badge badge-neutral" id="coachKpiAttBadge">No Sessions</span>
+                    <span class="dash-kpi-subtext" id="coachKpiAttCounts">No Sessions Today</span>
+                  </div>
+                </div>
+
+                <!-- Card 4: Sessions Today -->
+                <div class="dash-kpi-card dash-clickable" id="cardCoachKpiSessions" tabindex="0" role="button" aria-label="View Today Sessions">
+                  <div class="dash-kpi-top">
+                    <span class="dash-kpi-label">SESSIONS TODAY</span>
+                    <div class="dash-kpi-icon icon-coaches">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                    </div>
+                  </div>
+                  <div class="dash-kpi-value" id="coachKpiSessionsTotal">0</div>
+                  <div class="dash-kpi-footer">
+                    <span class="dash-kpi-badge badge-active" id="coachKpiSessionsBadge">0 Batches</span>
+                    <span class="dash-kpi-subtext">Batches Marked</span>
                   </div>
                 </div>
               </div>
 
-              <!-- Financial Overview Panel (Super Admin Strictly) -->
-              <div class="dash-panel-card dash-clickable" id="panelFinancialOverview" tabindex="0" role="button" aria-label="View Fees & Payments Report">
-                <div class="dash-panel-header">
-                  <div>
-                    <h3 class="dash-panel-title">Financial Collections</h3>
-                    <p class="dash-panel-subtitle">Authoritative fee audit from student fee invoices</p>
+              <!-- Coach Analytics Grid: Attendance & Batches Overview -->
+              <div class="dash-analytics-grid">
+                <!-- Panel 1: Attendance Overview -->
+                <div class="dash-panel-card dash-clickable" id="panelCoachAttendanceOverview" tabindex="0" role="button" aria-label="View Attendance Details">
+                  <div class="dash-panel-header">
+                    <div>
+                      <h3 class="dash-panel-title">Attendance Overview</h3>
+                      <p class="dash-panel-subtitle">Today's recorded sessions and recent attendance trend</p>
+                    </div>
+                    <span class="dash-pill-tag" id="coachAttLivePill">0 Batches Marked</span>
                   </div>
-                  <a href="#reports" class="dash-panel-link" id="linkDashManageFees">View Report &rarr;</a>
+
+                  <div class="dash-stat-ribbon">
+                    <div class="dash-ribbon-item">
+                      <span class="dash-ribbon-label">Present Today</span>
+                      <span class="dash-ribbon-val text-success" id="coachAttPresent">0</span>
+                    </div>
+                    <div class="dash-ribbon-item">
+                      <span class="dash-ribbon-label">Absent Today</span>
+                      <span class="dash-ribbon-val text-danger" id="coachAttAbsent">0</span>
+                    </div>
+                    <div class="dash-ribbon-item">
+                      <span class="dash-ribbon-label">Batches Conducted</span>
+                      <span class="dash-ribbon-val text-gold" id="coachAttBatches">0</span>
+                    </div>
+                    <div class="dash-ribbon-item">
+                      <span class="dash-ribbon-label">Session Status</span>
+                      <span class="dash-ribbon-val" id="coachAttSessionStatus">No Sessions</span>
+                    </div>
+                  </div>
+
+                  <div class="dash-chart-container">
+                    <canvas id="coachAttendanceChart"></canvas>
+                    <div class="dash-chart-empty" id="coachAttChartEmpty" style="display:none;">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                      <p>No attendance records logged in the past 7 active sessions</p>
+                    </div>
+                  </div>
                 </div>
 
-                <div class="dash-stat-ribbon">
-                  <div class="dash-ribbon-item">
-                    <span class="dash-ribbon-label">Collected This Month</span>
-                    <span class="dash-ribbon-val text-success" id="dashFinCollected">₹0</span>
+                <!-- Panel 2: My Training Batches -->
+                <div class="dash-panel-card dash-clickable" id="panelCoachBatchesOverview" tabindex="0" role="button" aria-label="View Batches Module">
+                  <div class="dash-panel-header">
+                    <div>
+                      <h3 class="dash-panel-title">My Training Batches</h3>
+                      <p class="dash-panel-subtitle">Assigned groups and capacity utilization</p>
+                    </div>
+                    <a href="#batches" class="dash-panel-link" id="linkCoachViewBatches">View All &rarr;</a>
                   </div>
-                  <div class="dash-ribbon-item">
-                    <span class="dash-ribbon-label">Total Outstanding</span>
-                    <span class="dash-ribbon-val text-warning" id="dashFinOutstanding">₹0</span>
-                  </div>
-                  <div class="dash-ribbon-item">
-                    <span class="dash-ribbon-label">Total Overdue</span>
-                    <span class="dash-ribbon-val text-danger" id="dashFinOverdue">₹0</span>
-                  </div>
-                </div>
 
-                <div class="dash-chart-container">
-                  <canvas id="dashFinancialChart"></canvas>
-                  <div class="dash-chart-empty" id="dashFinChartEmpty" style="display:none;">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                    <p>No billing cycles recorded in the last 6 months</p>
+                  <div class="dash-table-wrap">
+                    <table class="dash-mini-table">
+                      <thead>
+                        <tr>
+                          <th>Batch Name</th>
+                          <th>Location & Time</th>
+                          <th>Enrollment</th>
+                          <th style="text-align:right;">Capacity</th>
+                        </tr>
+                      </thead>
+                      <tbody id="coachBatchTableBody">
+                        <!-- Dynamically populated -->
+                      </tbody>
+                    </table>
+                    <div class="dash-empty-list" id="coachBatchesEmpty" style="display:none;">
+                      <p>No batches assigned yet.</p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- 4. Bottom Grid: Batches & Activity Log -->
-            <div class="dash-bottom-grid">
-              <!-- Active Batches Overview -->
-              <div class="dash-panel-card dash-clickable" id="panelBatchesOverview" tabindex="0" role="button" aria-label="View Batches Module">
+              <!-- Coach Bottom Panel: My Students -->
+              <div class="dash-panel-card dash-clickable" id="panelCoachStudentsOverview" tabindex="0" role="button" aria-label="View Students Module">
                 <div class="dash-panel-header">
                   <div>
-                    <h3 class="dash-panel-title" id="dashBatchesTitle">Active Training Batches</h3>
-                    <p class="dash-panel-subtitle">Current athlete enrollment vs maximum batch capacity</p>
+                    <h3 class="dash-panel-title">My Students</h3>
+                    <p class="dash-panel-subtitle">Athletes enrolled in your assigned training batches</p>
                   </div>
-                  <a href="#batches" class="dash-panel-link" id="linkDashViewBatches">View All &rarr;</a>
+                  <a href="#students" class="dash-panel-link" id="linkCoachViewStudents">View All &rarr;</a>
                 </div>
 
                 <div class="dash-table-wrap">
                   <table class="dash-mini-table">
                     <thead>
                       <tr>
-                        <th>Batch Name</th>
-                        <th>Coach</th>
-                        <th>Location & Time</th>
-                        <th>Enrollment</th>
-                        <th style="text-align:right;">Capacity</th>
+                        <th>Athlete</th>
+                        <th>Batch</th>
+                        <th>Latest Attendance</th>
+                        <th>Contact</th>
                       </tr>
                     </thead>
-                    <tbody id="dashBatchTableBody">
-                      <!-- Dynamically rendered -->
+                    <tbody id="coachStudentTableBody">
+                      <!-- Dynamically populated -->
                     </tbody>
                   </table>
-                  <div class="dash-empty-list" id="dashBatchesEmpty" style="display:none;">
-                    <p>No active training batches found.</p>
+                  <div class="dash-empty-list" id="coachStudentsEmpty" style="display:none;">
+                    <p>No students in your assigned batches.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ============================================================= -->
+            <!-- 3. STUDENT DASHBOARD VIEW                                     -->
+            <!-- ============================================================= -->
+            <div id="dashStudentView" class="dash-role-view" style="display:none;">
+              <!-- Student Welcome Card -->
+              <div class="dash-welcome-card student-welcome-card">
+                <div class="dash-welcome-left">
+                  <div class="dash-welcome-badge">
+                    <span class="dash-live-dot"></span>
+                    <span>ATHLETE PORTAL</span>
+                  </div>
+                  <h2 class="dash-welcome-title">
+                    Welcome back, <span id="studentWelcomeName" class="highlight-gold">Athlete</span> 👋
+                  </h2>
+                  <p class="dash-welcome-subtitle">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <span id="studentCurrentDate">Today</span>
+                    <span class="dash-separator">•</span>
+                    <span class="dash-status-text">Athlete Profile Synced</span>
+                  </p>
+                </div>
+                <div class="student-welcome-profile">
+                  <div class="student-welcome-avatar" id="studentWelcomeAvatar">--</div>
+                </div>
+              </div>
+
+              <!-- Student 4 Personal KPI Cards -->
+              <div class="dash-kpis-grid">
+                <!-- Card 1: My Batch -->
+                <div class="dash-kpi-card" id="cardStudentBatch">
+                  <div class="dash-kpi-top">
+                    <span class="dash-kpi-label">MY BATCH</span>
+                    <div class="dash-kpi-icon icon-batches">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    </div>
+                  </div>
+                  <div class="dash-kpi-value" id="studentKpiBatch">--</div>
+                  <div class="dash-kpi-footer">
+                    <span class="dash-kpi-badge badge-active" id="studentKpiBatchBadge">Assigned</span>
+                    <span class="dash-kpi-subtext">Current Training Group</span>
+                  </div>
+                </div>
+
+                <!-- Card 2: Attendance Rate -->
+                <div class="dash-kpi-card" id="cardStudentAttRate">
+                  <div class="dash-kpi-top">
+                    <span class="dash-kpi-label">MY ATTENDANCE</span>
+                    <div class="dash-kpi-icon icon-attendance">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    </div>
+                  </div>
+                  <div class="dash-kpi-value" id="studentKpiAttRate">--</div>
+                  <div class="dash-kpi-footer">
+                    <span class="dash-kpi-badge badge-active" id="studentKpiAttBadge">Attendance</span>
+                    <span class="dash-kpi-subtext">Attendance Rate</span>
+                  </div>
+                </div>
+
+                <!-- Card 3: Sessions Attended -->
+                <div class="dash-kpi-card" id="cardStudentSessions">
+                  <div class="dash-kpi-top">
+                    <span class="dash-kpi-label">SESSIONS ATTENDED</span>
+                    <div class="dash-kpi-icon icon-students">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                    </div>
+                  </div>
+                  <div class="dash-kpi-value" id="studentKpiSessionsAttended">0</div>
+                  <div class="dash-kpi-footer">
+                    <span class="dash-kpi-badge badge-active" id="studentKpiTotalSessionsBadge">0 Total</span>
+                    <span class="dash-kpi-subtext">Recorded Sessions</span>
+                  </div>
+                </div>
+
+                <!-- Card 4: Training Schedule -->
+                <div class="dash-kpi-card" id="cardStudentSchedule">
+                  <div class="dash-kpi-top">
+                    <span class="dash-kpi-label">TRAINING SCHEDULE</span>
+                    <div class="dash-kpi-icon icon-coaches">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                  </div>
+                  <div class="dash-kpi-value" id="studentKpiScheduleTime">--</div>
+                  <div class="dash-kpi-footer">
+                    <span class="dash-kpi-badge badge-active" id="studentKpiSportBadge">Sport</span>
+                    <span class="dash-kpi-subtext" id="studentKpiLocationSub">Ground Location</span>
                   </div>
                 </div>
               </div>
 
-              <!-- Recent Activity Log -->
-              <div class="dash-panel-card dash-clickable" id="panelActivityOverview" tabindex="0" role="button" aria-label="View Activity Audit Report">
-                <div class="dash-panel-header">
-                  <div>
-                    <h3 class="dash-panel-title">Recent Academy Activity</h3>
-                    <p class="dash-panel-subtitle">Audit log of system and operational actions</p>
+              <!-- Student Analytics Grid: Training Details & Attendance Trend -->
+              <div class="dash-analytics-grid">
+                <!-- Panel 1: My Training Details -->
+                <div class="dash-panel-card" id="panelStudentTraining">
+                  <div class="dash-panel-header">
+                    <div>
+                      <h3 class="dash-panel-title">My Training</h3>
+                      <p class="dash-panel-subtitle">Assigned batch and certified coaching staff details</p>
+                    </div>
+                    <span class="dash-pill-tag" id="studentTrainingSportPill">Football</span>
                   </div>
-                  <a href="#reports" class="dash-panel-link" id="linkDashFullAudit">Full Audit &rarr;</a>
+
+                  <div class="student-training-info-grid">
+                    <div class="training-info-item">
+                      <span class="training-info-label">Batch Group</span>
+                      <span class="training-info-val highlight-gold" id="studentTrainingBatchName">--</span>
+                    </div>
+                    <div class="training-info-item">
+                      <span class="training-info-label">Training Ground</span>
+                      <span class="training-info-val" id="studentTrainingLocation">--</span>
+                    </div>
+                    <div class="training-info-item">
+                      <span class="training-info-label">Session Schedule</span>
+                      <span class="training-info-val" id="studentTrainingSchedule">--</span>
+                    </div>
+                    <div class="training-info-item">
+                      <span class="training-info-label">Sport Discipline</span>
+                      <span class="training-info-val" id="studentTrainingSport">--</span>
+                    </div>
+                  </div>
+
+                  <div class="student-coach-chip" id="studentCoachChip">
+                    <div class="student-coach-avatar" id="studentCoachAvatar">C</div>
+                    <div class="student-coach-details">
+                      <span class="student-coach-role">Lead Coach</span>
+                      <span class="student-coach-name" id="studentCoachName">Unassigned</span>
+                      <span class="student-coach-contact" id="studentCoachEmail"></span>
+                    </div>
+                  </div>
                 </div>
 
-                <div class="dash-activity-timeline" id="dashActivityTimeline">
-                  <!-- Dynamically rendered -->
+                <!-- Panel 2: My Attendance -->
+                <div class="dash-panel-card" id="panelStudentAttendanceOverview">
+                  <div class="dash-panel-header">
+                    <div>
+                      <h3 class="dash-panel-title">My Attendance</h3>
+                      <p class="dash-panel-subtitle">Personal attendance rate and latest 7 recorded sessions</p>
+                    </div>
+                    <span class="dash-pill-tag" id="studentAttPill">-- Rate</span>
+                  </div>
+
+                  <div class="dash-stat-ribbon">
+                    <div class="dash-ribbon-item">
+                      <span class="dash-ribbon-label">Present Sessions</span>
+                      <span class="dash-ribbon-val text-success" id="studentAttPresent">0</span>
+                    </div>
+                    <div class="dash-ribbon-item">
+                      <span class="dash-ribbon-label">Absent Sessions</span>
+                      <span class="dash-ribbon-val text-danger" id="studentAttAbsent">0</span>
+                    </div>
+                    <div class="dash-ribbon-item">
+                      <span class="dash-ribbon-label">Attendance Rate</span>
+                      <span class="dash-ribbon-val text-gold" id="studentAttRate">--</span>
+                    </div>
+                  </div>
+
+                  <div class="dash-chart-container">
+                    <canvas id="studentAttendanceChart"></canvas>
+                    <div class="dash-chart-empty" id="studentAttChartEmpty" style="display:none;">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                      <p>No attendance records available yet.</p>
+                    </div>
+                  </div>
                 </div>
-                <div class="dash-empty-list" id="dashActivityEmpty" style="display:none;">
-                  <p>No activity logged yet.</p>
+              </div>
+
+              <!-- Student Bottom Panel: Recent Attendance -->
+              <div class="dash-panel-card" id="panelStudentRecentAttendance">
+                <div class="dash-panel-header">
+                  <div>
+                    <h3 class="dash-panel-title">Recent Attendance</h3>
+                    <p class="dash-panel-subtitle">Latest session check-ins recorded for your profile</p>
+                  </div>
+                </div>
+
+                <div class="dash-table-wrap">
+                  <table class="dash-mini-table">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Batch</th>
+                        <th style="text-align:right;">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="studentRecentTableBody">
+                      <!-- Dynamically rendered -->
+                    </tbody>
+                  </table>
+                  <div class="dash-empty-list" id="studentRecentEmpty" style="display:none;">
+                    <p>No attendance records available yet.</p>
+                  </div>
                 </div>
               </div>
             </div>
