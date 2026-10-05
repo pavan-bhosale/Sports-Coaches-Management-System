@@ -783,18 +783,18 @@
                   </div>
                 </div>
 
-                <!-- Card 3: Sessions Attended -->
-                <div class="dash-kpi-card dash-clickable" id="cardStudentSessions" role="button" tabindex="0" aria-label="View Sessions Attended">
+                <!-- Card 3: My Fees (Replaces Sessions Attended) -->
+                <div class="dash-kpi-card dash-clickable" id="cardStudentFees" role="button" tabindex="0" aria-label="View My Fees and Payment Status">
                   <div class="dash-kpi-top">
-                    <span class="dash-kpi-label">SESSIONS ATTENDED</span>
-                    <div class="dash-kpi-icon icon-students">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                    <span class="dash-kpi-label">MY FEES</span>
+                    <div class="dash-kpi-icon icon-fees">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
                     </div>
                   </div>
-                  <div class="dash-kpi-value" id="studentKpiSessionsAttended">0</div>
+                  <div class="dash-kpi-value" id="studentKpiFeesRatio">-- / --</div>
                   <div class="dash-kpi-footer">
-                    <span class="dash-kpi-badge badge-active" id="studentKpiTotalSessionsBadge">0 Total</span>
-                    <span class="dash-kpi-subtext">View Log →</span>
+                    <span class="dash-kpi-badge" id="studentKpiFeesBadge">--</span>
+                    <span class="dash-kpi-subtext" id="studentKpiFeesSub">View Payment Status →</span>
                   </div>
                 </div>
 
@@ -928,6 +928,67 @@
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                         <span>No attendance sessions recorded yet</span>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Student Panel: Fees & Payments (Overall Status, Visual Progress & Monthly Grid) -->
+              <div class="dash-panel-card" id="panelStudentFees">
+                <div class="dash-panel-header">
+                  <div>
+                    <h3 class="dash-panel-title">Fees &amp; Payments</h3>
+                    <p class="dash-panel-subtitle">Personal monthly fee payment records and status</p>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="dash-pill-tag" id="studentFeesOverviewPill">-- / -- Paid</span>
+                    <button type="button" class="btn-dash-text-action" id="btnStudentViewFeesModal" aria-label="View full fees detail modal">View Details →</button>
+                  </div>
+                </div>
+
+                <div class="student-fees-panel-body" id="studentFeesPanelContent">
+                  <!-- Level 1: Overall Status & Visual Progress Indicator -->
+                  <div class="student-fees-summary-card">
+                    <div class="sf-summary-top">
+                      <div class="sf-summary-main">
+                        <span class="sf-summary-ratio" id="studentFeesMainRatio">-- / --</span>
+                        <span class="sf-summary-label">MONTHS PAID</span>
+                      </div>
+                      <div class="sf-summary-cur-month" id="studentFeesCurMonthBlock">
+                        <span class="sf-cur-label">CURRENT MONTH</span>
+                        <span class="sf-cur-val" id="studentFeesCurMonthName">--</span>
+                        <span class="sf-cur-badge" id="studentFeesCurMonthBadge">--</span>
+                      </div>
+                    </div>
+
+                    <!-- Compact Horizontal Progress Indicator -->
+                    <div class="sf-progress-wrap">
+                      <div class="sf-progress-bar-bg" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="studentFeesProgressAria">
+                        <div class="sf-progress-bar-fill" id="studentFeesProgressFill" style="width: 0%;"></div>
+                      </div>
+                      <div class="sf-progress-meta">
+                        <span class="sf-progress-pct" id="studentFeesProgressPct">0% of expected months paid</span>
+                        <div class="sf-progress-counts">
+                          <span class="sf-count-paid">Paid: <strong id="studentFeesPaidCount">0</strong></span>
+                          <span class="dash-separator">•</span>
+                          <span class="sf-count-due">Due: <strong id="studentFeesDueCount">0</strong></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Level 2: Monthly Payment Status Grid -->
+                  <div class="student-fees-grid-section">
+                    <div class="sf-grid-header">
+                      <span class="sf-grid-title">MONTHLY PAYMENT STATUS</span>
+                      <span class="sf-grid-hint" id="studentFeesGridHint">Click a month tile to view details</span>
+                    </div>
+                    <div class="student-months-grid" id="studentMonthsGrid">
+                      <!-- Populated dynamically with actual expected month tiles -->
+                    </div>
+                    <div class="sf-empty-state" id="studentFeesEmptyState" style="display:none;">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                      <span>No fee or payment records are currently available for your profile.</span>
                     </div>
                   </div>
                 </div>

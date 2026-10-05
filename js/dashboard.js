@@ -1378,7 +1378,7 @@
     // 1. Personal Welcome Card & Avatar
     renderStudentWelcome(data);
 
-    // 2. Personal 4 KPI Cards
+    // 2. Personal 4 KPI Cards (My Batch, My Attendance, My Fees, Training Schedule)
     renderStudentKpis(data);
 
     // 3. Training & Lead Coach Card
@@ -1387,10 +1387,13 @@
     // 4. Personal Attendance Overview (Donut Ring + Chronological Timeline)
     renderStudentAttendanceOverview(data.attendance);
 
-    // 5. Recent Attendance Log
+    // 5. Personal Fees & Payment Status (Overall Progress & Monthly Grid)
+    renderStudentFeesOverview(data.fees);
+
+    // 6. Recent Attendance Log
     renderStudentRecentAttendance(data.attendance?.recent || []);
 
-    // 6. Interactive Detail Card Interactions
+    // 7. Interactive Detail Card Interactions
     initStudentDashboardInteractions();
   }
 
@@ -1436,6 +1439,7 @@
   function renderStudentKpis(data) {
     const kpis = data.kpis || {};
     const batch = data.batch || {};
+    const fees = data.fees || {};
 
     // Card 1: My Batch
     const elBatch = document.getElementById('studentKpiBatch');
@@ -1454,11 +1458,41 @@
       if (elAttBadge) elAttBadge.textContent = 'No Attendance Yet';
     }
 
-    // Card 3: Sessions Attended
-    const elSessions = document.getElementById('studentKpiSessionsAttended');
-    const elTotalBadge = document.getElementById('studentKpiTotalSessionsBadge');
-    if (elSessions) elSessions.textContent = kpis.sessions_attended ?? 0;
-    if (elTotalBadge) elTotalBadge.textContent = `${kpis.total_sessions ?? 0} Total Recorded`;
+    // Card 3: My Fees (Replaces Sessions Attended)
+    const elFeesRatio = document.getElementById('studentKpiFeesRatio');
+    const elFeesBadge = document.getElementById('studentKpiFeesBadge');
+    const elFeesSub = document.getElementById('studentKpiFeesSub');
+
+    if (fees.has_fees) {
+      if (elFeesRatio) {
+        elFeesRatio.innerHTML = `<span style="letter-spacing:-0.02em;">${fees.paid_count} / ${fees.total_expected}</span> <span class="student-kpi-sub-unit">MONTHS PAID</span>`;
+      }
+      if (elFeesBadge) {
+        const curM = fees.current_month || {};
+        if (curM.has_record) {
+          if (curM.status === 'PAID') {
+            elFeesBadge.className = 'dash-kpi-badge badge-present';
+            elFeesBadge.innerHTML = `${escapeHtml(curM.name)} &bull; ✓ Paid`;
+          } else {
+            elFeesBadge.className = 'dash-kpi-badge badge-absent';
+            elFeesBadge.innerHTML = `${escapeHtml(curM.name)} &bull; ✕ Due`;
+          }
+        } else {
+          elFeesBadge.className = 'dash-kpi-badge badge-neutral';
+          elFeesBadge.innerHTML = `${escapeHtml(curM.name || 'Current Month')} &bull; No Record`;
+        }
+      }
+      if (elFeesSub) elFeesSub.textContent = 'View Payment Status →';
+    } else {
+      if (elFeesRatio) {
+        elFeesRatio.innerHTML = `<span>-- / --</span> <span class="student-kpi-sub-unit">NO RECORDS</span>`;
+      }
+      if (elFeesBadge) {
+        elFeesBadge.className = 'dash-kpi-badge badge-neutral';
+        elFeesBadge.textContent = 'No Fees Assigned';
+      }
+      if (elFeesSub) elFeesSub.textContent = 'View Details →';
+    }
 
     // Card 4: Training Schedule
     const elScheduleTime = document.getElementById('studentKpiScheduleTime');
@@ -1616,6 +1650,200 @@
     });
   }
 
+  // --------------------------------------------------------------------------
+  // 5b. Personal Fees & Monthly Payment Status Visualization
+  // --------------------------------------------------------------------------
+
+  function renderStudentFeesOverview(feesData) {
+    const fees = feesData || {};
+    const pill = document.getElementById('studentFeesOverviewPill');
+    const mainRatio = document.getElementById('studentFeesMainRatio');
+    const curMonthName = document.getElementById('studentFeesCurMonthName');
+    const curMonthBadge = document.getElementById('studentFeesCurMonthBadge');
+    const progressFill = document.getElementById('studentFeesProgressFill');
+    const progressPct = document.getElementById('studentFeesProgressPct');
+    const progressAria = document.getElementById('studentFeesProgressAria');
+    const paidCountEl = document.getElementById('studentFeesPaidCount');
+    const dueCountEl = document.getElementById('studentFeesDueCount');
+    const gridEl = document.getElementById('studentMonthsGrid');
+    const emptyState = document.getElementById('studentFeesEmptyState');
+
+    if (!fees.has_fees) {
+      if (pill) pill.textContent = '0 Months Paid';
+      if (mainRatio) mainRatio.textContent = '-- / --';
+      if (curMonthName) curMonthName.textContent = fees.current_month?.label || 'Current Month';
+      if (curMonthBadge) {
+        curMonthBadge.className = 'sf-cur-badge badge-neutral';
+        curMonthBadge.textContent = 'Not Applicable';
+      }
+      if (progressFill) progressFill.style.width = '0%';
+      if (progressPct) progressPct.textContent = 'No payment records available';
+      if (progressAria) progressAria.setAttribute('aria-valuenow', '0');
+      if (paidCountEl) paidCountEl.textContent = '0';
+      if (dueCountEl) dueCountEl.textContent = '0';
+      if (gridEl) gridEl.innerHTML = '';
+      if (emptyState) emptyState.style.display = 'flex';
+      return;
+    }
+
+    if (emptyState) emptyState.style.display = 'none';
+
+    if (pill) pill.textContent = `${fees.paid_count} / ${fees.total_expected} Paid`;
+    if (mainRatio) mainRatio.textContent = `${fees.paid_count} / ${fees.total_expected}`;
+
+    const curM = fees.current_month || {};
+    if (curMonthName) curMonthName.textContent = curM.label || 'Current Month';
+    if (curMonthBadge) {
+      if (curM.has_record) {
+        if (curM.status === 'PAID') {
+          curMonthBadge.className = 'sf-cur-badge badge-present';
+          curMonthBadge.textContent = '✓ PAID';
+        } else {
+          curMonthBadge.className = 'sf-cur-badge badge-absent';
+          curMonthBadge.textContent = '✕ PAYMENT DUE';
+        }
+      } else {
+        curMonthBadge.className = 'sf-cur-badge badge-neutral';
+        curMonthBadge.textContent = 'NOT APPLICABLE';
+      }
+    }
+
+    // Horizontal Progress bar (Paid expected months / Total expected months)
+    const pct = Math.max(0, Math.min(100, fees.percentage_paid || 0));
+    if (progressFill) {
+      progressFill.style.width = `${pct}%`;
+      progressFill.style.backgroundColor = (pct === 100) ? '#22C55E' : (pct > 0 ? '#C9A227' : '#EF4444');
+    }
+    if (progressPct) progressPct.textContent = `${pct}% of expected months paid`;
+    if (progressAria) progressAria.setAttribute('aria-valuenow', pct.toString());
+    if (paidCountEl) paidCountEl.textContent = fees.paid_count ?? 0;
+    if (dueCountEl) dueCountEl.textContent = fees.due_count ?? 0;
+
+    // Render monthly payment status grid with actual expected months
+    if (gridEl) {
+      gridEl.innerHTML = '';
+      (fees.months || []).forEach(m => {
+        const isPaid = (m.status === 'PAID');
+        const tile = document.createElement('div');
+        tile.className = `student-month-tile ${isPaid ? 'tile-paid' : 'tile-due'} ${m.is_current_month ? 'tile-current' : ''}`;
+        tile.setAttribute('role', 'button');
+        tile.setAttribute('tabindex', '0');
+        tile.setAttribute('aria-label', `Payment status for ${m.month_label}: ${isPaid ? 'Paid' : 'Payment Due'}`);
+
+        tile.innerHTML = `
+          ${m.is_current_month ? '<span class="tile-current-tag">CURRENT</span>' : ''}
+          <div class="tile-month-text">${escapeHtml(m.month_short)}</div>
+          <div class="tile-year-text">${escapeHtml(m.year)}</div>
+          <div class="tile-status-pill ${isPaid ? 'status-paid' : 'status-due'}">
+            ${isPaid ? '✓ PAID' : '✕ DUE'}
+          </div>
+        `;
+
+        tile.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openStudentMonthDetailModal(m);
+        });
+        tile.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openStudentMonthDetailModal(m);
+          }
+        });
+
+        gridEl.appendChild(tile);
+      });
+    }
+  }
+
+  function openStudentMonthDetailModal(m) {
+    if (!m) return;
+    const modal = document.getElementById('studentDetailModal');
+    const badgeEl = document.getElementById('studentModalBadge');
+    const titleEl = document.getElementById('studentModalTitle');
+    const bodyEl = document.getElementById('studentModalBody');
+    if (!modal || !bodyEl) return;
+
+    const isPaid = (m.status === 'PAID');
+
+    if (badgeEl) badgeEl.textContent = 'FEES & PAYMENTS';
+    if (titleEl) titleEl.textContent = m.month_label;
+
+    let contentHtml = `
+      <div class="sm-hero-compact">
+        <div class="sm-hero-compact-top">
+          <span class="sm-hero-name">${escapeHtml(m.month_label)}</span>
+          <span class="${isPaid ? 'badge-status-present' : 'badge-status-absent'}" style="font-size:0.75rem; padding:3px 10px; font-weight:700;">
+            ${isPaid ? '✓ PAID' : '✕ PAYMENT DUE'}
+          </span>
+        </div>
+        <span class="sm-hero-sub">${m.is_current_month ? 'Current Training Month • ' : ''}Monthly Membership Fee</span>
+      </div>
+
+      <div class="sm-section">
+        <div class="sm-section-heading">Payment Information</div>
+        <div class="sm-spec-grid">
+          <div class="sm-spec-item">
+            <span class="sm-spec-label">Billing Month</span>
+            <span class="sm-spec-val highlight-gold">${escapeHtml(m.month_label)}</span>
+          </div>
+          <div class="sm-spec-item">
+            <span class="sm-spec-label">Payment Status</span>
+            <span class="sm-spec-val ${isPaid ? 'text-success' : 'text-danger'}" style="font-weight:700;">
+              ${isPaid ? '✓ Paid' : '✕ Not Paid / Due'}
+            </span>
+          </div>
+          <div class="sm-spec-item">
+            <span class="sm-spec-label">${isPaid ? 'Amount Paid' : 'Fee Amount Due'}</span>
+            <span class="sm-spec-val">₹${(isPaid && m.paid_amount ? m.paid_amount : m.fee_amount).toLocaleString('en-IN')}</span>
+          </div>
+          <div class="sm-spec-item">
+            <span class="sm-spec-label">${isPaid ? 'Payment Date' : 'Due Date'}</span>
+            <span class="sm-spec-val">${escapeHtml(isPaid ? (m.paid_at || m.paid_date_formatted || 'Recorded') : m.due_date)}</span>
+          </div>
+          ${isPaid && m.payment_method ? `
+          <div class="sm-spec-item">
+            <span class="sm-spec-label">Payment Method</span>
+            <span class="sm-spec-val">${escapeHtml(m.payment_method)}</span>
+          </div>
+          ` : ''}
+          ${isPaid && m.payment_reference ? `
+          <div class="sm-spec-item">
+            <span class="sm-spec-label">Payment Reference</span>
+            <span class="sm-spec-val" style="font-family:monospace; font-size:0.78rem;">${escapeHtml(m.payment_reference)}</span>
+          </div>
+          ` : ''}
+          ${isPaid && m.order_id ? `
+          <div class="sm-spec-item">
+            <span class="sm-spec-label">Order ID</span>
+            <span class="sm-spec-val" style="font-family:monospace; font-size:0.78rem;">${escapeHtml(m.order_id)}</span>
+          </div>
+          ` : ''}
+        </div>
+      </div>
+
+      <div style="margin-top:1rem; display:flex; justify-content:flex-end;">
+        <button type="button" class="btn-dash-text-action" id="btnBackToFeesSummary" style="font-size:0.8rem;">
+          ← Back to All Months
+        </button>
+      </div>
+    `;
+
+    bodyEl.innerHTML = contentHtml;
+
+    const backBtn = document.getElementById('btnBackToFeesSummary');
+    if (backBtn) {
+      backBtn.addEventListener('click', () => {
+        openStudentModal('fees');
+      });
+    }
+
+    if (typeof openModal === 'function') {
+      openModal('studentDetailModal');
+    } else {
+      modal.style.display = 'flex';
+    }
+  }
+
   // ============================================================================
   // 6. STUDENT DASHBOARD INTERACTIVE DETAIL MODAL SYSTEM
   // ============================================================================
@@ -1647,8 +1875,10 @@
     bindInteractive('cardStudentAttRate', 'attendance');
     bindInteractive('btnStudentViewAttDetails', 'attendance');
 
-    // 3. Sessions Attended Card
-    bindInteractive('cardStudentSessions', 'sessions');
+    // 3. My Fees Card & Button
+    bindInteractive('cardStudentFees', 'fees');
+    bindInteractive('btnStudentViewFeesModal', 'fees');
+    bindInteractive('cardStudentSessions', 'fees'); // backward-compatibility fallback
 
     // 4. Training Schedule Card
     bindInteractive('cardStudentSchedule', 'schedule');
@@ -1827,6 +2057,80 @@
                 </div>
               `}
             </div>
+          </div>
+        `;
+        break;
+
+      case 'fees':
+        badge = 'MY FEES';
+        title = 'Fees & Payments';
+        const feesData = data.fees || {};
+        const monthsList = feesData.months || [];
+        const curM = feesData.current_month || {};
+        const pct = Math.max(0, Math.min(100, feesData.percentage_paid || 0));
+
+        contentHtml = `
+          <!-- Level 1: Overall Status -->
+          <div class="student-fees-summary-card" style="margin-bottom:1rem;">
+            <div class="sf-summary-top">
+              <div class="sf-summary-main">
+                <span class="sf-summary-ratio">${feesData.has_fees ? `${feesData.paid_count} / ${feesData.total_expected}` : '-- / --'}</span>
+                <span class="sf-summary-label">MONTHS PAID</span>
+              </div>
+              <div class="sf-summary-cur-month">
+                <span class="sf-cur-label">CURRENT MONTH</span>
+                <span class="sf-cur-val">${escapeHtml(curM.label || 'Current Month')}</span>
+                <span class="sf-cur-badge ${curM.has_record ? (curM.status === 'PAID' ? 'badge-present' : 'badge-absent') : 'badge-neutral'}">
+                  ${curM.has_record ? (curM.status === 'PAID' ? '✓ PAID' : '✕ PAYMENT DUE') : 'NOT APPLICABLE'}
+                </span>
+              </div>
+            </div>
+
+            <!-- Horizontal Progress Indicator -->
+            <div class="sf-progress-wrap">
+              <div class="sf-progress-bar-bg" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}">
+                <div class="sf-progress-bar-fill" style="width: ${pct}%; background-color: ${pct === 100 ? '#22C55E' : (pct > 0 ? '#C9A227' : '#EF4444')};"></div>
+              </div>
+              <div class="sf-progress-meta">
+                <span class="sf-progress-pct">${pct}% of expected months paid</span>
+                <div class="sf-progress-counts">
+                  <span class="sf-count-paid">Paid: <strong>${feesData.paid_count || 0}</strong></span>
+                  <span class="dash-separator">•</span>
+                  <span class="sf-count-due">Due: <strong>${feesData.due_count || 0}</strong></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Level 2: Monthly Payment Status Grid -->
+          <div class="student-fees-grid-section">
+            <div class="sf-grid-header">
+              <span class="sf-grid-title">MONTHLY PAYMENT STATUS</span>
+              <span class="sf-grid-hint">Click a month tile to view details</span>
+            </div>
+            ${monthsList.length > 0 ? `
+              <div class="student-months-grid modal-months-grid">
+                ${monthsList.map((m, idx) => {
+                  const isPaid = (m.status === 'PAID');
+                  return `
+                    <div class="student-month-tile modal-tile ${isPaid ? 'tile-paid' : 'tile-due'} ${m.is_current_month ? 'tile-current' : ''}" 
+                         data-month-index="${idx}" role="button" tabindex="0"
+                         aria-label="Payment status for ${escapeHtml(m.month_label)}: ${isPaid ? 'Paid' : 'Payment Due'}">
+                      ${m.is_current_month ? '<span class="tile-current-tag">CURRENT</span>' : ''}
+                      <div class="tile-month-text">${escapeHtml(m.month_short)}</div>
+                      <div class="tile-year-text">${escapeHtml(m.year)}</div>
+                      <div class="tile-status-pill ${isPaid ? 'status-paid' : 'status-due'}">
+                        ${isPaid ? '✓ PAID' : '✕ DUE'}
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            ` : `
+              <div class="sf-empty-state">
+                <p>No fee or payment records currently available for your profile.</p>
+              </div>
+            `}
           </div>
         `;
         break;
@@ -2035,6 +2339,27 @@
     if (badgeEl) badgeEl.textContent = badge;
     if (titleEl) titleEl.textContent = title;
     bodyEl.innerHTML = contentHtml;
+
+    if (type === 'fees') {
+      const modalTiles = bodyEl.querySelectorAll('.modal-tile');
+      const monthsList = data.fees?.months || [];
+      modalTiles.forEach(tile => {
+        const idx = parseInt(tile.getAttribute('data-month-index'), 10);
+        const m = monthsList[idx];
+        if (m) {
+          tile.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openStudentMonthDetailModal(m);
+          });
+          tile.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              openStudentMonthDetailModal(m);
+            }
+          });
+        }
+      });
+    }
 
     if (typeof openModal === 'function') {
       openModal('studentDetailModal');

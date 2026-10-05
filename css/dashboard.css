@@ -14712,6 +14712,336 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 /* ==========================================================================
+   STUDENT DASHBOARD: FEES & PAYMENTS STYLES
+   ========================================================================== */
+
+/* Fees KPI Icon & Card Elements */
+.icon-fees {
+  background: rgba(201, 162, 39, 0.12) !important;
+  color: var(--gold-highlight, #F4D76A) !important;
+  border: 1px solid rgba(201, 162, 39, 0.28) !important;
+}
+
+.student-kpi-sub-unit {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+/* Fees & Payments Panel */
+#panelStudentFees {
+  margin-bottom: 1.5rem;
+}
+
+.student-fees-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+/* Level 1: Overall Summary Card */
+.student-fees-summary-card {
+  background: var(--bg-secondary, #12161A);
+  border: 1px solid var(--border-primary, rgba(255, 255, 255, 0.08));
+  border-radius: 8px;
+  padding: 0.85rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sf-summary-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.sf-summary-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.sf-summary-ratio {
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.sf-summary-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gold-highlight);
+}
+
+.sf-summary-cur-month {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-primary);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.sf-cur-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.sf-cur-val {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #FFFFFF;
+}
+
+.sf-cur-badge {
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+/* Horizontal Progress Bar */
+.sf-progress-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.sf-progress-bar-bg {
+  height: 8px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.sf-progress-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
+}
+
+.sf-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.sf-progress-counts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+}
+
+.sf-count-paid strong {
+  color: #22C55E;
+}
+
+.sf-count-due strong {
+  color: #EF4444;
+}
+
+/* Level 2: Monthly Payment Status Grid */
+.student-fees-grid-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.sf-grid-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sf-grid-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.sf-grid-hint {
+  font-size: 0.66rem;
+  color: var(--gold-primary);
+  font-weight: 600;
+}
+
+.student-months-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.65rem;
+}
+
+@media (max-width: 1024px) {
+  .student-months-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.55rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .student-months-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+}
+
+/* Month Tile */
+.student-month-tile {
+  position: relative;
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: 0.65rem 0.45rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+  user-select: none;
+  min-width: 0;
+}
+
+.student-month-tile:hover {
+  transform: translateY(-2px);
+}
+
+.student-month-tile:active {
+  transform: translateY(0);
+}
+
+.student-month-tile:focus-visible {
+  outline: 2px solid var(--gold-primary);
+  outline-offset: 2px;
+}
+
+/* Paid Tile: Green */
+.student-month-tile.tile-paid {
+  border: 1.5px solid rgba(34, 197, 94, 0.45);
+  background: rgba(34, 197, 94, 0.05);
+}
+
+.student-month-tile.tile-paid:hover {
+  border-color: #22C55E;
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.16);
+}
+
+/* Due Tile: Red */
+.student-month-tile.tile-due {
+  border: 1.5px solid rgba(239, 68, 68, 0.45);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.student-month-tile.tile-due:hover {
+  border-color: #EF4444;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.16);
+}
+
+/* Current Month Highlight: VAVA Gold Accent */
+.student-month-tile.tile-current {
+  border-color: var(--gold-highlight, #C9A227) !important;
+  box-shadow: 0 0 12px rgba(201, 162, 39, 0.3) !important;
+}
+
+.tile-current-tag {
+  position: absolute;
+  top: -7px;
+  background: var(--gradient-gold, #C9A227);
+  color: #090B0D;
+  font-size: 0.52rem;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 3px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.tile-month-text {
+  font-family: var(--font-heading);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  line-height: 1.1;
+}
+
+.tile-year-text {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  margin-top: 1px;
+  margin-bottom: 5px;
+}
+
+.tile-status-pill {
+  font-size: 0.64rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.tile-status-pill.status-paid {
+  color: #22C55E;
+  background: rgba(34, 197, 94, 0.14);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.tile-status-pill.status-due {
+  color: #EF4444;
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+/* Empty State */
+.sf-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 1.5rem 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+/* Modal Grid specific adaptation */
+.modal-months-grid {
+  grid-template-columns: repeat(4, 1fr) !important;
+}
+
+@media (max-width: 600px) {
+  .modal-months-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+/* ==========================================================================
    MOBILE & TABLET RESPONSIVE RULES (GUARANTEED 2-COLUMN KPI GRID)
    ========================================================================== */
 
@@ -15084,6 +15414,39 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
   .sm-spec-grid {
     grid-template-columns: 1fr !important;
+  }
+
+  .student-months-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 0.35rem !important;
+  }
+
+  .student-month-tile {
+    padding: 0.5rem 0.25rem !important;
+  }
+
+  .tile-month-text {
+    font-size: 0.78rem !important;
+  }
+
+  .tile-year-text {
+    font-size: 0.54rem !important;
+    margin-bottom: 3px !important;
+  }
+
+  .tile-status-pill {
+    font-size: 0.56rem !important;
+    padding: 1px 4px !important;
+  }
+
+  .sf-summary-ratio {
+    font-size: 1.15rem !important;
+  }
+
+  .sf-summary-top {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.5rem !important;
   }
 }
 
