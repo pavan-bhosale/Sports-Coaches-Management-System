@@ -216,14 +216,14 @@
         <!-- Controls: Search Box -->
         <div class="reports-controls-bar">
           <div class="reports-search-box">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <input type="text" id="reportSearchInput" class="reports-search-input" placeholder="Search reports by title or description...">
+            <input type="text" id="reportSearchInput" class="reports-search-input" placeholder="Search reports...">
           </div>
           <div class="reports-count-pill" id="reportsCountBadge">
-            3 Core Reports
+            3 Reports
           </div>
         </div>
 
@@ -238,82 +238,92 @@
         <div class="report-modal" role="dialog" aria-modal="true">
           <!-- Modal Header -->
           <div class="report-modal-header">
-            <div class="report-modal-header-left">
-              <div class="report-modal-header-icon" id="previewModalIcon">
-                ${ICONS.attendance}
-              </div>
-              <div class="report-modal-title-group">
-                <h2 id="previewModalTitle">Report Details</h2>
-                <div class="report-modal-meta">
-                  <span class="report-category-badge" id="previewModalCategory">Category</span>
-                  <span class="report-modal-meta-item">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
-                    <span id="previewModalGenerated">Just now</span>
-                  </span>
-                  <span class="report-modal-meta-item">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                      <line x1="16" y1="2" x2="16" y2="6"></line>
-                      <line x1="8" y1="2" x2="8" y2="6"></line>
-                    </svg>
-                    <span id="previewModalPeriod">All Records</span>
-                  </span>
+            <div class="report-modal-header-top">
+              <div class="report-modal-header-left">
+                <div class="report-modal-header-icon" id="previewModalIcon">
+                  ${ICONS.attendance}
                 </div>
+                <div class="report-modal-title-group">
+                  <h2 id="previewModalTitle">Report Details</h2>
+                  <span class="report-category-badge" id="previewModalCategory">Category</span>
+                </div>
+              </div>
+              <div class="report-modal-header-actions">
+                <div class="report-export-dropdown" id="attendanceExportDropdown" style="display:none;">
+                  <button type="button" class="btn-report-export" id="btnReportExport" aria-haspopup="true" aria-expanded="false" title="Export Attendance Report">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span>Export</span>
+                    <svg class="export-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </button>
+                  <div class="report-export-menu" id="reportExportMenu" style="display:none;">
+                    <button type="button" class="report-export-item" id="btnExportAttendancePdf">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                      </svg>
+                      <span>PDF Report</span>
+                    </button>
+                    <button type="button" class="report-export-item" id="btnExportAttendanceXlsx">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="8" y1="13" x2="16" y2="17"></line>
+                        <line x1="16" y1="13" x2="8" y2="17"></line>
+                      </svg>
+                      <span>Excel (.xlsx)</span>
+                    </button>
+                  </div>
+                </div>
+                <button type="button" class="report-modal-close-btn" id="closeReportPreviewModal" aria-label="Close Report">&times;</button>
               </div>
             </div>
-            <div class="report-modal-header-actions">
-              <div class="report-export-dropdown" id="attendanceExportDropdown" style="display:none;">
-                <button type="button" class="btn-report-export" id="btnReportExport" aria-haspopup="true" aria-expanded="false" title="Export Attendance Report">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                  </svg>
-                  <span>Export</span>
-                  <svg class="export-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </button>
-                <div class="report-export-menu" id="reportExportMenu" style="display:none;">
-                  <button type="button" class="report-export-item" id="btnExportAttendancePdf">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                      <polyline points="14 2 14 8 20 8"></polyline>
-                      <line x1="16" y1="13" x2="8" y2="13"></line>
-                      <line x1="16" y1="17" x2="8" y2="17"></line>
-                      <polyline points="10 9 9 9 8 9"></polyline>
-                    </svg>
-                    <span>PDF Report</span>
-                  </button>
-                  <button type="button" class="report-export-item" id="btnExportAttendanceXlsx">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                      <polyline points="14 2 14 8 20 8"></polyline>
-                      <line x1="8" y1="13" x2="16" y2="17"></line>
-                      <line x1="16" y1="13" x2="8" y2="17"></line>
-                    </svg>
-                    <span>Excel (.xlsx)</span>
-                  </button>
-                </div>
-              </div>
-              <button type="button" class="report-modal-close-btn" id="closeReportPreviewModal" aria-label="Close Report">&times;</button>
+            <div class="report-modal-meta">
+              <span class="report-modal-meta-item">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span id="previewModalGenerated">Just now</span>
+              </span>
+              <span class="report-modal-meta-sep">•</span>
+              <span class="report-modal-meta-item">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                </svg>
+                <span id="previewModalPeriod">All Records</span>
+              </span>
             </div>
           </div>
 
           <!-- Modal Body -->
           <div class="report-modal-body" id="previewModalBody">
             <!-- Filter Panel -->
-            <div class="report-filter-panel" id="previewFilterPanel">
-              <div class="report-filter-header">
+            <div class="report-filter-panel is-collapsed" id="previewFilterPanel">
+              <div class="report-filter-header" id="previewFilterHeader">
                 <span class="report-filter-title">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
                   </svg>
-                  Report Filters
+                  <span>Report Filters</span>
+                  <span class="report-filter-active-pill" id="filterActiveCount" style="display:none;"></span>
                 </span>
+                <button type="button" class="btn-filter-toggle" id="btnToggleFilters" aria-expanded="false" aria-label="Toggle Filters">
+                  <span class="filter-toggle-label">Filters</span>
+                  <svg class="filter-toggle-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
               </div>
               <form id="previewFilterForm" class="report-filter-grid">
                 <!-- Dynamically populated filter controls -->
@@ -491,6 +501,38 @@
         triggerAttendanceExport('xlsx');
       });
     }
+
+    // Mobile Collapsible Filter Toggle
+    const toggleFilterBtn = document.getElementById('btnToggleFilters');
+    const filterPanel = document.getElementById('previewFilterPanel');
+    const filterHeader = document.getElementById('previewFilterHeader');
+    if (toggleFilterBtn && filterPanel) {
+      const toggleHandler = (e) => {
+        if (e) e.stopPropagation();
+        const isCollapsed = filterPanel.classList.toggle('is-collapsed');
+        toggleFilterBtn.setAttribute('aria-expanded', String(!isCollapsed));
+      };
+      toggleFilterBtn.addEventListener('click', toggleHandler);
+      if (filterHeader) {
+        filterHeader.addEventListener('click', (e) => {
+          if (window.innerWidth <= 768 && !e.target.closest('#previewFilterForm') && !e.target.closest('#btnToggleFilters')) {
+            toggleHandler(e);
+          }
+        });
+      }
+    }
+  }
+
+  function updateFilterActiveBadge() {
+    const countBadge = document.getElementById('filterActiveCount');
+    if (!countBadge) return;
+    const count = Object.keys(activeFilters).filter(k => activeFilters[k] !== '' && activeFilters[k] !== undefined).length;
+    if (count > 0) {
+      countBadge.textContent = `${count} Active`;
+      countBadge.style.display = 'inline-flex';
+    } else {
+      countBadge.style.display = 'none';
+    }
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -514,7 +556,7 @@
 
     const badge = document.getElementById('reportsCountBadge');
     if (badge) {
-      badge.textContent = `${availableReports.length} Core Report${availableReports.length === 1 ? '' : 's'}`;
+      badge.textContent = `${availableReports.length} Report${availableReports.length === 1 ? '' : 's'}`;
     }
 
     if (availableReports.length === 0) {
@@ -615,6 +657,21 @@
     if (iconEl) iconEl.innerHTML = reportDef.icon;
 
     renderFilterForm(reportDef);
+    updateFilterActiveBadge();
+
+    // Default filter panel state based on viewport
+    const panel = document.getElementById('previewFilterPanel');
+    const toggleBtn = document.getElementById('btnToggleFilters');
+    if (panel) {
+      if (window.innerWidth <= 768) {
+        panel.classList.add('is-collapsed');
+        if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+      } else {
+        panel.classList.remove('is-collapsed');
+        if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'true');
+      }
+    }
+
     if (typeof openModal === 'function') {
       openModal('reportPreviewModal');
     } else {
@@ -849,6 +906,13 @@
     if (applyBtn) {
       applyBtn.addEventListener('click', () => {
         collectFiltersFromForm();
+        updateFilterActiveBadge();
+        if (window.innerWidth <= 768) {
+          const panel = document.getElementById('previewFilterPanel');
+          const toggleBtn = document.getElementById('btnToggleFilters');
+          if (panel) panel.classList.add('is-collapsed');
+          if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+        }
         fetchAndRenderReport();
       });
     }
@@ -857,6 +921,7 @@
     if (resetBtn) {
       resetBtn.addEventListener('click', () => {
         activeFilters = {};
+        updateFilterActiveBadge();
         renderFilterForm(reportDef);
         fetchAndRenderReport();
       });
@@ -1576,7 +1641,7 @@
       const pm = data.compact_views.payment_methods;
       const mt = data.compact_views.monthly_trend;
 
-      let subHtml = '<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem;">';
+      let subHtml = '<div class="report-secondary-grid">';
 
       if (pm && pm.rows) {
         subHtml += `
