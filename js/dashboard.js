@@ -794,12 +794,18 @@
         scales: {
           x: {
             grid: { color: 'rgba(255, 255, 255, 0.04)' },
-            ticks: { color: '#737C89', font: { size: 11 } }
+            ticks: {
+              color: '#737C89',
+              font: { size: 10 },
+              maxRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: 7
+            }
           },
           y: {
             beginAtZero: true,
             grid: { color: 'rgba(255, 255, 255, 0.04)' },
-            ticks: { color: '#737C89', precision: 0, font: { size: 11 } }
+            ticks: { color: '#737C89', precision: 0, font: { size: 10 } }
           }
         }
       }
@@ -929,14 +935,21 @@
         scales: {
           x: {
             grid: { color: 'rgba(255, 255, 255, 0.04)' },
-            ticks: { color: '#737C89', font: { size: 11 } }
+            ticks: {
+              color: '#737C89',
+              font: { size: 10 },
+              maxRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: 6
+            }
           },
           y: {
             beginAtZero: true,
             grid: { color: 'rgba(255, 255, 255, 0.04)' },
             ticks: {
               color: '#737C89',
-              font: { size: 11 },
+              font: { size: 10 },
+              maxTicksLimit: 5,
               callback: (val) => formatCurrency(val)
             }
           }
@@ -944,6 +957,22 @@
       }
     });
   }
+
+  // Responsive Chart Redraw on Viewport Resize
+  let dashResizeTimeout = null;
+  window.addEventListener('resize', () => {
+    if (dashResizeTimeout) clearTimeout(dashResizeTimeout);
+    dashResizeTimeout = setTimeout(() => {
+      try {
+        if (attendanceChartInstance && typeof attendanceChartInstance.resize === 'function') {
+          attendanceChartInstance.resize();
+        }
+        if (financialChartInstance && typeof financialChartInstance.resize === 'function') {
+          financialChartInstance.resize();
+        }
+      } catch (_) {}
+    }, 150);
+  });
 
   function renderBatchesOverview(batchesData) {
     const tbody = document.getElementById('dashBatchTableBody');
@@ -978,23 +1007,28 @@
       const timeStr = b.batch_time || '';
 
       const tr = document.createElement('tr');
+      tr.className = 'dash-batch-card-row';
       tr.innerHTML = `
-        <td>
+        <td class="dash-batch-col-main" data-label="Batch">
           <div class="dash-batch-name">${escapeHtml(b.batch_name)}</div>
-          <div style="font-size:0.72rem; color:var(--text-muted);">${escapeHtml(b.sport || 'General Sports')}</div>
+          <div class="dash-batch-sport">${escapeHtml(b.sport || 'General Sports')}</div>
         </td>
-        <td>
-          <div style="font-weight: 500; color: #FFFFFF;">${escapeHtml(b.coach_name || 'Unassigned')}</div>
+        <td class="dash-batch-col-coach" data-label="Coach">
+          <div class="dash-batch-coach">${escapeHtml(b.coach_name || 'Unassigned')}</div>
         </td>
-        <td>
-          <div>${escapeHtml(branchName)}</div>
-          <div style="font-size:0.72rem; color:var(--text-muted);">${escapeHtml(timeStr)}</div>
+        <td class="dash-batch-col-meta" data-label="Location & Time">
+          <div class="dash-batch-meta-inline">
+            <span class="dash-batch-location">${escapeHtml(branchName)}</span>${timeStr ? ` <span class="dash-meta-sep">·</span> <span class="dash-batch-time">${escapeHtml(timeStr)}</span>` : ''}
+          </div>
         </td>
-        <td>
-          <span style="font-weight:700; color:#FFFFFF;">${studentCount}</span>
-          <span style="color:var(--text-muted); font-size:0.75rem;"> athletes</span>
+        <td class="dash-batch-col-enroll" data-label="Enrollment">
+          <div class="dash-batch-enroll-val">
+            <span class="dash-batch-count">${studentCount}</span>
+            <span class="dash-unit-desktop" style="color:var(--text-muted); font-size:0.75rem;"> athletes</span>
+            <span class="dash-unit-mobile" style="color:var(--text-muted); font-size:0.76rem;"> / ${maxCapacity} athletes</span>
+          </div>
         </td>
-        <td style="text-align:right;">
+        <td class="dash-batch-col-cap" data-label="Capacity">
           <div class="dash-capacity-wrap">
             <div class="dash-progress-track">
               <div class="dash-progress-fill" style="width: ${pct}%; background: ${progressColor};"></div>
