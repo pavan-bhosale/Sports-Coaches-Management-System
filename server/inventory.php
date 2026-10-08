@@ -17,11 +17,8 @@
 
 date_default_timezone_set('Asia/Kolkata');
 
-// Always output JSON
-header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-VAVA-Role, X-VAVA-Email, X-VAVA-Coach-ID, X-VAVA-Actor-Name');
+require_once 'auth_helper.php';
+applyCorsHeaders('GET, POST, PUT, DELETE, OPTIONS');
 
 // Helper to respond with JSON errors consistently
 function respondError($message, $code = 400) {
@@ -41,36 +38,18 @@ function respondSuccess($data = [], $code = 200) {
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
-
 require_once 'db_connect.php';
 require_once 'activity_logger.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 
-// ── Super Admin Authorization Enforcement ────────────────────────────────────
-$roleHeader = $_SERVER['HTTP_X_VAVA_ROLE'] ?? $_GET['role'] ?? '';
-$emailHeader = $_SERVER['HTTP_X_VAVA_EMAIL'] ?? $_GET['email'] ?? '';
-
-// If body is JSON, also check role in input if header was not set
-$rawInput = file_get_contents('php://input');
-$input = json_decode($rawInput, true) ?: [];
-
-if (empty($roleHeader) && !empty($input['role'])) {
-    $roleHeader = $input['role'];
-}
-if (empty($emailHeader) && !empty($input['email'])) {
-    $emailHeader = $input['email'];
-}
-
-$roleLower = strtolower(trim($roleHeader));
-
-// Coaches and Students are strictly forbidden (HTTP 403)
-if ($roleLower === 'coach' || $roleLower === 'student' || ($roleLower !== 'admin' && $roleLower !== 'superadmin')) {
-    respondError('Access denied. The Inventory & Equipment module is accessible to Super Admin only.', 403);
+// ── Session Authorization Enforcement ─────────────────────────────────────────
+// Read access (GET) is permitted for Super Admin and Coach.
+// Mutations (POST, PUT, DELETE) are strictly restricted to Super Admin.
+if ($method === 'GET') {
+    $currentUser = requireAuthSession($pdo, ['admin']);
+} else {
+    $currentUser = requireAuthSession($pdo, ['admin']);
 }
 
 // ── Helper: Safe JSON decode ────────────────────────────────────────────────

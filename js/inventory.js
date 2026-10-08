@@ -22,15 +22,14 @@
 
   // Robust API endpoint resolution across localhost ports (3000, 5500, 80) and Hostinger
   function getApiUrl(endpoint) {
+    if (typeof window !== 'undefined' && typeof window.getApiEndpoint === 'function') {
+      return window.getApiEndpoint(endpoint);
+    }
     if (endpoint === 'inventory' && typeof window !== 'undefined' && window.INVENTORY_API) {
       return window.INVENTORY_API;
     }
     if (endpoint === 'batches' && typeof window !== 'undefined' && window.BATCHES_API) {
       return window.BATCHES_API;
-    }
-
-    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-      return `http://localhost/VAVA_sports/server/${endpoint}.php`;
     }
     return `server/${endpoint}.php`;
   }
@@ -56,7 +55,8 @@
 
   // ── Safe JSON Network Fetcher ─────────────────────────────────────────────
   async function safeFetchJson(url, options = {}) {
-    const res = await fetch(url, options);
+    const fetchOptions = Object.assign({ credentials: 'include' }, options);
+    const res = await fetch(url, fetchOptions);
     const text = await res.text();
 
     let data;
@@ -946,6 +946,10 @@
 
   // ── Event Listeners Initialization ────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
+    if (window.location.hash === '#inventory') {
+      fetchInventory();
+    }
+
     // Top View Toggle (Equipment View vs Batch View)
     document.getElementById('tabEquipmentView')?.addEventListener('click', () => {
       switchInventoryView('equipment');

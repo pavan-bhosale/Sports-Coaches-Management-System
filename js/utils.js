@@ -13,10 +13,11 @@ function getApiEndpoint(endpoint) {
     return `${base}/${endpoint}.php`;
   }
   if (typeof window !== 'undefined') {
-    const customBase = localStorage.getItem('vava_api_base');
-    if (customBase) {
-      return `${customBase.replace(/\/+$/, '')}/${endpoint}.php`;
-    }
+    try {
+      if (localStorage.getItem('vava_api_base')) {
+        localStorage.removeItem('vava_api_base');
+      }
+    } catch (e) {}
   }
 
   const hostname = (typeof window !== 'undefined' && window.location.hostname) ? window.location.hostname : 'localhost';
@@ -49,10 +50,16 @@ const DASHBOARD_API  = getApiEndpoint('dashboard');
 
 if (typeof window !== 'undefined') {
   window.getApiEndpoint = getApiEndpoint;
-  window.REPORTS_API = REPORTS_API;
-  window.DASHBOARD_API = DASHBOARD_API;
-  window.openModal = openModal;
-  window.closeModal = closeModal;
+  window.STUDENTS_API   = STUDENTS_API;
+  window.COACHES_API    = COACHES_API;
+  window.BATCHES_API    = BATCHES_API;
+  window.ATTENDANCE_API = ATTENDANCE_API;
+  window.FEES_API       = FEES_API;
+  window.INVENTORY_API  = INVENTORY_API;
+  window.REPORTS_API    = REPORTS_API;
+  window.DASHBOARD_API  = DASHBOARD_API;
+  window.openModal      = openModal;
+  window.closeModal     = closeModal;
 }
 
 // Modal Stack & History Management for Mobile Back Button
@@ -291,13 +298,44 @@ function formatBatchTime(raw) {
 let cachedBatchesList = [];
 let cachedCoachesList = [];
 
-async function populateBatchDropdowns() {
+function getUtilityAuthHeaders() {
+  const role = (typeof localStorage !== 'undefined' && localStorage.getItem('vava_role')) || 'admin';
+  const email = (typeof localStorage !== 'undefined' && localStorage.getItem('vava_email')) || '';
+  const coach_id = (typeof localStorage !== 'undefined' && localStorage.getItem('vava_coach_id')) || '0';
+  let name = '';
   try {
-    const res = await fetch(BATCHES_API);
-    const data = await res.json();
-    if (!data.success) return;
+    if (typeof localStorage !== 'undefined') {
+      const u = JSON.parse(localStorage.getItem('vava_user') || '{}');
+      name = u.name || '';
+    }
+  } catch(e) {}
+  return {
+    'Content-Type': 'application/json',
+    'X-VAVA-Role': role,
+    'X-VAVA-Email': email,
+    'X-VAVA-Coach-ID': String(coach_id),
+    'X-VAVA-Actor-Name': name
+  };
+}
 
-    cachedBatchesList = data.batches || [];
+if (typeof window !== 'undefined') {
+  window.getUtilityAuthHeaders = getUtilityAuthHeaders;
+  window.getAuthHeaders = window.getAuthHeaders || getUtilityAuthHeaders;
+}
+
+async function populateBatchDropdowns(batchesData = null) {
+  try {
+    if (Array.isArray(batchesData)) {
+      cachedBatchesList = batchesData;
+    } else {
+      const res = await fetch(BATCHES_API, {
+        credentials: 'include',
+        headers: getUtilityAuthHeaders()
+      });
+      const data = await res.json();
+      if (!data.success) return;
+      cachedBatchesList = data.batches || [];
+    }
 
     // Coach form batch selects (by batch_id)
     const selects = document.querySelectorAll('.coach-batch-select-input');
@@ -310,7 +348,7 @@ async function populateBatchDropdowns() {
         : '';
 
       cachedBatchesList.forEach(b => {
-        html += `<option value="${b.batch_id}">${b.batch_name}</option>`;
+        html += `<option value="${b.batch_id}">${escapeHtml(b.batch_name)}</option>`;
       });
 
       if (!isAssignModal) {
@@ -327,7 +365,7 @@ async function populateBatchDropdowns() {
       const currentVal = select.value;
       let html = '<option value="">Select Batch</option>';
       cachedBatchesList.forEach(b => {
-        html += `<option value="${b.batch_id}">${b.batch_name}</option>`;
+        html += `<option value="${b.batch_id}">${escapeHtml(b.batch_name)}</option>`;
       });
       html += '<option value="0">No Batch</option>';
       select.innerHTML = html;
@@ -340,21 +378,27 @@ async function populateBatchDropdowns() {
   }
 }
 
-async function populateCoachDropdowns() {
+async function populateCoachDropdowns(coachesData = null) {
   try {
-    const res = await fetch(COACHES_API);
-    const data = await res.json();
-    if (!data.success) return;
-
-    cachedCoachesList = data.coaches || [];
+    if (Array.isArray(coachesData)) {
+      cachedCoachesList = coachesData;
+    } else {
+      const res = await fetch(COACHES_API, {
+        credentials: 'include',
+        headers: getUtilityAuthHeaders()
+      });
+      const data = await res.json();
+      if (!data.success) return;
+      cachedCoachesList = data.coaches || [];
+    }
 
     const studentCoachSelects = document.querySelectorAll('.student-coach-select-input');
     studentCoachSelects.forEach(select => {
       const currentVal = select.value;
       let html = '<option value="">Select Coach</option>';
       cachedCoachesList.forEach(c => {
-        const nameEscaped = c.coach_name.replace(/"/g, '&quot;');
-        html += `<option value="${nameEscaped}">${c.coach_name}</option>`;
+        const nameEscaped = escapeHtml(c.coach_name);
+        html += `<option value="${nameEscaped}">${nameEscaped}</option>`;
       });
       select.innerHTML = html;
       if (currentVal) select.value = currentVal;
@@ -366,8 +410,8 @@ async function populateCoachDropdowns() {
       const currentVal = select.value;
       let html = '<option value="">No Coach</option>';
       cachedCoachesList.forEach(c => {
-        const nameEscaped = c.coach_name.replace(/"/g, '&quot;');
-        html += `<option value="${c.coach_id}">${c.coach_name}</option>`;
+        const nameEscaped = escapeHtml(c.coach_name);
+        html += `<option value="${c.coach_id}">${nameEscaped}</option>`;
       });
       select.innerHTML = html;
       if (currentVal) select.value = currentVal;
@@ -447,3 +491,56 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+// ============================================================================
+// GLOBAL XSS PREVENTION HELPER
+// Standardized HTML entity escaping for user-controlled strings.
+// ============================================================================
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+if (typeof window !== 'undefined') {
+  window.escapeHtml = escapeHtml;
+
+  // ==========================================================================
+  // CENTRALIZED SESSION EXPIRY & 401 INTERCEPTOR
+  // Automatically detects server session termination and smoothly redirects
+  // to index.html with a user-friendly notice, avoiding stale spinners.
+  // ==========================================================================
+  if (!window._vavaFetchIntercepted) {
+    window._vavaFetchIntercepted = true;
+    const originalFetch = window.fetch;
+    window.fetch = async function(...args) {
+      const response = await originalFetch.apply(this, args);
+      if (response && response.status === 401) {
+        const isLoginPage = window.location.pathname.endsWith('index.html') || 
+                            window.location.pathname.endsWith('/') || 
+                            window.location.pathname === '';
+        if (!isLoginPage && !window._vavaRedirectingToLogin) {
+          window._vavaRedirectingToLogin = true;
+          if (typeof showToast === 'function') {
+            showToast('Session expired. Redirecting to login...', 'error');
+          }
+          try {
+            localStorage.removeItem('vava_token');
+            localStorage.removeItem('vava_role');
+            localStorage.removeItem('vava_user');
+            localStorage.removeItem('vava_email');
+          } catch (e) {}
+          setTimeout(() => {
+            window.location.href = 'index.html';
+          }, 1500);
+        }
+      }
+      return response;
+    };
+  }
+}
+

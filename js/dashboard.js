@@ -450,6 +450,20 @@
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          try {
+            localStorage.removeItem('vava_token');
+            localStorage.removeItem('vava_role');
+            localStorage.removeItem('vava_user');
+            localStorage.removeItem('vava_email');
+            localStorage.removeItem('vava_coach_id');
+            localStorage.removeItem('vava_student_id');
+            sessionStorage.clear();
+          } catch (_) {}
+          window.location.href = 'index.html';
+          return;
+        }
+
         let errorMsg = `Server returned HTTP ${response.status} while compiling dashboard data.`;
         try {
           const errPayload = await response.json();
@@ -459,8 +473,6 @@
         } catch (e) {
           if (response.status === 403) {
             errorMsg = 'Access denied. You do not have permission to view this dashboard.';
-          } else if (response.status === 401) {
-            errorMsg = 'Authentication required. Please log in again to continue.';
           }
         }
         throw new Error(errorMsg);
@@ -479,6 +491,33 @@
 
       const payload = res.data || res;
       const verifiedRole = (payload.role || storedRole).toLowerCase();
+      const normalizedRole = (verifiedRole === 'superadmin' || verifiedRole === 'admin') ? 'admin' : verifiedRole;
+
+      // Authoritatively synchronize client role and user state with verified backend session
+      try {
+        localStorage.setItem('vava_role', normalizedRole);
+        if (payload.email) localStorage.setItem('vava_email', payload.email);
+        if (payload.coach_id) localStorage.setItem('vava_coach_id', String(payload.coach_id));
+        if (payload.student_id) localStorage.setItem('vava_student_id', String(payload.student_id));
+        const currentUserObj = JSON.parse(localStorage.getItem('vava_user') || '{}');
+        currentUserObj.role = normalizedRole;
+        if (payload.email) currentUserObj.email = payload.email;
+        if (payload.name) currentUserObj.name = payload.name;
+        localStorage.setItem('vava_user', JSON.stringify(currentUserObj));
+      } catch (e) {}
+
+      // Re-synchronize sidebar role permissions and profile header with authoritative session
+      if (typeof window.applySidebarRolePermissions === 'function') {
+        window.applySidebarRolePermissions(normalizedRole);
+      }
+      if (typeof window.initSidebarUserProfile === 'function') {
+        window.initSidebarUserProfile();
+      }
+
+      // If stored role was stale and was corrected, re-evaluate routing with verified permissions
+      if (storedRole !== normalizedRole && typeof window.handleHashRoute === 'function') {
+        window.handleHashRoute();
+      }
 
       // Cleanly route to role-appropriate renderer
       if (verifiedRole === 'coach') {

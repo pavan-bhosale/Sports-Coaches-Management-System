@@ -15,15 +15,18 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 require_once 'db_connect.php';
+require_once 'config.php';
+require_once 'activity_logger.php';
 require_once 'razorpay_config.php';
 
 $rawBody = file_get_contents('php://input');
 $signature = $_SERVER['HTTP_X_RAZORPAY_SIGNATURE'] ?? '';
 
-// Allow local testing simulation if explicit test flag is provided in dev mode
-$isLocalTest = (isset($_GET['local_test']) && $_GET['local_test'] === '1');
+// In CLI mode (e.g. CLI test scripts), signature check can be skipped if invoked via CLI;
+// all HTTP/web requests MUST have a valid Razorpay HMAC SHA256 signature.
+$isCliTest = (php_sapi_name() === 'cli');
 
-if (!$isLocalTest) {
+if (!$isCliTest) {
     if (empty($signature)) {
         http_response_code(400);
         echo json_encode(['error' => 'Missing X-Razorpay-Signature header.']);
@@ -62,16 +65,16 @@ if ($eventType === 'payment.captured' || $eventType === 'order.paid') {
     try {
         $record = null;
         if ($feeId > 0) {
-            $stmt = $pdo->prepare("SELECT fee_id, fee_amount FROM vsa_student_fees WHERE fee_id = ?");
+            $stmt = $pdo->prepare("SELECT fee_id, fee_amount, payment_status, razorpay_payment_id, paid_at FROM vsa_student_fees WHERE fee_id = ?");
             $stmt->execute([$feeId]);
             $record = $stmt->fetch();
         } elseif (!empty($orderId)) {
-            $stmt = $pdo->prepare("SELECT fee_id, fee_amount FROM vsa_student_fees WHERE razorpay_order_id = ?");
+            $stmt = $pdo->prepare("SELECT fee_id, fee_amount, payment_status, razorpay_payment_id, paid_at FROM vsa_student_fees WHERE razorpay_order_id = ?");
             $stmt->execute([$orderId]);
             $record = $stmt->fetch();
         } elseif ($studentId > 0) {
             $currentMonth = date('Y-m-01');
-            $stmt = $pdo->prepare("SELECT fee_id, fee_amount FROM vsa_student_fees WHERE student_id = ? AND fee_month = ?");
+            $stmt = $pdo->prepare("SELECT fee_id, fee_amount, payment_status, razorpay_payment_id, paid_at FROM vsa_student_fees WHERE student_id = ? AND fee_month = ?");
             $stmt->execute([$studentId, $currentMonth]);
             $record = $stmt->fetch();
         }
@@ -84,6 +87,18 @@ if ($eventType === 'payment.captured' || $eventType === 'order.paid') {
         }
 
         $targetFeeId = intval($record['fee_id']);
+
+        // Idempotency check: if this fee record is already marked Paid for the same paymentId, ignore duplicate delivery
+        if ($record['payment_status'] === 'Paid' && !empty($record['razorpay_payment_id']) && $record['razorpay_payment_id'] === $paymentId) {
+            echo json_encode([
+                'success'   => true,
+                'message'   => "Payment {$paymentId} for fee record #{$targetFeeId} has already been processed (idempotent duplicate ignored).",
+                'fee_id'    => $targetFeeId,
+                'duplicate' => true
+            ]);
+            exit;
+        }
+
         if ($amountInRupees <= 0) {
             $amountInRupees = floatval($record['fee_amount']);
         }
@@ -101,6 +116,25 @@ if ($eventType === 'payment.captured' || $eventType === 'order.paid') {
         ");
         $updateStmt->execute([$paymentId, $orderId, $method, $amountInRupees, $targetFeeId]);
 
+        // Audit log the verified webhook payment
+        recordActivity(
+            $pdo,
+            'FEES',
+            'Payment Received',
+            'Fee',
+            $targetFeeId,
+            "Fee #{$targetFeeId}",
+            "Razorpay webhook verified payment of ₹{$amountInRupees} (Payment ID: {$paymentId})",
+            [
+                'fee_id'         => $targetFeeId,
+                'payment_id'     => $paymentId,
+                'order_id'       => $orderId,
+                'method'         => $method,
+                'paid_amount'    => $amountInRupees,
+                'source'         => 'Razorpay Webhook'
+            ]
+        );
+
         echo json_encode([
             'success' => true,
             'message' => "Fee record #{$targetFeeId} marked as Paid via webhook.",
@@ -109,7 +143,10 @@ if ($eventType === 'payment.captured' || $eventType === 'order.paid') {
         exit;
     } catch (Exception $e) {
         http_response_code(500);
-        echo json_encode(['error' => 'Database update error: ' . $e->getMessage()]);
+        $errMsg = function_exists('formatSafeErrorMessage') 
+            ? formatSafeErrorMessage($e, 'Database update error occurred during webhook processing.') 
+            : $e->getMessage();
+        echo json_encode(['error' => 'Database update error: ' . $errMsg]);
         exit;
     }
 }

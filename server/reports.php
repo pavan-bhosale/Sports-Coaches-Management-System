@@ -21,19 +21,11 @@
 
 date_default_timezone_set('Asia/Kolkata');
 
-// CORS & HTTP Headers
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '*';
-header("Access-Control-Allow-Origin: {$origin}");
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-VAVA-Role, X-VAVA-Email, X-VAVA-Coach-ID, Authorization');
-header('Access-Control-Allow-Credentials: true');
+// CORS & HTTP Headers via centralized helper
+require_once __DIR__ . '/auth_helper.php';
+applyCorsHeaders('GET, POST, OPTIONS');
 
 $reqMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-if ($reqMethod === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
-
 require_once __DIR__ . '/db_connect.php';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -41,70 +33,34 @@ require_once __DIR__ . '/db_connect.php';
 // ─────────────────────────────────────────────────────────────────────────────
 
 function resolveReportsUser($pdo, $input = []) {
-    // 1. Authoritative request headers
-    $role = $_SERVER['HTTP_X_VAVA_ROLE'] ?? '';
-    $email = $_SERVER['HTTP_X_VAVA_EMAIL'] ?? '';
-    $coach_id = isset($_SERVER['HTTP_X_VAVA_COACH_ID']) ? intval($_SERVER['HTTP_X_VAVA_COACH_ID']) : null;
-
-    // 2. Session fallback
-    if (session_status() === PHP_SESSION_NONE) {
-        @session_start();
-    }
-    if (empty($role) && !empty($_SESSION['user_role'])) {
-        $role = $_SESSION['user_role'];
-    }
-    if (empty($email) && !empty($_SESSION['user_email'])) {
-        $email = $_SESSION['user_email'];
-    }
-    if ($coach_id === null && isset($_SESSION['coach_id'])) {
-        $coach_id = intval($_SESSION['coach_id']);
+    // Authoritative session authentication
+    $authUser = getAuthenticatedSessionUser($pdo);
+    if (!$authUser) {
+        http_response_code(401);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'success' => false,
+            'error'   => 'Authentication required. Please log in.'
+        ]);
+        exit;
     }
 
-    // 3. Explicit auth parameters or non-get_report fallback
-    $action = $_GET['action'] ?? $_POST['action'] ?? $input['action'] ?? '';
-    $isReportAction = in_array($action, ['get_report', 'export_report', 'export']);
-    if (empty($role)) {
-        if (!empty($_GET['auth_role'])) {
-            $role = $_GET['auth_role'];
-        } elseif (!$isReportAction && !empty($_GET['role'])) {
-            $role = $_GET['role'];
-        } elseif (!empty($input['auth_role'])) {
-            $role = $input['auth_role'];
-        } elseif (!$isReportAction && !empty($input['role'])) {
-            $role = $input['role'];
-        }
-    }
-    if (empty($email)) {
-        $email = $_GET['auth_email'] ?? $input['auth_email'] ?? '';
-        if (empty($email) && !$isReportAction) {
-            $email = $_GET['email'] ?? $input['email'] ?? '';
-        }
-    }
-    if ($coach_id === null) {
-        if (isset($_GET['auth_coach_id'])) {
-            $coach_id = intval($_GET['auth_coach_id']);
-        } elseif (!$isReportAction && isset($_GET['coach_id'])) {
-            $coach_id = intval($_GET['coach_id']);
-        } elseif (isset($input['auth_coach_id'])) {
-            $coach_id = intval($input['auth_coach_id']);
-        } elseif (!$isReportAction && isset($input['coach_id'])) {
-            $coach_id = intval($input['coach_id']);
-        } else {
-            $coach_id = 0;
-        }
-    }
-
-    $roleLower = strtolower(trim($role));
+    $roleLower = strtolower(trim($authUser['role'] ?? ''));
 
     // Students have NO access to Reports & Analytics
     if ($roleLower === 'student') {
         http_response_code(403);
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['success' => false, 'error' => 'Access denied. Reports & Analytics is restricted to coaches and administrators.']);
+        echo json_encode([
+            'success' => false,
+            'error'   => 'Access denied. Reports & Analytics is restricted to coaches and administrators.'
+        ]);
         exit;
     }
 
     if ($roleLower === 'coach') {
+        $coach_id = intval($authUser['coach_id'] ?? 0);
+        $email = $authUser['email'] ?? '';
         $coach = null;
         $query = '
             SELECT 
@@ -145,7 +101,7 @@ function resolveReportsUser($pdo, $input = []) {
             'role'  => 'coach',
             'coach' => [
                 'coach_id'           => $coach_id,
-                'coach_name'         => 'Coach',
+                'coach_name'         => $authUser['name'] ?? 'Coach',
                 'coach_email'        => $email,
                 'assigned_batch_ids' => []
             ]
@@ -153,7 +109,7 @@ function resolveReportsUser($pdo, $input = []) {
     }
 
     // Valid administrator roles
-    if ($roleLower === 'admin' || $roleLower === 'superadmin' || empty($roleLower)) {
+    if ($roleLower === 'admin' || $roleLower === 'superadmin') {
         return [
             'role'  => 'superadmin',
             'coach' => null
@@ -359,6 +315,7 @@ function getReportData($pdo, $reportType, $filters, $auth) {
 
     // Role Guard: Financial reports are Super Admin only
     if ($isCoach && in_array($reportType, ['fees_payments'])) {
+        http_response_code(403);
         throw new Exception('Access denied. Financial reports are restricted to Super Admin only.');
     }
 

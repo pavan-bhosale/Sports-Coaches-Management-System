@@ -314,7 +314,8 @@ function initPhotoCropperEvents() {
           }
           const res = await fetch(STUDENTS_API, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            headers: getStudentAuthHeaders(),
             body: JSON.stringify({
               action: 'upload_photo',
               student_id: studentId,
@@ -338,7 +339,8 @@ function initPhotoCropperEvents() {
           }
           const res = await fetch(COACHES_API, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            headers: getStudentAuthHeaders(),
             body: JSON.stringify({
               action: 'upload_photo',
               coach_id: coachId,
@@ -374,18 +376,23 @@ function getStudentAuthHeaders() {
   const role = localStorage.getItem('vava_role') || 'admin';
   const email = localStorage.getItem('vava_email') || '';
   let coach_id = 0;
+  let student_id = 0;
   const userStr = localStorage.getItem('vava_user');
   if (userStr) {
     try {
       const u = JSON.parse(userStr);
       if (u.coach_id) coach_id = u.coach_id;
+      if (u.student_id) student_id = u.student_id;
     } catch(e) {}
   }
   return {
     'Content-Type': 'application/json',
     'X-VAVA-Role': role,
     'X-VAVA-Email': email,
-    'X-VAVA-Coach-Id': String(coach_id)
+    'X-VAVA-Coach-ID': String(coach_id),
+    'X-VAVA-Coach-Id': String(coach_id),
+    'X-VAVA-Student-ID': String(student_id),
+    'X-VAVA-Student-Id': String(student_id)
   };
 }
 
@@ -393,14 +400,16 @@ function getStudentAuthQuery() {
   const role = localStorage.getItem('vava_role') || 'admin';
   const email = localStorage.getItem('vava_email') || '';
   let coach_id = 0;
+  let student_id = 0;
   const userStr = localStorage.getItem('vava_user');
   if (userStr) {
     try {
       const u = JSON.parse(userStr);
       if (u.coach_id) coach_id = u.coach_id;
+      if (u.student_id) student_id = u.student_id;
     } catch(e) {}
   }
-  return `role=${encodeURIComponent(role)}&email=${encodeURIComponent(email)}&coach_id=${encodeURIComponent(coach_id)}`;
+  return `role=${encodeURIComponent(role)}&email=${encodeURIComponent(email)}&coach_id=${encodeURIComponent(coach_id)}&student_id=${encodeURIComponent(student_id)}`;
 }
 
 function updateStudentsLiveCount(count) {
@@ -423,7 +432,10 @@ async function fetchStudents() {
 
   try {
     const url = `${STUDENTS_API}?${getStudentAuthQuery()}`;
-    const res = await fetch(url, { headers: getStudentAuthHeaders() });
+    const res = await fetch(url, {
+      headers: getStudentAuthHeaders(),
+      credentials: 'include'
+    });
     const data = await res.json();
     if (requestId !== fetchStudentsRequestId) return;
     if (!data.success) throw new Error(data.error || 'Fetch failed.');
@@ -452,6 +464,14 @@ async function fetchStudents() {
         const studentJsonStr = encodeURIComponent(JSON.stringify(student));
         const batchDisplay = student.batch_name || 'No Batch';
 
+        const safeStudentName = escapeHtml(student.student_name);
+        const safeParentName = escapeHtml(student.parent_name || '—');
+        const safeBatchDisplay = escapeHtml(batchDisplay);
+        const safeBranchLabel = escapeHtml(branchLabel);
+        const safeCity = escapeHtml(student.city || '—');
+        const safeBloodGroup = escapeHtml(student.blood_group || 'N/A');
+        const safeCoachLabel = escapeHtml(coachLabel);
+
         // 1) Desktop Table Row
         const tr = document.createElement('tr');
         tr.dataset.studentId = student.student_id;
@@ -462,17 +482,17 @@ async function fetchStudents() {
                 ${student.student_photo ? `<img src="${student.student_photo}?t=${Date.now()}" class="coach-photo-img" alt="Student Photo">` : initials}
               </div>
               <div>
-                <a href="javascript:void(0)" class="student-name-link" data-id="${student.student_id}" style="font-weight:600;color:var(--color-primary);text-decoration:none;">${student.student_name}</a>
-                <div class="student-sub">Parent: ${student.parent_name || '—'}</div>
+                <a href="javascript:void(0)" class="student-name-link" data-id="${student.student_id}" style="font-weight:600;color:var(--color-primary);text-decoration:none;">${safeStudentName}</a>
+                <div class="student-sub">Parent: ${safeParentName}</div>
               </div>
             </div>
           </td>
-          <td><span class="coach-batch-tag" style="display:inline-block;">${batchDisplay}</span></td>
-          <td><span class="branch-tag">${branchLabel}</span></td>
-          <td>${student.city || '—'}</td>
-          <td><span class="code-badge">${student.blood_group || 'N/A'}</span></td>
+          <td><span class="coach-batch-tag" style="display:inline-block;">${safeBatchDisplay}</span></td>
+          <td><span class="branch-tag">${safeBranchLabel}</span></td>
+          <td>${safeCity}</td>
+          <td><span class="code-badge">${safeBloodGroup}</span></td>
           <td style="font-size:0.875rem;">${whatsappFormatted}</td>
-          <td>${coachLabel}</td>
+          <td>${safeCoachLabel}</td>
           <td>
             <div class="batch-actions-wrap">
               <button class="batch-actions-btn student-actions-btn" data-id="${student.student_id}" type="button">
@@ -510,15 +530,15 @@ async function fetchStudents() {
           card.dataset.studentId = student.student_id;
           card.setAttribute('role', 'button');
           card.setAttribute('tabindex', '0');
-          card.setAttribute('aria-label', `View profile for ${student.student_name}`);
+          card.setAttribute('aria-label', `View profile for ${safeStudentName}`);
           card.innerHTML = `
             <div class="student-card-header">
               <div class="student-card-avatar bg-avatar-green" style="${student.student_photo ? 'background:none;padding:0;' : ''}">
                 ${student.student_photo ? `<img src="${student.student_photo}?t=${Date.now()}" alt="Student Photo">` : initials}
               </div>
               <div class="student-card-info">
-                <a href="javascript:void(0)" class="student-card-name student-name-link" data-id="${student.student_id}" title="${student.student_name}">${student.student_name}</a>
-                <span class="student-batch-badge" title="${batchDisplay}">${batchDisplay}</span>
+                <a href="javascript:void(0)" class="student-card-name student-name-link" data-id="${student.student_id}" title="${safeStudentName}">${safeStudentName}</a>
+                <span class="student-batch-badge" title="${safeBatchDisplay}">${safeBatchDisplay}</span>
               </div>
               <div class="batch-actions-wrap">
                 <button class="batch-actions-btn student-three-dots-btn" data-id="${student.student_id}" type="button" aria-label="Student Actions">
@@ -906,7 +926,8 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const res = await fetch(STUDENTS_API, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          headers: getStudentAuthHeaders(),
           body: JSON.stringify(payload)
         });
         const data = await res.json();
@@ -1094,7 +1115,8 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const res = await fetch(STUDENTS_API, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          headers: getStudentAuthHeaders(),
           body: JSON.stringify(payload)
         });
         const data = await res.json();
@@ -1143,7 +1165,8 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const res = await fetch(STUDENTS_API, {
           method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          headers: getStudentAuthHeaders(),
           body: JSON.stringify({ student_id: parseInt(studentToDeleteId) })
         });
         const data = await res.json();
@@ -1403,7 +1426,8 @@ document.addEventListener('DOMContentLoaded', () => {
           try {
             const res = await fetch(STUDENTS_API, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              headers: getStudentAuthHeaders(),
               body: JSON.stringify({
                 action: 'upload_photo',
                 student_id: activeProfileStudentId,
@@ -1447,7 +1471,8 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const res = await fetch(STUDENTS_API, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          headers: getStudentAuthHeaders(),
           body: JSON.stringify({
             action: 'delete_photo',
             student_id: activeProfileStudentId
@@ -1645,6 +1670,7 @@ function initStudentNoteListeners() {
       try {
         const res = await fetch(STUDENTS_API, {
           method: 'POST',
+          credentials: 'include',
           headers: getStudentAuthHeaders(),
           body: JSON.stringify({
             action: 'save_note',
@@ -1693,6 +1719,7 @@ function initStudentNoteListeners() {
       try {
         const res = await fetch(STUDENTS_API, {
           method: 'POST',
+          credentials: 'include',
           headers: getStudentAuthHeaders(),
           body: JSON.stringify({
             action: 'delete_note',

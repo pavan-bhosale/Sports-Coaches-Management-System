@@ -7,20 +7,28 @@
  * DELETE (delete batch by id)
  */
 
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-VAVA-Role, X-VAVA-Email, X-VAVA-Coach-ID, X-VAVA-Actor-Name');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
+require_once 'auth_helper.php';
+applyCorsHeaders('GET, POST, PUT, DELETE, OPTIONS');
 
 require_once 'db_connect.php';
 require_once 'activity_logger.php';
 
+// Enforce session authentication for all requests
+$currentUser = requireAuthSession($pdo);
+
 $method = $_SERVER['REQUEST_METHOD'];
+
+// Mutation operations (POST, PUT, DELETE) are strictly Super Admin only
+if ($method === 'POST' || $method === 'PUT' || $method === 'DELETE') {
+    if ($currentUser['role'] !== 'admin') {
+        http_response_code(403);
+        echo json_encode([
+            'success' => false,
+            'error'   => 'Access denied. Only Super Admin can modify batches.'
+        ]);
+        exit;
+    }
+}
 
 // ── GET: fetch all batches ─────────────────────────────────────────────────
 if ($method === 'GET') {
@@ -212,6 +220,22 @@ if ($method === 'DELETE') {
             exit;
         }
 
+        $studCountStmt = $pdo->prepare('SELECT COUNT(*) FROM vsa_students WHERE batch_id = ?');
+        $studCountStmt->execute([$batch_id]);
+        $assignedStudents = intval($studCountStmt->fetchColumn() ?: 0);
+        if ($assignedStudents > 0) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'error'   => "Cannot delete batch '{$batchRow['batch_name']}': {$assignedStudents} student(s) are assigned to it. Please reassign the students first."
+            ]);
+            exit;
+        }
+
+        // Unlink coaches assigned to this batch
+        $cStmt = $pdo->prepare('UPDATE vsa_coaches SET batch_id = NULL WHERE batch_id = ?');
+        $cStmt->execute([$batch_id]);
+
         $stmt = $pdo->prepare('DELETE FROM vsa_batches WHERE batch_id = ?');
         $stmt->execute([$batch_id]);
 
@@ -221,7 +245,8 @@ if ($method === 'DELETE') {
         echo json_encode(['success' => true]);
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(['error' => 'Failed to delete batch: ' . $e->getMessage()]);
+        $errMsg = function_exists('formatSafeErrorMessage') ? formatSafeErrorMessage($e, 'Failed to delete batch.') : $e->getMessage();
+        echo json_encode(['error' => $errMsg]);
     }
     exit;
 }

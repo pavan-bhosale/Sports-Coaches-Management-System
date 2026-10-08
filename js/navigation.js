@@ -129,7 +129,11 @@ function navigateToSection(targetHref, showToastNotice = true) {
   } else if (targetHref === '#inventory') {
     if (inventorySection) {
       inventorySection.style.display = 'block';
-      if (typeof fetchInventory === 'function') fetchInventory();
+      if (typeof window.fetchInventory === 'function') {
+        window.fetchInventory();
+      } else if (typeof fetchInventory === 'function') {
+        fetchInventory();
+      }
     }
     if (pageTitle) pageTitle.textContent = 'Inventory & Equipment';
     if (currentSectionName) currentSectionName.textContent = 'Inventory & Equipment';
@@ -175,7 +179,11 @@ function navigateToSection(targetHref, showToastNotice = true) {
   } else if (targetHref === '#coaches') {
     if (coachesSection) {
       coachesSection.style.display = '';
-      if (typeof fetchCoaches === 'function') fetchCoaches();
+      if (typeof window.fetchCoaches === 'function') {
+        window.fetchCoaches();
+      } else if (typeof fetchCoaches === 'function') {
+        fetchCoaches();
+      }
     }
   } else if (targetHref === '#fees') {
     if (feesSection) {
@@ -329,17 +337,39 @@ function initSidebarUserProfile() {
   // 5. Logout Handling
   if (logoutBtn && !logoutBtn._hasLogoutBound) {
     logoutBtn._hasLogoutBound = true;
-    logoutBtn.addEventListener('click', () => {
+    logoutBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
       try {
+        if (window.google?.accounts?.id?.disableAutoSelect) {
+          try { google.accounts.id.disableAutoSelect(); } catch (_) {}
+        }
+        // Destroy authoritative server-side PHP session
+        const logoutUrl = (typeof getApiEndpoint === 'function')
+          ? getApiEndpoint('logout')
+          : 'server/logout.php';
+        try {
+          const res = await fetch(logoutUrl, {
+            method: 'POST',
+            credentials: 'include'
+          });
+          if (res.ok) {
+            try { await res.json(); } catch (_) {}
+          }
+        } catch (fetchErr) {
+          console.warn('Logout server notice:', fetchErr);
+        }
+      } catch (err) {
+        console.error('Logout cleanup error:', err);
+      } finally {
         localStorage.removeItem('vava_token');
         localStorage.removeItem('vava_role');
         localStorage.removeItem('vava_user');
         localStorage.removeItem('vava_email');
-        if (window.google?.accounts?.id?.disableAutoSelect) {
-          google.accounts.id.disableAutoSelect();
-        }
-      } catch (err) {
-        console.error('Logout cleanup error:', err);
+        localStorage.removeItem('vava_coach_id');
+        localStorage.removeItem('vava_student_id');
+        localStorage.removeItem('vava_api_base');
+        sessionStorage.clear();
+        window.location.href = 'index.html';
       }
     });
   }
@@ -360,8 +390,8 @@ function initSidebarUserProfile() {
     });
   }
 }
-function applySidebarRolePermissions() {
-  const storedRole = (localStorage.getItem('vava_role') || 'admin').toLowerCase();
+function applySidebarRolePermissions(explicitRole = null) {
+  const storedRole = (explicitRole || localStorage.getItem('vava_role') || 'admin').toLowerCase();
   const navAttendanceEl = document.getElementById('nav-attendance');
   const navFeesEl = document.getElementById('nav-fees');
   const navInventoryEl = document.getElementById('nav-inventory');
@@ -403,6 +433,18 @@ function applySidebarRolePermissions() {
     if (navReportsEl) navReportsEl.style.display = '';
     const sectionTitles = document.querySelectorAll('.sidebar-nav .nav-section-title');
     sectionTitles.forEach(t => { t.style.display = ''; });
+  }
+
+  // Dynamic dashboard title sync on overview
+  const dashboardTitles = {
+    admin:   'Super Admin Dashboard',
+    superadmin: 'Super Admin Dashboard',
+    coach:   'Coach Dashboard',
+    student: 'Student Dashboard'
+  };
+  const pageTitleEl = document.getElementById('pageTitle');
+  if (pageTitleEl && (!window.location.hash || window.location.hash === '#overview')) {
+    pageTitleEl.textContent = dashboardTitles[storedRole] || 'Super Admin Dashboard';
   }
 }
 window.applySidebarRolePermissions = applySidebarRolePermissions;

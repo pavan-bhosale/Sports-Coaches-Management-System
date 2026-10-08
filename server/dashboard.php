@@ -118,6 +118,20 @@ function updateOverdueStatuses($pdo) {
 // ── Role & Authentication Resolution ─────────────────────────────────────────
 function resolveDashboardUser($pdo) {
     if (session_status() === PHP_SESSION_NONE) {
+        $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                   || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)
+                   || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+        if (ini_get('session.use_cookies')) {
+            $cp = session_get_cookie_params();
+            session_set_cookie_params([
+                'lifetime' => $cp['lifetime'],
+                'path'     => $cp['path'] ?: '/',
+                'domain'   => $cp['domain'],
+                'secure'   => $isHttps,
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]);
+        }
         @session_start();
     }
 
@@ -130,52 +144,30 @@ function resolveDashboardUser($pdo) {
 
     $hasSession = !empty($sessionRole) && !empty($sessionEmail);
 
-    // 2. Untrusted Request Headers & Query Params (Client-controlled values)
-    $headerRole      = strtolower(trim($_SERVER['HTTP_X_VAVA_ROLE'] ?? $_GET['role'] ?? ''));
-    $headerEmail     = strtolower(trim($_SERVER['HTTP_X_VAVA_EMAIL'] ?? $_GET['email'] ?? ''));
-    $headerCoachId   = intval($_SERVER['HTTP_X_VAVA_COACH_ID'] ?? $_GET['coach_id'] ?? 0);
-    $headerStudentId = intval($_SERVER['HTTP_X_VAVA_STUDENT_ID'] ?? $_GET['student_id'] ?? 0);
-
-    // 3. Security Enforcement:
-    // If an authenticated session exists, headers MUST NEVER override session identity,
-    // escalate roles, or switch to another user's records.
-    if ($hasSession) {
-        $effectiveRole  = $sessionRole;
-        $effectiveEmail = $sessionEmail;
-    } else {
-        $effectiveRole  = $headerRole;
-        $effectiveEmail = $headerEmail;
+    // Unauthenticated requests are strictly rejected (No anonymous or development fallbacks)
+    if (!$hasSession) {
+        http_response_code(401);
+        echo json_encode([
+            'success' => false,
+            'error'   => 'Authentication required. Please log in.'
+        ]);
+        exit;
     }
+
+    $effectiveRole  = $sessionRole;
+    $effectiveEmail = $sessionEmail;
 
     // ── ROLE: STUDENT ────────────────────────────────────────────────────────
     if ($effectiveRole === 'student') {
         $student = null;
-
-        if ($hasSession) {
-            // Strictly resolve from trusted session identity
-            if (!empty($effectiveEmail)) {
-                $stmt = $pdo->prepare('SELECT * FROM vsa_students WHERE LOWER(TRIM(student_email)) = ? LIMIT 1');
-                $stmt->execute([$effectiveEmail]);
-                $student = $stmt->fetch(PDO::FETCH_ASSOC);
-            }
-            if (!$student && $sessionStudentId > 0) {
-                $stmt = $pdo->prepare('SELECT * FROM vsa_students WHERE student_id = ? LIMIT 1');
-                $stmt->execute([$sessionStudentId]);
-                $student = $stmt->fetch(PDO::FETCH_ASSOC);
-            }
-        } else {
-            // Unauthenticated request: Requires verified email to look up student in database.
-            // Client-supplied X-VAVA-Student-ID is NEVER trusted as sole authorization proof.
-            if (empty($effectiveEmail)) {
-                http_response_code(403);
-                echo json_encode([
-                    'success' => false,
-                    'error'   => 'Student authorization failed. No verified identity provided.'
-                ]);
-                exit;
-            }
+        if (!empty($effectiveEmail)) {
             $stmt = $pdo->prepare('SELECT * FROM vsa_students WHERE LOWER(TRIM(student_email)) = ? LIMIT 1');
             $stmt->execute([$effectiveEmail]);
+            $student = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+        if (!$student && $sessionStudentId > 0) {
+            $stmt = $pdo->prepare('SELECT * FROM vsa_students WHERE student_id = ? LIMIT 1');
+            $stmt->execute([$sessionStudentId]);
             $student = $stmt->fetch(PDO::FETCH_ASSOC);
         }
 
@@ -206,32 +198,14 @@ function resolveDashboardUser($pdo) {
     // ── ROLE: COACH ──────────────────────────────────────────────────────────
     if ($effectiveRole === 'coach') {
         $coach = null;
-
-        if ($hasSession) {
-            // Strictly resolve from trusted session identity
-            if (!empty($effectiveEmail)) {
-                $stmt = $pdo->prepare('SELECT coach_id, coach_name, coach_email, batch_id, coach_photo FROM vsa_coaches WHERE LOWER(TRIM(coach_email)) = ? LIMIT 1');
-                $stmt->execute([$effectiveEmail]);
-                $coach = $stmt->fetch(PDO::FETCH_ASSOC);
-            }
-            if (!$coach && $sessionCoachId > 0) {
-                $stmt = $pdo->prepare('SELECT coach_id, coach_name, coach_email, batch_id, coach_photo FROM vsa_coaches WHERE coach_id = ? LIMIT 1');
-                $stmt->execute([$sessionCoachId]);
-                $coach = $stmt->fetch(PDO::FETCH_ASSOC);
-            }
-        } else {
-            // Unauthenticated request: Requires verified email to look up coach in database.
-            // Client-supplied X-VAVA-Coach-ID is NEVER trusted as sole authorization proof.
-            if (empty($effectiveEmail)) {
-                http_response_code(403);
-                echo json_encode([
-                    'success' => false,
-                    'error'   => 'Coach authorization failed. No verified identity provided.'
-                ]);
-                exit;
-            }
+        if (!empty($effectiveEmail)) {
             $stmt = $pdo->prepare('SELECT coach_id, coach_name, coach_email, batch_id, coach_photo FROM vsa_coaches WHERE LOWER(TRIM(coach_email)) = ? LIMIT 1');
             $stmt->execute([$effectiveEmail]);
+            $coach = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+        if (!$coach && $sessionCoachId > 0) {
+            $stmt = $pdo->prepare('SELECT coach_id, coach_name, coach_email, batch_id, coach_photo FROM vsa_coaches WHERE coach_id = ? LIMIT 1');
+            $stmt->execute([$sessionCoachId]);
             $coach = $stmt->fetch(PDO::FETCH_ASSOC);
         }
 
@@ -258,38 +232,16 @@ function resolveDashboardUser($pdo) {
     }
 
     // ── ROLE: SUPER ADMIN / ADMIN ────────────────────────────────────────────
-    if ($effectiveRole === 'admin' || $effectiveRole === 'superadmin' || empty($effectiveRole)) {
+    if ($effectiveRole === 'admin' || $effectiveRole === 'superadmin' || $effectiveRole === 'super admin') {
         $admin = null;
+        $stmt = $pdo->prepare("SELECT admin_id, admin_name, admin_email FROM vsa_superadmin WHERE LOWER(TRIM(REPLACE(REPLACE(admin_email, '\r', ''), '\n', ''))) = ? LIMIT 1");
+        $stmt->execute([$effectiveEmail]);
+        $admin = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($hasSession) {
-            // Must verify against vsa_superadmin table
-            $stmt = $pdo->prepare("SELECT admin_id, admin_name, admin_email FROM vsa_superadmin WHERE LOWER(TRIM(REPLACE(REPLACE(admin_email, '\r', ''), '\n', ''))) = ? LIMIT 1");
-            $stmt->execute([$effectiveEmail]);
+        if (!$admin && $sessionAdminId > 0) {
+            $stmt = $pdo->prepare("SELECT admin_id, admin_name, admin_email FROM vsa_superadmin WHERE admin_id = ? LIMIT 1");
+            $stmt->execute([$sessionAdminId]);
             $admin = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            if (!$admin && $sessionAdminId > 0) {
-                $stmt = $pdo->prepare("SELECT admin_id, admin_name, admin_email FROM vsa_superadmin WHERE admin_id = ? LIMIT 1");
-                $stmt->execute([$sessionAdminId]);
-                $admin = $stmt->fetch(PDO::FETCH_ASSOC);
-            }
-        } else {
-            if (!empty($effectiveEmail)) {
-                $stmt = $pdo->prepare("SELECT admin_id, admin_name, admin_email FROM vsa_superadmin WHERE LOWER(TRIM(REPLACE(REPLACE(admin_email, '\r', ''), '\n', ''))) = ? LIMIT 1");
-                $stmt->execute([$effectiveEmail]);
-                $admin = $stmt->fetch(PDO::FETCH_ASSOC);
-                if (!$admin) {
-                    http_response_code(403);
-                    echo json_encode([
-                        'success' => false,
-                        'error'   => 'Access denied. You do not have administrative privileges.'
-                    ]);
-                    exit;
-                }
-            } else {
-                // Local dev / smoke test fallback (e.g. CLI or direct endpoint probe)
-                $stmt = $pdo->query('SELECT admin_id, admin_name, admin_email FROM vsa_superadmin ORDER BY admin_id ASC LIMIT 1');
-                $admin = $stmt->fetch(PDO::FETCH_ASSOC);
-            }
         }
 
         if ($admin) {

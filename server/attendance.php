@@ -4,15 +4,8 @@
  * Handles GET & POST with role restriction (Coach-only) and assigned batch filtering.
  */
 
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-VAVA-Role, X-VAVA-Email, X-VAVA-Coach-ID, X-VAVA-Actor-Name');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
+require_once 'auth_helper.php';
+applyCorsHeaders('GET, POST, DELETE, OPTIONS');
 
 require_once 'db_connect.php';
 require_once 'activity_logger.php';
@@ -21,94 +14,38 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 /**
  * Helper function to authenticate role and resolve logged-in user info (Coach or Superadmin)
+ * Authoritative source of truth is the server-side PHP session.
  */
 function resolveAuthenticatedUser($pdo, $input = []) {
-    $role = $_SERVER['HTTP_X_VAVA_ROLE'] ?? $_GET['role'] ?? $input['role'] ?? '';
-    $email = $_SERVER['HTTP_X_VAVA_EMAIL'] ?? $_GET['email'] ?? $input['email'] ?? '';
-    $coach_id = intval($_SERVER['HTTP_X_VAVA_COACH_ID'] ?? $_GET['coach_id'] ?? $input['coach_id'] ?? 0);
-
-    $roleLower = strtolower(trim($role));
-
-    // If role is explicitly student, deny access
-    if ($roleLower === 'student') {
-        http_response_code(403);
-        echo json_encode(['error' => 'Access denied. The Attendance module is accessible to coaches and superadmin only.']);
+    $user = getAuthenticatedSessionUser($pdo);
+    if (!$user) {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'error' => 'Authentication required. Please log in.']);
         exit;
     }
 
-    if ($roleLower === 'coach') {
-        $coach = null;
-        $query = '
-            SELECT 
-                c.coach_id,
-                c.coach_name,
-                c.coach_email,
-                COALESCE(c.batch_id, (SELECT b.batch_id FROM vsa_batches b WHERE b.coach_id = c.coach_id LIMIT 1)) AS batch_id,
-                COALESCE(NULLIF(c.batch_name, ""), (SELECT b.batch_name FROM vsa_batches b WHERE b.coach_id = c.coach_id LIMIT 1), "Unassigned") AS batch_name
-            FROM vsa_coaches c
-        ';
+    if ($user['role'] === 'student') {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'error' => 'Access denied. The Attendance module is accessible to coaches and superadmin only.']);
+        exit;
+    }
 
-        if ($coach_id > 0) {
-            $stmt = $pdo->prepare($query . ' WHERE c.coach_id = ?');
-            $stmt->execute([$coach_id]);
-            $coach = $stmt->fetch();
-        } elseif (!empty($email)) {
-            $stmt = $pdo->prepare($query . ' WHERE c.coach_email = ?');
-            $stmt->execute([$email]);
-            $coach = $stmt->fetch();
-        } else {
-            // Default: Fallback to first active coach assigned to a batch
-            $stmt = $pdo->query($query . ' WHERE c.batch_id IS NOT NULL ORDER BY c.coach_id ASC LIMIT 1');
-            $coach = $stmt->fetch();
-        }
-
+    if ($user['role'] === 'coach') {
+        $coach = $user['coach'] ?? null;
         if (!$coach) {
             http_response_code(403);
-            echo json_encode(['error' => 'Coach authorization failed or coach record not found.']);
+            echo json_encode(['success' => false, 'error' => 'Coach authorization failed or coach record not found.']);
             exit;
         }
-
         return ['role' => 'coach', 'coach' => $coach];
     }
 
-    if ($roleLower === 'admin' || $roleLower === 'superadmin') {
-        $admin = null;
-        if (!empty($email)) {
-            $stmt = $pdo->prepare('SELECT admin_id, admin_name, admin_email FROM vsa_superadmin WHERE admin_email = ?');
-            $stmt->execute([$email]);
-            $admin = $stmt->fetch();
-        } else {
-            // Local dev fallback to first active superadmin
-            $stmt = $pdo->query('SELECT admin_id, admin_name, admin_email FROM vsa_superadmin ORDER BY admin_id ASC LIMIT 1');
-            $admin = $stmt->fetch();
-        }
-
-        if (!$admin) {
-            http_response_code(403);
-            echo json_encode(['error' => 'Superadmin authorization failed. Admin record not found.']);
-            exit;
-        }
-
-        return ['role' => 'superadmin', 'admin' => $admin];
-    }
-
-    // Default fallback: Check if coach_id passed -> coach, else deny
-    if ($coach_id > 0) {
-        $stmt = $pdo->prepare('
-            SELECT c.coach_id, c.coach_name, c.coach_email, c.batch_id,
-                   COALESCE(NULLIF(c.batch_name, ""), b.batch_name, "Unassigned") AS batch_name
-            FROM vsa_coaches c LEFT JOIN vsa_batches b ON c.batch_id = b.batch_id
-            WHERE c.coach_id = ?
-        ');
-        $stmt->execute([$coach_id]);
-        $coach = $stmt->fetch();
-        if ($coach) {
-            return ['role' => 'coach', 'coach' => $coach];
-        }
+    if ($user['role'] === 'admin' || $user['role'] === 'superadmin') {
+        return ['role' => 'superadmin', 'admin' => $user['admin']];
     }
 
     http_response_code(403);
-    echo json_encode(['error' => 'Access denied. The Attendance module is accessible to coaches and superadmin only.']);
+    echo json_encode(['success' => false, 'error' => 'Access denied. The Attendance module is accessible to coaches and superadmin only.']);
     exit;
 }
 
@@ -118,6 +55,7 @@ if ($method === 'GET') {
     $isSuperadmin = ($auth['role'] === 'superadmin');
     $coach = $auth['coach'] ?? null;
     $coach_batch_id = intval($coach['batch_id'] ?? 0);
+    $coach_id = intval($coach['coach_id'] ?? 0);
     $action = $_GET['action'] ?? '';
 
     // Action: Fetch students for a specific batch & attendance date
@@ -626,6 +564,8 @@ if ($method === 'POST') {
         }
 
         try {
+            $pdo->beginTransaction();
+
             $upsertStmt = $pdo->prepare('
                 INSERT INTO vsa_attendance (batch_id, coach_id, student_id, attendance_date, status)
                 VALUES (?, ?, ?, ?, ?)
@@ -649,6 +589,8 @@ if ($method === 'POST') {
                 }
             }
 
+            $pdo->commit();
+
             $bStmt = $pdo->prepare('SELECT batch_name FROM vsa_batches WHERE batch_id = ?');
             $bStmt->execute([$batch_id]);
             $batchName = $bStmt->fetchColumn() ?: "Batch #{$batch_id}";
@@ -667,8 +609,12 @@ if ($method === 'POST') {
                 'message' => 'Attendance records saved successfully.'
             ]);
         } catch (PDOException $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             http_response_code(500);
-            echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
+            $errMsg = function_exists('formatSafeErrorMessage') ? formatSafeErrorMessage($e, 'Database error occurred saving attendance.') : $e->getMessage();
+            echo json_encode(['error' => $errMsg]);
         }
         exit;
     }

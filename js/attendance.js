@@ -244,7 +244,7 @@ async function populateSuperadminBatchFilterDropdown() {
     if (typeof cachedBatchesList !== 'undefined' && Array.isArray(cachedBatchesList) && cachedBatchesList.length > 0) {
       batches = cachedBatchesList;
     } else {
-      const res = await fetch(BATCHES_API);
+      const res = await fetch(BATCHES_API, { credentials: 'include' });
       const data = await res.json();
       if (data.success && Array.isArray(data.batches)) {
         batches = data.batches;
@@ -598,7 +598,7 @@ async function fetchAttendanceSheets() {
   try {
     const { role, email, coach_id } = getAuthParams();
     const url = `${ATTENDANCE_API}?role=${encodeURIComponent(role)}&email=${encodeURIComponent(email)}&coach_id=${coach_id}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { credentials: 'include' });
     if (!res.ok) throw new Error(`HTTP error ${res.status}`);
     const data = await res.json();
 
@@ -1003,6 +1003,7 @@ async function submitNewAttendanceSheet(e) {
   try {
     const res = await fetch(ATTENDANCE_API, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'create_sheet',
@@ -1071,7 +1072,7 @@ async function openAttendanceSheet(batchId, attendanceDate, batchName, coachName
 
   try {
     const url = `${ATTENDANCE_API}?action=get_students&batch_id=${batchId}&attendance_date=${attendanceDate}&role=${encodeURIComponent(role)}&email=${encodeURIComponent(email)}&coach_id=${coach_id}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { credentials: 'include' });
     const data = await res.json();
 
     if (!data.success) {
@@ -1179,6 +1180,7 @@ async function saveAttendanceSheet() {
   try {
     const res = await fetch(ATTENDANCE_API, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'save_attendance',
@@ -1231,6 +1233,7 @@ async function executeDeleteAttendanceSheet() {
   try {
     const res = await fetch(ATTENDANCE_API, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'delete_sheet',
@@ -1600,7 +1603,7 @@ async function fetchCoachStudentsAttendance(forceRefresh = false) {
 
   try {
     const url = `${ATTENDANCE_API}?action=get_coach_students_attendance&role=${encodeURIComponent(role)}&email=${encodeURIComponent(email)}&coach_id=${coach_id}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { credentials: 'include' });
     const data = await res.json();
 
     if (!data.success) {
@@ -1901,7 +1904,7 @@ async function openStudentAttendanceDetails(studentId) {
 
   try {
     const url = `${ATTENDANCE_API}?action=get_student_attendance_history&student_id=${studentId}&role=${encodeURIComponent(role)}&email=${encodeURIComponent(email)}&coach_id=${coach_id}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { credentials: 'include' });
     const data = await res.json();
 
     if (!data.success) {

@@ -102,7 +102,10 @@ async function fetchBatches() {
   if (cardsContainer) cardsContainer.innerHTML = '';
 
   try {
-    const res  = await fetch(BATCHES_API);
+    const res  = await fetch(BATCHES_API, {
+      credentials: 'include',
+      headers: getBatchAuthHeaders()
+    });
     const data = await res.json();
     if (requestId !== fetchBatchesRequestId) return;
     if (!data.success) throw new Error(data.error || 'Fetch failed.');
@@ -110,7 +113,7 @@ async function fetchBatches() {
     const batches = data.batches || [];
     cachedBatchesList = batches;
     updateLiveCount(batches.length);
-    populateBatchDropdowns();
+    populateBatchDropdowns(batches);
     populateCoachDropdowns();
 
     if (batches.length === 0) {
@@ -330,6 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const res = await fetch(BATCHES_API, {
         method: 'POST',
+        credentials: 'include',
         headers: getBatchAuthHeaders(),
         body: JSON.stringify({
           batch_name: name,
@@ -436,6 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const res = await fetch(BATCHES_API, {
         method: 'PUT',
+        credentials: 'include',
         headers: getBatchAuthHeaders(),
         body: JSON.stringify({
           batch_id: parseInt(id),
@@ -554,6 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const res  = await fetch(BATCHES_API, {
           method: 'DELETE',
+          credentials: 'include',
           headers: getBatchAuthHeaders(),
           body: JSON.stringify({ batch_id: parseInt(batchToDelete) })
         });

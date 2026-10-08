@@ -51,8 +51,6 @@ header('Vary: Origin');
 if ($isAllowedOrigin) {
     header("Access-Control-Allow-Origin: {$origin}");
     header('Access-Control-Allow-Credentials: true');
-} else {
-    header('Access-Control-Allow-Origin: *');
 }
 
 header('Content-Type: application/json; charset=utf-8');
@@ -60,7 +58,12 @@ header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-VAVA-Role, X-VAVA-Email, X-VAVA-Coach-ID, X-VAVA-Coach-Id, X-VAVA-Student-ID, X-VAVA-Student-Id, X-VAVA-Actor-Name, X-Requested-With, Accept, Origin');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
+    if ($isAllowedOrigin) {
+        header('Access-Control-Max-Age: 86400');
+        http_response_code(200);
+    } else {
+        http_response_code(403);
+    }
     exit;
 }
 
@@ -91,6 +94,20 @@ ensureStudentNoteColumn($pdo);
  */
 function resolveUser($pdo, $input = []) {
     if (session_status() === PHP_SESSION_NONE) {
+        $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                   || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)
+                   || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+        if (ini_get('session.use_cookies')) {
+            $cp = session_get_cookie_params();
+            session_set_cookie_params([
+                'lifetime' => $cp['lifetime'],
+                'path'     => $cp['path'] ?: '/',
+                'domain'   => $cp['domain'],
+                'secure'   => $isHttps,
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]);
+        }
         @session_start();
     }
 
@@ -103,43 +120,31 @@ function resolveUser($pdo, $input = []) {
 
     $hasSession = !empty($sessionRole) && !empty($sessionEmail);
 
-    // 2. Untrusted Request Headers & Query Params (Client-controlled values)
-    $headerRole      = strtolower(trim($_SERVER['HTTP_X_VAVA_ROLE'] ?? $_GET['role'] ?? $input['role'] ?? ''));
-    $headerEmail     = strtolower(trim($_SERVER['HTTP_X_VAVA_EMAIL'] ?? $_GET['email'] ?? $input['email'] ?? ''));
-    $headerCoachId   = intval($_SERVER['HTTP_X_VAVA_COACH_ID'] ?? $_GET['coach_id'] ?? $input['coach_id'] ?? 0);
-    $headerStudentId = intval($_SERVER['HTTP_X_VAVA_STUDENT_ID'] ?? $_GET['student_id'] ?? $input['student_id'] ?? 0);
-
-    // 3. Security Enforcement: If session exists, headers MUST NEVER override session identity!
-    if ($hasSession) {
-        $effectiveRole  = $sessionRole;
-        $effectiveEmail = $sessionEmail;
-    } else {
-        $effectiveRole  = $headerRole;
-        $effectiveEmail = $headerEmail;
+    // Unauthenticated requests are strictly rejected
+    if (!$hasSession) {
+        http_response_code(401);
+        echo json_encode([
+            'success' => false,
+            'error'   => 'Authentication required. Please log in.'
+        ]);
+        exit;
     }
+
+    $effectiveRole  = $sessionRole;
+    $effectiveEmail = $sessionEmail;
 
     // ── ROLE: STUDENT ────────────────────────────────────────────────────────
     if ($effectiveRole === 'student') {
         $student = null;
-        if ($hasSession) {
-            if (!empty($effectiveEmail)) {
-                $stmt = $pdo->prepare('SELECT * FROM vsa_students WHERE LOWER(TRIM(student_email)) = ? LIMIT 1');
-                $stmt->execute([$effectiveEmail]);
-                $student = $stmt->fetch(PDO::FETCH_ASSOC);
-            }
-            if (!$student && $sessionStudentId > 0) {
-                $stmt = $pdo->prepare('SELECT * FROM vsa_students WHERE student_id = ? LIMIT 1');
-                $stmt->execute([$sessionStudentId]);
-                $student = $stmt->fetch(PDO::FETCH_ASSOC);
-            }
-        } else {
-            // Unauthenticated request fallback: Requires verified email to look up student in database.
-            // Client-supplied X-VAVA-Student-ID is NEVER trusted as sole authorization proof.
-            if (!empty($effectiveEmail)) {
-                $stmt = $pdo->prepare('SELECT * FROM vsa_students WHERE LOWER(TRIM(student_email)) = ? LIMIT 1');
-                $stmt->execute([$effectiveEmail]);
-                $student = $stmt->fetch(PDO::FETCH_ASSOC);
-            }
+        if (!empty($effectiveEmail)) {
+            $stmt = $pdo->prepare('SELECT * FROM vsa_students WHERE LOWER(TRIM(student_email)) = ? LIMIT 1');
+            $stmt->execute([$effectiveEmail]);
+            $student = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+        if (!$student && $sessionStudentId > 0) {
+            $stmt = $pdo->prepare('SELECT * FROM vsa_students WHERE student_id = ? LIMIT 1');
+            $stmt->execute([$sessionStudentId]);
+            $student = $stmt->fetch(PDO::FETCH_ASSOC);
         }
 
         if (!$student) {
@@ -170,33 +175,15 @@ function resolveUser($pdo, $input = []) {
             LEFT JOIN vsa_batches b ON c.batch_id = b.batch_id
         ';
 
-        if ($hasSession) {
-            if (!empty($effectiveEmail)) {
-                $stmt = $pdo->prepare($query . ' WHERE LOWER(TRIM(c.coach_email)) = ? LIMIT 1');
-                $stmt->execute([$effectiveEmail]);
-                $coach = $stmt->fetch(PDO::FETCH_ASSOC);
-            }
-            if (!$coach && $sessionCoachId > 0) {
-                $stmt = $pdo->prepare($query . ' WHERE c.coach_id = ? LIMIT 1');
-                $stmt->execute([$sessionCoachId]);
-                $coach = $stmt->fetch(PDO::FETCH_ASSOC);
-            }
-        } else {
-            if ($headerCoachId > 0 && !empty($effectiveEmail)) {
-                $stmt = $pdo->prepare($query . ' WHERE c.coach_id = ? AND LOWER(TRIM(c.coach_email)) = ? LIMIT 1');
-                $stmt->execute([$headerCoachId, $effectiveEmail]);
-                $coach = $stmt->fetch(PDO::FETCH_ASSOC);
-            }
-            if (!$coach && $headerCoachId > 0) {
-                $stmt = $pdo->prepare($query . ' WHERE c.coach_id = ? LIMIT 1');
-                $stmt->execute([$headerCoachId]);
-                $coach = $stmt->fetch(PDO::FETCH_ASSOC);
-            }
-            if (!$coach && !empty($effectiveEmail)) {
-                $stmt = $pdo->prepare($query . ' WHERE LOWER(TRIM(c.coach_email)) = ? LIMIT 1');
-                $stmt->execute([$effectiveEmail]);
-                $coach = $stmt->fetch(PDO::FETCH_ASSOC);
-            }
+        if (!empty($effectiveEmail)) {
+            $stmt = $pdo->prepare($query . ' WHERE LOWER(TRIM(c.coach_email)) = ? LIMIT 1');
+            $stmt->execute([$effectiveEmail]);
+            $coach = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+        if (!$coach && $sessionCoachId > 0) {
+            $stmt = $pdo->prepare($query . ' WHERE c.coach_id = ? LIMIT 1');
+            $stmt->execute([$sessionCoachId]);
+            $coach = $stmt->fetch(PDO::FETCH_ASSOC);
         }
 
         if (!$coach) {
@@ -209,8 +196,21 @@ function resolveUser($pdo, $input = []) {
     }
 
     // ── ROLE: SUPER ADMIN ────────────────────────────────────────────────────
-    if ($effectiveRole === 'admin' || $effectiveRole === 'superadmin') {
-        return ['role' => 'admin'];
+    if ($effectiveRole === 'admin' || $effectiveRole === 'superadmin' || $effectiveRole === 'super admin') {
+        $admin = null;
+        $stmt = $pdo->prepare("SELECT admin_id, admin_name, admin_email FROM vsa_superadmin WHERE LOWER(TRIM(REPLACE(REPLACE(admin_email, '\r', ''), '\n', ''))) = ? LIMIT 1");
+        $stmt->execute([$effectiveEmail]);
+        $admin = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$admin && $sessionAdminId > 0) {
+            $stmt = $pdo->prepare("SELECT admin_id, admin_name, admin_email FROM vsa_superadmin WHERE admin_id = ? LIMIT 1");
+            $stmt->execute([$sessionAdminId]);
+            $admin = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+
+        if ($admin) {
+            return ['role' => 'admin', 'admin' => $admin];
+        }
     }
 
     // Unauthenticated or unknown role: reject access
@@ -276,6 +276,10 @@ function saveOptimizedStudentPhoto($pdo, $student_id, $image_data) {
 
     $decoded = base64_decode($image_data);
     if ($decoded === false || strlen($decoded) === 0) {
+        return null;
+    }
+
+    if (strlen($decoded) > 5 * 1024 * 1024) {
         return null;
     }
 
@@ -782,7 +786,7 @@ if ($method === 'PUT') {
         exit;
     }
 
-    $student_id               = intval($input['student_id']             ?? 0);
+    $student_id               = intval($input['student_id'] ?? $_GET['id'] ?? 0);
     $student_name             = trim($input['student_name']             ?? '');
     $parent_name              = trim($input['parent_name']              ?? '');
     $date_of_birth            = trim($input['date_of_birth']            ?? '');
@@ -982,6 +986,10 @@ if ($method === 'DELETE') {
             }
         }
 
+        // Clean up role mapping in vsa_user_roles to prevent orphaned mappings
+        $stmtRole = $pdo->prepare("DELETE FROM vsa_user_roles WHERE role = 'student' AND entity_id = ?");
+        $stmtRole->execute([$student_id]);
+
         $stmt = $pdo->prepare('DELETE FROM vsa_students WHERE student_id = ?');
         $stmt->execute([$student_id]);
 
@@ -991,7 +999,8 @@ if ($method === 'DELETE') {
         echo json_encode(['success' => true]);
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(['error' => 'Failed to delete student: ' . $e->getMessage()]);
+        $errMsg = function_exists('formatSafeErrorMessage') ? formatSafeErrorMessage($e, 'Failed to delete student.') : $e->getMessage();
+        echo json_encode(['error' => $errMsg]);
     }
     exit;
 }

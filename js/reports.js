@@ -97,7 +97,7 @@
   async function fetchReportsJson(action, queryParams = {}, options = {}) {
     const url = resolveReportsApiUrl(action, queryParams);
     const headers = Object.assign({}, getAuthHeaders(), options.headers || {});
-    const fetchOpts = Object.assign({}, options, { headers });
+    const fetchOpts = Object.assign({ credentials: 'include' }, options, { headers, credentials: 'include' });
 
     const res = await fetch(url, fetchOpts);
     const contentType = res.headers.get('Content-Type') || '';
@@ -910,7 +910,7 @@
       const url = resolveReportsApiUrl('export_report', params);
       const headers = getAuthHeaders();
 
-      const res = await fetch(url, { method: 'GET', headers });
+      const res = await fetch(url, { method: 'GET', headers, credentials: 'include' });
       const contentType = res.headers.get('Content-Type') || '';
 
       if (contentType.includes('application/json')) {

@@ -6,38 +6,26 @@
  * Credentials are NEVER exposed to the frontend, JavaScript, or public repositories.
  */
 
-// Load .env configuration safely
-function loadEnvFile($filePath) {
-    if (!file_exists($filePath) || !is_readable($filePath)) {
-        return;
-    }
-    $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        $line = trim($line);
-        if (empty($line) || strpos($line, '#') === 0 || strpos($line, '=') === false) {
-            continue;
-        }
-        list($name, $value) = explode('=', $line, 2);
-        $name = trim($name);
-        $value = trim($value, " \t\n\r\0\x0B\"'");
-        if (!array_key_exists($name, $_SERVER) && !array_key_exists($name, $_ENV)) {
-            putenv("$name=$value");
-            $_ENV[$name] = $value;
-            $_SERVER[$name] = $value;
-        }
-    }
-}
+require_once __DIR__ . '/config.php';
 
-// Load from project root or server directory
-loadEnvFile(dirname(__DIR__) . DIRECTORY_SEPARATOR . '.env');
-loadEnvFile(__DIR__ . DIRECTORY_SEPARATOR . '.env');
+$twilioConfig = getTwilioConfig();
 
 // Twilio Core Configuration
-define('TWILIO_ACCOUNT_SID', getenv('TWILIO_ACCOUNT_SID') ?: ($_ENV['TWILIO_ACCOUNT_SID'] ?? ''));
-define('TWILIO_AUTH_TOKEN', getenv('TWILIO_AUTH_TOKEN') ?: ($_ENV['TWILIO_AUTH_TOKEN'] ?? ''));
-define('TWILIO_WHATSAPP_FROM', getenv('TWILIO_WHATSAPP_FROM') ?: ($_ENV['TWILIO_WHATSAPP_FROM'] ?? 'whatsapp:+17372508034'));
-define('TWILIO_WHATSAPP_CONTENT_SID', getenv('TWILIO_WHATSAPP_CONTENT_SID') ?: ($_ENV['TWILIO_WHATSAPP_CONTENT_SID'] ?? ''));
-define('TWILIO_WHATSAPP_SANDBOX', strtolower(getenv('TWILIO_WHATSAPP_SANDBOX') ?: ($_ENV['TWILIO_WHATSAPP_SANDBOX'] ?? 'true')) === 'true');
+if (!defined('TWILIO_ACCOUNT_SID')) {
+    define('TWILIO_ACCOUNT_SID', $twilioConfig['account_sid']);
+}
+if (!defined('TWILIO_AUTH_TOKEN')) {
+    define('TWILIO_AUTH_TOKEN', $twilioConfig['auth_token']);
+}
+if (!defined('TWILIO_WHATSAPP_FROM')) {
+    define('TWILIO_WHATSAPP_FROM', $twilioConfig['from']);
+}
+if (!defined('TWILIO_WHATSAPP_CONTENT_SID')) {
+    define('TWILIO_WHATSAPP_CONTENT_SID', $twilioConfig['content_sid']);
+}
+if (!defined('TWILIO_WHATSAPP_SANDBOX')) {
+    define('TWILIO_WHATSAPP_SANDBOX', $twilioConfig['sandbox']);
+}
 
 /**
  * Check whether Twilio credentials are configured.

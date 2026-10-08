@@ -8,15 +8,73 @@
 
 date_default_timezone_set('Asia/Kolkata');
 
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-VAVA-Role, X-VAVA-Email, X-VAVA-Coach-ID, X-VAVA-Actor-Name');
+// ============================================================================
+// DYNAMIC & SECURE CORS CONFIGURATION
+// Supports Localhost/127.0.0.1 development, Live Server, and Hostinger Production.
+// Strictly enforces exact origin reflection + credentials for approved origins.
+// NEVER outputs wildcard (*) for credentialed requests.
+// ============================================================================
+
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+$httpHost = strtolower($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '');
+$serverHostOnly = !empty($httpHost) ? explode(':', $httpHost)[0] : '';
+$originHost = !empty($origin) ? strtolower(parse_url($origin, PHP_URL_HOST) ?? '') : '';
+
+$allowedOrigins = [
+    'http://localhost',
+    'http://127.0.0.1',
+    'http://localhost:5500',
+    'http://127.0.0.1:5500',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:8080',
+    'http://127.0.0.1:8080',
+    'https://vavasports.com',
+    'https://www.vavasports.com',
+    'http://vavasports.com',
+    'http://www.vavasports.com'
+];
+
+$isAllowedOrigin = false;
+if (!empty($origin)) {
+    if (in_array($origin, $allowedOrigins, true)) {
+        $isAllowedOrigin = true;
+    } elseif (preg_match('/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i', $origin)) {
+        $isAllowedOrigin = true;
+    } elseif (preg_match('/^https?:\/\/([a-z0-9-]+\.)*vavasports\.com(:\d+)?$/i', $origin)) {
+        $isAllowedOrigin = true;
+    } elseif (preg_match('/^https?:\/\/([a-z0-9-]+\.)*(hostingersite\.com|hostingerapp\.com)(:\d+)?$/i', $origin)) {
+        $isAllowedOrigin = true;
+    } elseif (!empty($serverHostOnly) && !empty($originHost)) {
+        if ($originHost === $serverHostOnly ||
+            $originHost === 'www.' . $serverHostOnly ||
+            'www.' . $originHost === $serverHostOnly) {
+            $isAllowedOrigin = true;
+        }
+    }
+}
+
+header('Vary: Origin');
+if ($isAllowedOrigin) {
+    header("Access-Control-Allow-Origin: {$origin}");
+    header('Access-Control-Allow-Credentials: true');
+}
+
+header('Content-Type: application/json; charset=utf-8');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-VAVA-Role, X-VAVA-Email, X-VAVA-Coach-ID, X-VAVA-Coach-Id, X-VAVA-Student-ID, X-VAVA-Student-Id, X-VAVA-Actor-Name, X-Requested-With, Accept, Origin');
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 if ($method === 'OPTIONS') {
-    http_response_code(200);
+    if ($isAllowedOrigin) {
+        header('Access-Control-Max-Age: 86400');
+        http_response_code(200);
+    } else {
+        http_response_code(403);
+    }
     exit;
 }
 
@@ -121,73 +179,76 @@ function updateOverdueStatuses($pdo) {
 /**
  * Role-Based Access Control Helper
  * Strictly enforces that only authenticated Super Admin users can access Fees & Collections.
+ * Authoritative source of truth is the authenticated server-side PHP session.
  * Coach and Student requests are rejected with HTTP 403 Forbidden.
  */
 function verifySuperAdminAccess($pdo, $input = []) {
-    $role = $_SERVER['HTTP_X_VAVA_ROLE'] ?? $_GET['role'] ?? $input['role'] ?? '';
-    $email = $_SERVER['HTTP_X_VAVA_EMAIL'] ?? $_GET['email'] ?? $input['email'] ?? '';
+    if (session_status() === PHP_SESSION_NONE) {
+        $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                   || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)
+                   || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+        if (ini_get('session.use_cookies')) {
+            $cp = session_get_cookie_params();
+            session_set_cookie_params([
+                'lifetime' => $cp['lifetime'],
+                'path'     => $cp['path'] ?: '/',
+                'domain'   => $cp['domain'],
+                'secure'   => $isHttps,
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]);
+        }
+        @session_start();
+    }
 
-    $roleLower = strtolower(trim($role));
-    $cleanEmail = trim($email);
+    // 1. Authenticated Server-Side Session (Authoritative Source of Truth)
+    $sessionRole      = !empty($_SESSION['user_role']) ? strtolower(trim($_SESSION['user_role'])) : '';
+    $sessionEmail     = !empty($_SESSION['user_email']) ? strtolower(trim($_SESSION['user_email'])) : '';
+    $sessionAdminId   = intval($_SESSION['admin_id'] ?? 0);
 
-    // 1. Explicitly reject Coach or Student roles
-    if ($roleLower === 'coach' || $roleLower === 'student') {
-        http_response_code(403);
+    $hasSession = !empty($sessionRole) && !empty($sessionEmail);
+
+    // Unauthenticated requests are strictly rejected
+    if (!$hasSession) {
+        http_response_code(401);
         echo json_encode([
             'success' => false,
-            'error'   => 'Access denied. Fees & Collections is restricted to Super Admin only.'
+            'error'   => 'Authentication required. Please log in.'
         ]);
         exit;
     }
 
-    // 2. If an email is supplied, verify it strictly against database records
-    if (!empty($cleanEmail)) {
-        // Check if email belongs to a Coach
-        $coachCheck = $pdo->prepare('SELECT coach_id FROM vsa_coaches WHERE coach_email = ? LIMIT 1');
-        $coachCheck->execute([$cleanEmail]);
-        if ($coachCheck->fetch()) {
-            http_response_code(403);
-            echo json_encode([
-                'success' => false,
-                'error'   => 'Access denied. Coaches do not have permission to access Fees & Collections.'
-            ]);
-            exit;
-        }
-
-        // Check if email belongs to a Student
-        $studentCheck = $pdo->prepare('SELECT student_id FROM vsa_students WHERE student_email = ? LIMIT 1');
-        $studentCheck->execute([$cleanEmail]);
-        if ($studentCheck->fetch()) {
-            http_response_code(403);
-            echo json_encode([
-                'success' => false,
-                'error'   => 'Access denied. Students do not have permission to access Fees & Collections.'
-            ]);
-            exit;
-        }
-
-        // Check if email belongs to Super Admin table
-        $adminStmt = $pdo->prepare('SELECT admin_id, admin_name, admin_email FROM vsa_superadmin WHERE admin_email = ? LIMIT 1');
-        $adminStmt->execute([$cleanEmail]);
-        $admin = $adminStmt->fetch();
-
-        if (!$admin) {
-            http_response_code(403);
-            echo json_encode([
-                'success' => false,
-                'error'   => 'Access denied. No Super Admin account associated with the provided credentials.'
-            ]);
-            exit;
-        }
-
-        return $admin;
+    // 2. Role Authorization: Explicitly reject Coach or Student
+    if ($sessionRole === 'coach') {
+        http_response_code(403);
+        echo json_encode([
+            'success' => false,
+            'error'   => 'Access denied. Coaches do not have permission to access Fees & Collections.'
+        ]);
+        exit;
     }
 
-    // 3. If no email is supplied, check role indicator and database presence
-    if ($roleLower === 'admin' || $roleLower === 'superadmin' || empty($roleLower)) {
-        // Local dev environment: verify that at least one Super Admin exists in the database
-        $adminStmt = $pdo->query('SELECT admin_id, admin_name, admin_email FROM vsa_superadmin ORDER BY admin_id ASC LIMIT 1');
-        $admin = $adminStmt->fetch();
+    if ($sessionRole === 'student') {
+        http_response_code(403);
+        echo json_encode([
+            'success' => false,
+            'error'   => 'Access denied. Students do not have permission to access Fees & Collections.'
+        ]);
+        exit;
+    }
+
+    // 3. Super Admin Verification strictly against vsa_superadmin table
+    if ($sessionRole === 'admin' || $sessionRole === 'superadmin' || $sessionRole === 'super admin') {
+        $stmt = $pdo->prepare("SELECT admin_id, admin_name, admin_email FROM vsa_superadmin WHERE LOWER(TRIM(REPLACE(REPLACE(admin_email, '\r', ''), '\n', ''))) = ? LIMIT 1");
+        $stmt->execute([$sessionEmail]);
+        $admin = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$admin && $sessionAdminId > 0) {
+            $stmt = $pdo->prepare("SELECT admin_id, admin_name, admin_email FROM vsa_superadmin WHERE admin_id = ? LIMIT 1");
+            $stmt->execute([$sessionAdminId]);
+            $admin = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+
         if ($admin) {
             return $admin;
         }

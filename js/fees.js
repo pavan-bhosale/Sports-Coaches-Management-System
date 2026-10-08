@@ -12,12 +12,9 @@
   // AUTOMATIC ENVIRONMENT DETECTION & FEES API ENDPOINT
   // Reuses global FEES_API from utils.js, or falls back to auto-detected path.
   // ============================================================================
-  const isLocal = typeof window !== 'undefined' &&
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-
   const FEES_API_URL = (typeof FEES_API !== 'undefined' && FEES_API)
     ? FEES_API
-    : (isLocal ? 'http://localhost/VAVA_sports/server/fees.php' : 'server/fees.php');
+    : ((typeof getApiEndpoint === 'function') ? getApiEndpoint('fees') : 'server/fees.php');
 
   // ==========================================================================
   // 1. COMPONENT STATE (Real API Data Store)
@@ -119,7 +116,8 @@
 
       const response = await fetch(`${FEES_API_URL}?${params.toString()}`, {
         method: 'GET',
-        headers: getAuthHeaders()
+        headers: getAuthHeaders(),
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -479,6 +477,7 @@
       const response = await fetch(FEES_API_URL, {
         method: 'POST',
         headers: getAuthHeaders(),
+        credentials: 'include',
         body: JSON.stringify({
           action: 'delete_cycle',
           fee_month: targetMonth.date
@@ -662,7 +661,8 @@
     try {
       const res = await fetch(`${FEES_API_URL}?action=get_student_fee_details&fee_id=${feeId}`, {
         method: 'GET',
-        headers: getAuthHeaders()
+        headers: getAuthHeaders(),
+        credentials: 'include'
       });
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -1273,7 +1273,8 @@
       });
       const res = await fetch(`${FEES_API_URL}?${params.toString()}`, {
         method: 'GET',
-        headers: getAuthHeaders()
+        headers: getAuthHeaders(),
+        credentials: 'include'
       });
       if (res.ok) {
         const data = await res.json();
@@ -1428,6 +1429,7 @@
       const response = await fetch(FEES_API_URL, {
         method: 'POST',
         headers: getAuthHeaders(),
+        credentials: 'include',
         body: JSON.stringify({
           action: 'start_payment_cycle',
           month: newPaymentSelectedMonth,

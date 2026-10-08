@@ -14,6 +14,24 @@ var cropRotation = 0;
 var cropFlipH = 1;
 var cropFlipV = 1;
 
+function getCoachAuthHeaders() {
+  const role = localStorage.getItem('vava_role') || 'admin';
+  const email = localStorage.getItem('vava_email') || '';
+  const coach_id = localStorage.getItem('vava_coach_id') || '0';
+  let name = '';
+  try {
+    const u = JSON.parse(localStorage.getItem('vava_user') || '{}');
+    name = u.name || '';
+  } catch(e) {}
+  return {
+    'Content-Type': 'application/json',
+    'X-VAVA-Role': role,
+    'X-VAVA-Email': email,
+    'X-VAVA-Coach-ID': String(coach_id),
+    'X-VAVA-Actor-Name': name
+  };
+}
+
 function updateCoachesLiveCount(count) {
   const el = document.getElementById('coachesLiveCount');
   if (!el) return;
@@ -32,8 +50,15 @@ async function fetchCoaches() {
   tableBody.innerHTML = '';
   if (cardsContainer) cardsContainer.innerHTML = '';
 
+  const apiUrl = (typeof window !== 'undefined' && typeof window.getApiEndpoint === 'function')
+    ? window.getApiEndpoint('coaches')
+    : (typeof COACHES_API !== 'undefined' ? COACHES_API : 'server/coaches.php');
+
   try {
-    const res = await fetch(COACHES_API);
+    const res = await fetch(apiUrl, {
+      credentials: 'include',
+      headers: getCoachAuthHeaders()
+    });
     const data = await res.json();
     if (requestId !== fetchCoachesRequestId) return;
     if (!data.success) throw new Error(data.error || 'Fetch failed.');
@@ -73,6 +98,10 @@ async function fetchCoaches() {
           batchesHtml = '<span class="text-secondary" style="font-size:0.835rem;">—</span>';
         }
 
+        const safeCoachName = escapeHtml(coach.coach_name);
+        const safeCoachEmail = escapeHtml(coach.coach_email || '');
+        const safeCoachCity = escapeHtml(coach.coach_city || '—');
+
         tr.innerHTML = `
           <td>
             <div class="student-cell">
@@ -80,14 +109,14 @@ async function fetchCoaches() {
                 ${coach.coach_photo ? `<img src="${coach.coach_photo}" class="coach-photo-img" alt="Coach Photo">` : initials}
               </div>
               <div>
-                <a href="javascript:void(0)" class="coach-name-link" data-id="${coach.coach_id}">${coach.coach_name}</a>
-                <div class="student-sub">${coach.coach_email || ''}</div>
+                <a href="javascript:void(0)" class="coach-name-link" data-id="${coach.coach_id}">${safeCoachName}</a>
+                <div class="student-sub">${safeCoachEmail}</div>
               </div>
             </div>
           </td>
           <td>${batchesHtml}</td>
           <td><span class="badge-status badge-success">${licenseLabel}</span></td>
-          <td><span class="branch-tag">${coach.coach_city || '—'}</span></td>
+          <td><span class="branch-tag">${safeCoachCity}</span></td>
           <td class="text-secondary" style="font-size:0.85rem;">${joinDateFormatted}</td>
           <td style="font-size:0.875rem;">${phoneFormatted}</td>
           <td>
@@ -148,7 +177,7 @@ async function fetchCoaches() {
               <div class="coach-card-profile">
                 ${avatarHtml}
                 <div class="coach-card-info">
-                  <a href="javascript:void(0)" class="coach-card-name coach-name-link" data-id="${coach.coach_id}">${coach.coach_name}</a>
+                  <a href="javascript:void(0)" class="coach-card-name coach-name-link" data-id="${coach.coach_id}">${safeCoachName}</a>
                   <div class="coach-card-license-wrap">
                     <span class="coach-card-pill pill-license">${licenseLabel}</span>
                   </div>
@@ -280,7 +309,10 @@ async function openCoachProfile(coachId) {
   if (!modal) return;
 
   try {
-    const res = await fetch(`${COACHES_API}?id=${coachId}`);
+    const res = await fetch(`${COACHES_API}?id=${coachId}`, {
+      credentials: 'include',
+      headers: getCoachAuthHeaders()
+    });
     const data = await res.json();
     if (!data.success || !data.coach) throw new Error('Coach not found');
 
@@ -448,27 +480,10 @@ document.addEventListener('DOMContentLoaded', () => {
       submitAddCoach.disabled = true;
       submitAddCoach.innerHTML = 'Registering...';
 
-function getCoachAuthHeaders() {
-  const role = localStorage.getItem('vava_role') || 'admin';
-  const email = localStorage.getItem('vava_email') || '';
-  const coach_id = localStorage.getItem('vava_coach_id') || '0';
-  let name = '';
-  try {
-    const u = JSON.parse(localStorage.getItem('vava_user') || '{}');
-    name = u.name || '';
-  } catch(e) {}
-  return {
-    'Content-Type': 'application/json',
-    'X-VAVA-Role': role,
-    'X-VAVA-Email': email,
-    'X-VAVA-Coach-ID': String(coach_id),
-    'X-VAVA-Actor-Name': name
-  };
-}
-
       try {
         const res = await fetch(COACHES_API, {
           method: 'POST',
+          credentials: 'include',
           headers: getCoachAuthHeaders(),
           body: JSON.stringify({
             coach_name: name,
@@ -519,6 +534,7 @@ function getCoachAuthHeaders() {
 
     try {
       const coach = JSON.parse(decodeURIComponent(editBtn.dataset.coach));
+      currentLoadedCoachData = coach;
       document.getElementById('editCoachId').value              = coach.coach_id || '';
       document.getElementById('editCoachFullName').value        = coach.coach_name || '';
       document.getElementById('editCoachEmail').value           = coach.coach_email || '';
@@ -586,12 +602,14 @@ function getCoachAuthHeaders() {
       const postal          = document.getElementById('editCoachPostal').value.trim();
       const emergencyName   = document.getElementById('editCoachEmergencyName').value.trim();
       const emergencyNumber = document.getElementById('editCoachEmergencyNumber').value.trim();
+      const batchId         = (currentLoadedCoachData && currentLoadedCoachData.batch_id) ? parseInt(currentLoadedCoachData.batch_id, 10) : null;
       submitEditCoach.disabled = true;
       submitEditCoach.innerHTML = 'Saving...';
 
       try {
         const res = await fetch(COACHES_API, {
           method: 'PUT',
+          credentials: 'include',
           headers: getCoachAuthHeaders(),
           body: JSON.stringify({
             coach_id: parseInt(id),
@@ -652,6 +670,7 @@ function getCoachAuthHeaders() {
       try {
         const res = await fetch(COACHES_API, {
           method: 'DELETE',
+          credentials: 'include',
           headers: getCoachAuthHeaders(),
           body: JSON.stringify({ coach_id: parseInt(coachToDelete) })
         });
@@ -740,7 +759,8 @@ function getCoachAuthHeaders() {
             if (!activeProfileCoachId) return;
             const res = await fetch(COACHES_API, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              headers: Object.assign({ 'Content-Type': 'application/json' }, getCoachAuthHeaders()),
               body: JSON.stringify({
                 action: 'upload_photo',
                 coach_id: activeProfileCoachId,
@@ -774,7 +794,8 @@ function getCoachAuthHeaders() {
       try {
         const res = await fetch(COACHES_API, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          headers: Object.assign({ 'Content-Type': 'application/json' }, getCoachAuthHeaders()),
           body: JSON.stringify({
             action: 'delete_photo',
             coach_id: activeProfileCoachId
@@ -812,4 +833,10 @@ function getCoachAuthHeaders() {
       });
     });
   }
+
+  if (window.location.hash === '#coaches') {
+    fetchCoaches();
+  }
 });
+
+window.fetchCoaches = fetchCoaches;

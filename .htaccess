@@ -1,0 +1,61 @@
+# ==============================================================================
+# VAVA Sports Academy - Apache Security & Access Protection Configuration
+# ==============================================================================
+
+# 1. Deny public HTTP access to dot-directories (e.g. .git/) and dot-files (e.g. .env)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule (^|/)\.(?!well-known) - [F,L]
+</IfModule>
+
+<IfModule !mod_rewrite.c>
+    RedirectMatch 403 /\..*$
+</IfModule>
+
+# 2. Deny public HTTP access to sensitive environment, config, logs, and database files
+<FilesMatch "(\.env|\.log$|\.sql$|composer\.(json|lock)|package(-lock)?\.json)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# 3. Prevent directory browsing/indexing
+<IfModule mod_autoindex.c>
+    Options -Indexes
+</IfModule>
+
+# 4. Browser Caching & Application Shell Freshness Strategy
+# Ensures HTML shells always revalidate to receive latest asset versions,
+# while versioned static assets are cached safely.
+<IfModule mod_headers.c>
+    # HTML shells must never be cached without revalidation so users immediately get updated asset tags
+    <FilesMatch "\.(html|htm|php)$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set Pragma "no-cache"
+        Header set Expires "0"
+    </FilesMatch>
+
+    # Static assets (JS, CSS, images, web fonts) cached safely and cache-busted via ?v= release query strings
+    <FilesMatch "\.(js|css|png|jpg|jpeg|gif|webp|svg|ico|woff|woff2|ttf|eot)$">
+        Header set Cache-Control "max-age=604800, public"
+    </FilesMatch>
+
+    # Standard security headers
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# 5. MIME Types Configuration
+<IfModule mod_mime.c>
+    AddType application/javascript js
+    AddType text/css css
+    AddType application/json json
+    AddType image/svg+xml svg
+    AddType image/webp webp
+    AddType application/manifest+json webmanifest
+</IfModule>

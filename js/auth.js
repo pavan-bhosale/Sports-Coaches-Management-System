@@ -114,12 +114,23 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       if (res.ok && data && data.success) {
-        // Save token, role, and user object to localStorage
+        // Clean any lingering session state from previous logins
+        try {
+          localStorage.removeItem('vava_api_base');
+          localStorage.removeItem('vava_coach_id');
+          localStorage.removeItem('vava_student_id');
+        } catch (_) {}
+
+        const authoritativeRole = (data.user?.role || currentRole).toLowerCase();
+        const normalizedRole = (authoritativeRole === 'superadmin' || authoritativeRole === 'admin') ? 'admin' : authoritativeRole;
+
         localStorage.setItem('vava_token', data.token || response.credential || '');
-        localStorage.setItem('vava_role', currentRole);
+        localStorage.setItem('vava_role', normalizedRole);
         if (data.user) {
           localStorage.setItem('vava_user', JSON.stringify(data.user));
           localStorage.setItem('vava_email', data.user.email || '');
+          if (data.user.coach_id) localStorage.setItem('vava_coach_id', String(data.user.coach_id));
+          if (data.user.student_id) localStorage.setItem('vava_student_id', String(data.user.student_id));
         }
         
         showToast(`Google Auth successful! Logging in as ${config.title}...`, 'success');

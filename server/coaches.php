@@ -4,20 +4,25 @@
  * Handles GET (fetch all or by ID), POST (create / upload photo / delete photo / assign batch), PUT (update), DELETE (delete coach)
  */
 
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-VAVA-Role, X-VAVA-Email, X-VAVA-Coach-ID, X-VAVA-Actor-Name');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
+require_once 'auth_helper.php';
+applyCorsHeaders('GET, POST, PUT, DELETE, OPTIONS');
 
 require_once 'db_connect.php';
 require_once 'activity_logger.php';
 
+// Enforce session authentication for all requests
+$currentUser = requireAuthSession($pdo);
+
 $method = $_SERVER['REQUEST_METHOD'];
+
+// Mutations require Super Admin (or coach managing own photo)
+if ($method === 'PUT' || $method === 'DELETE') {
+    if ($currentUser['role'] !== 'admin') {
+        http_response_code(403);
+        echo json_encode(['error' => 'Access denied. Only Super Admin can modify or delete coaches.']);
+        exit;
+    }
+}
 
 // ── GET: fetch coaches ─────────────────────────────────────────────────────
 if ($method === 'GET') {
@@ -68,6 +73,23 @@ if ($method === 'POST') {
     $input = json_decode(file_get_contents('php://input'), true);
     $action = $input['action'] ?? '';
 
+    // Check permissions
+    if ($action === 'upload_photo' || $action === 'delete_photo') {
+        $targetCoachId = intval($input['coach_id'] ?? 0);
+        if ($currentUser['role'] !== 'admin' && ($currentUser['role'] !== 'coach' || intval($currentUser['coach_id'] ?? 0) !== $targetCoachId)) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Access denied. You cannot modify photos for this coach.']);
+            exit;
+        }
+    } else {
+        // Registering a new coach is strictly Super Admin only
+        if ($currentUser['role'] !== 'admin') {
+            http_response_code(403);
+            echo json_encode(['error' => 'Access denied. Only Super Admin can register new coaches.']);
+            exit;
+        }
+    }
+
     // Handle Upload Photo
     if ($action === 'upload_photo') {
         $coach_id = intval($input['coach_id'] ?? 0);
@@ -92,10 +114,20 @@ if ($method === 'POST') {
             $ext = 'jpg';
         }
 
+        if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
+            $ext = 'jpg';
+        }
+
         $image_data = base64_decode($image_data);
         if ($image_data === false) {
             http_response_code(400);
             echo json_encode(['error' => 'Base64 image decoding failed.']);
+            exit;
+        }
+
+        if (strlen($image_data) > 5 * 1024 * 1024) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Image file exceeds maximum allowed size of 5 MB.']);
             exit;
         }
 
@@ -313,6 +345,14 @@ if ($method === 'DELETE') {
         $stmtBatch = $pdo->prepare('UPDATE vsa_batches SET coach_id = NULL WHERE coach_id = ?');
         $stmtBatch->execute([$coach_id]);
 
+        // Unlink students assigned to this coach
+        $stmtStud = $pdo->prepare('UPDATE vsa_students SET coach_id = NULL WHERE coach_id = ?');
+        $stmtStud->execute([$coach_id]);
+
+        // Clean up role mapping in vsa_user_roles to prevent orphaned mappings
+        $stmtRole = $pdo->prepare("DELETE FROM vsa_user_roles WHERE role = 'coach' AND entity_id = ?");
+        $stmtRole->execute([$coach_id]);
+
         $stmt = $pdo->prepare('DELETE FROM vsa_coaches WHERE coach_id = ?');
         $stmt->execute([$coach_id]);
 
@@ -322,7 +362,8 @@ if ($method === 'DELETE') {
         echo json_encode(['success' => true]);
     } catch (PDOException $e) {
         http_response_code(500);
-        echo json_encode(['error' => 'Failed to delete coach: ' . $e->getMessage()]);
+        $errMsg = function_exists('formatSafeErrorMessage') ? formatSafeErrorMessage($e, 'Failed to delete coach.') : $e->getMessage();
+        echo json_encode(['error' => $errMsg]);
     }
     exit;
 }
