@@ -27,6 +27,22 @@ if ($method === 'PUT' || $method === 'DELETE') {
 // ── GET: fetch coaches ─────────────────────────────────────────────────────
 if ($method === 'GET') {
     $id = intval($_GET['id'] ?? 0);
+
+    // Authorization Guard: Coaches & Students cannot browse the Coaches module
+    if ($currentUser['role'] !== 'admin') {
+        // Only allow a coach to fetch their own individual record, not all coaches or other coaches
+        if ($currentUser['role'] === 'coach' && $id > 0 && $id === intval($currentUser['coach_id'] ?? 0)) {
+            // Authorized to fetch own record
+        } else {
+            http_response_code(403);
+            echo json_encode([
+                'success' => false,
+                'error'   => 'Access denied. You do not have permission to access the Coaches module.'
+            ]);
+            exit;
+        }
+    }
+
     try {
         if ($id > 0) {
             $stmt = $pdo->prepare('

@@ -24,12 +24,12 @@ use Dompdf\Options;
 function handleAttendanceExport($pdo, $auth, $filters, $format = 'pdf') {
     // 1. Authorization Guard
     $role = strtolower(trim($auth['role'] ?? ''));
-    if ($role === 'student') {
+    if ($role !== 'admin' && $role !== 'superadmin' && $role !== 'super admin') {
         http_response_code(403);
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
             'success' => false,
-            'error'   => 'Access denied. Reports export is restricted to coaches and administrators.'
+            'error'   => 'Access denied. Reports export is restricted to Super Admin.'
         ]);
         exit;
     }

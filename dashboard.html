@@ -28,7 +28,7 @@
 
   <!-- Stylesheets -->
   <link rel="stylesheet" href="css/cropper.min.css?v=c7225b2c">
-  <link rel="stylesheet" href="css/dashboard.css?v=f5c05eca">
+  <link rel="stylesheet" href="css/dashboard.css?v=7fa09496">
   <link rel="stylesheet" href="css/reports.css?v=73b2db1b">
 </head>
 
@@ -177,6 +177,12 @@
               var u = localStorage.getItem('vava_user');
               if (u) userObj = JSON.parse(u);
             } catch(e) {}
+
+            if (role === 'student') {
+              document.body.classList.add('role-student');
+              var dl = document.querySelector('.dashboard-layout');
+              if (dl) dl.classList.add('role-student');
+            }
 
             var displayEmail = email || userObj?.email || '';
             var emailEl = document.getElementById('sidebarUserEmail');
@@ -4376,7 +4382,7 @@
   <script src="js/attendance.js?v=0a1441d8"></script>
   <script src="js/fees.js?v=c5110609"></script>
   <script src="js/inventory.js?v=af816a26"></script>
-  <script src="js/navigation.js?v=4e4940fd"></script>
+  <script src="js/navigation.js?v=6ebbacb8"></script>
   <script src="js/chart.umd.min.js?v=45f5b4f1"></script>
   <script src="js/dashboard.js?v=31ef69aa"></script>
   <script src="js/reports.js?v=b9d2223f"></script>

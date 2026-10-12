@@ -47,13 +47,13 @@ function resolveReportsUser($pdo, $input = []) {
 
     $roleLower = strtolower(trim($authUser['role'] ?? ''));
 
-    // Students have NO access to Reports & Analytics
-    if ($roleLower === 'student') {
+    // Reports & Analytics is strictly restricted to Super Admin
+    if ($roleLower !== 'admin' && $roleLower !== 'superadmin' && $roleLower !== 'super admin') {
         http_response_code(403);
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
             'success' => false,
-            'error'   => 'Access denied. Reports & Analytics is restricted to coaches and administrators.'
+            'error'   => 'Access denied. Reports & Analytics is restricted to Super Admin.'
         ]);
         exit;
     }

@@ -16669,6 +16669,56 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 }
 
+/* ==========================================================================
+   STUDENT ROLE: DASHBOARD-ONLY EXPERIENCE (NO SIDEBAR / NO HAMBURGER)
+   ========================================================================== */
+body.role-student .app-sidebar,
+.dashboard-layout.role-student .app-sidebar,
+body.role-student #sidebarBackdrop,
+.dashboard-layout.role-student #sidebarBackdrop,
+body.role-student .sidebar-toggle-btn,
+.dashboard-layout.role-student .sidebar-toggle-btn {
+  display: none !important;
+}
+
+body.role-student .main-wrapper,
+.dashboard-layout.role-student .main-wrapper {
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  transition: none !important;
+}
+
+body.role-student .dashboard-content,
+.dashboard-layout.role-student .dashboard-content {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding-left: clamp(1rem, 3vw, 2.5rem) !important;
+  padding-right: clamp(1rem, 3vw, 2.5rem) !important;
+}
+
+/* ==========================================================================
+   STUDENT DASHBOARD: RESPONSIVE CARD STACKING (MY TRAINING & MY ATTENDANCE)
+   ========================================================================== */
+@media (max-width: 991px) {
+  #dashStudentView .dash-analytics-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+    width: 100% !important;
+    margin-bottom: 1.25rem !important;
+  }
+
+  #dashStudentView #panelStudentTraining,
+  #dashStudentView #panelStudentAttendanceOverview {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+}
+
+
 
 
 

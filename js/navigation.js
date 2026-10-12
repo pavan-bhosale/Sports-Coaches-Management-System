@@ -114,6 +114,26 @@ function navigateToSection(targetHref, showToastNotice = true) {
     return;
   }
 
+  // 5. Role-based Coaches Access Protection (Super Admin Only)
+  if (targetHref === '#coaches' && !isSuperAdmin) {
+    if (showToastNotice && typeof showToast === 'function') {
+      showToast('Access denied. Coaches directory is accessible to Super Admin only.', 'error');
+    }
+    window.location.hash = '#overview';
+    navigateToSection('#overview', false);
+    return;
+  }
+
+  // 6. Role-based Reports & Analytics Access Protection (Super Admin Only)
+  if (targetHref === '#reports' && !isSuperAdmin) {
+    if (showToastNotice && typeof showToast === 'function') {
+      showToast('Access denied. Reports & Analytics is accessible to Super Admin only.', 'error');
+    }
+    window.location.hash = '#overview';
+    navigateToSection('#overview', false);
+    return;
+  }
+
   if (targetHref === '#overview') {
     if (overviewSection) overviewSection.style.display = 'block';
     const dashboardTitles = {
@@ -239,6 +259,16 @@ function handleHashRoute() {
     return;
   }
   if (currentHash === '#inventory' && !isSuperAdmin) {
+    window.location.hash = '#overview';
+    navigateToSection('#overview', false);
+    return;
+  }
+  if (currentHash === '#coaches' && !isSuperAdmin) {
+    window.location.hash = '#overview';
+    navigateToSection('#overview', false);
+    return;
+  }
+  if (currentHash === '#reports' && !isSuperAdmin) {
     window.location.hash = '#overview';
     navigateToSection('#overview', false);
     return;
@@ -405,8 +435,16 @@ function applySidebarRolePermissions(explicitRole = null) {
   const isCoachUser = (storedRole === 'coach');
   const isStudentUser = (storedRole === 'student');
 
+  const layout = document.querySelector('.dashboard-layout');
+  const body = document.body;
+
   if (isStudentUser) {
-    if (navStudentProfileEl) navStudentProfileEl.style.display = 'flex';
+    body.classList.add('role-student');
+    if (layout) {
+      layout.classList.add('role-student');
+      layout.classList.remove('sidebar-mobile-open', 'sidebar-collapsed');
+    }
+    if (navStudentProfileEl) navStudentProfileEl.style.display = 'none';
     if (navAttendanceEl) navAttendanceEl.style.display = 'none';
     if (navFeesEl) navFeesEl.style.display = 'none';
     if (navInventoryEl) navInventoryEl.style.display = 'none';
@@ -417,6 +455,9 @@ function applySidebarRolePermissions(explicitRole = null) {
     const sectionTitles = document.querySelectorAll('.sidebar-nav .nav-section-title');
     sectionTitles.forEach(t => { t.style.display = 'none'; });
   } else {
+    body.classList.remove('role-student');
+    if (layout) layout.classList.remove('role-student');
+
     if (navStudentProfileEl) navStudentProfileEl.style.display = 'none';
     if (navAttendanceEl) {
       navAttendanceEl.style.display = (isCoachUser || isSuperAdminUser) ? '' : 'none';
@@ -429,8 +470,9 @@ function applySidebarRolePermissions(explicitRole = null) {
     }
     if (navStudentsEl) navStudentsEl.style.display = '';
     if (navBatchesEl) navBatchesEl.style.display = '';
-    if (navCoachesEl) navCoachesEl.style.display = '';
-    if (navReportsEl) navReportsEl.style.display = '';
+    // Coaches & Reports are strictly Super Admin only (hidden for Coaches)
+    if (navCoachesEl) navCoachesEl.style.display = isSuperAdminUser ? '' : 'none';
+    if (navReportsEl) navReportsEl.style.display = isSuperAdminUser ? '' : 'none';
     const sectionTitles = document.querySelectorAll('.sidebar-nav .nav-section-title');
     sectionTitles.forEach(t => { t.style.display = ''; });
   }

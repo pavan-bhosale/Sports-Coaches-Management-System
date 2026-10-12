@@ -30,9 +30,52 @@ if ($method === 'POST' || $method === 'PUT' || $method === 'DELETE') {
     }
 }
 
-// ── GET: fetch all batches ─────────────────────────────────────────────────
+// ── GET: fetch batches ─────────────────────────────────────────────────────
 if ($method === 'GET') {
+    // 1. Role-based Access Control Guard (Students are denied access to Batches module)
+    if ($currentUser['role'] === 'student') {
+        http_response_code(403);
+        echo json_encode([
+            'success' => false,
+            'error'   => 'Access denied. Batches module is not accessible to students.'
+        ]);
+        exit;
+    }
+
     try {
+        // 2. COACH: Strictly scoped to authenticated coach's assigned batches
+        if ($currentUser['role'] === 'coach') {
+            $coachId = intval($currentUser['coach_id'] ?? 0);
+            $coachBatchId = intval($currentUser['batch_id'] ?? 0);
+
+            $stmt = $pdo->prepare('
+                SELECT 
+                    b.batch_id, 
+                    b.batch_name, 
+                    b.batch_location, 
+                    b.batch_time, 
+                    COALESCE(b.sport, "Football") AS sport,
+                    b.coach_id,
+                    c.coach_name,
+                    COUNT(DISTINCT s.student_id) AS student_count,
+                    COUNT(DISTINCT s.student_id) AS current_students,
+                    COUNT(DISTINCT s.student_id) AS max_students,
+                    b.status,
+                    b.created_at 
+                FROM vsa_batches b
+                LEFT JOIN vsa_coaches c ON b.coach_id = c.coach_id
+                LEFT JOIN vsa_students s ON (s.batch_id = b.batch_id OR (s.batch_id IS NULL AND LOWER(TRIM(s.batch_name)) = LOWER(TRIM(b.batch_name))))
+                WHERE (b.coach_id = ? OR b.batch_id = ?)
+                GROUP BY b.batch_id
+                ORDER BY b.created_at DESC
+            ');
+            $stmt->execute([$coachId, $coachBatchId]);
+            $batches = $stmt->fetchAll();
+            echo json_encode(['success' => true, 'batches' => $batches]);
+            exit;
+        }
+
+        // 3. SUPER ADMIN: Full view of all active batches
         $stmt = $pdo->query('
             SELECT 
                 b.batch_id, 
