@@ -721,6 +721,12 @@ async function openStudentProfile(studentId) {
       photoDropdown.classList.remove('show');
     }
 
+    // Role-based profile Sign Out visibility (Students viewing their profile)
+    const signoutWrap = document.getElementById('studentProfileSignoutWrap');
+    if (signoutWrap) {
+      signoutWrap.style.display = isStudent ? 'flex' : 'none';
+    }
+
     // Populate Text Elements
     const profileTitleEl = document.getElementById('studentProfileTitle');
     if (profileTitleEl) profileTitleEl.textContent = `${student.student_name}'s Profile`;

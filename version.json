@@ -1,11 +1,11 @@
 {
     "app": "VAVA Sports Academy",
-    "timestamp": "2026-10-12T12:26:58+02:00",
+    "timestamp": "2026-10-12T12:53:35+02:00",
     "assets": {
         "apple-touch-icon.png": "e9da2a8b",
         "css/auth.css": "05f2f309",
         "css/cropper.min.css": "c7225b2c",
-        "css/dashboard.css": "7fa09496",
+        "css/dashboard.css": "e41961f2",
         "css/reports.css": "73b2db1b",
         "favicon-16x16.png": "5aabe3f8",
         "favicon-32x32.png": "3fe02eb4",
@@ -14,21 +14,19 @@
         "images/vava-sports-academy-logo.png": "77b91b17",
         "js/attendance.js": "0a1441d8",
         "js/auth.js": "67f027c8",
-        "js/batches.js": "8326be5d",
+        "js/batches.js": "fcc01a39",
         "js/chart.umd.min.js": "45f5b4f1",
         "js/coaches.js": "8977f21c",
         "js/cropper.min.js": "8e818423",
         "js/dashboard.js": "31ef69aa",
         "js/fees.js": "c5110609",
         "js/inventory.js": "af816a26",
-        "js/navigation.js": "6ebbacb8",
+        "js/navigation.js": "c70d2b25",
         "js/reports.js": "b9d2223f",
-        "js/students.js": "d6c3a743",
+        "js/students.js": "aa4a5a9e",
         "js/utils.js": "ac13f15e",
         "site.webmanifest": "acc9716a"
     },
-    "files_synced": [
-        "dashboard.html"
-    ],
-    "build_hash": "0181ce4133"
+    "files_synced": [],
+    "build_hash": "6c6282320b"
 }

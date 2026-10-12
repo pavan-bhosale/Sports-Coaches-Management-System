@@ -41,9 +41,102 @@ if ($method === 'GET') {
         ]);
         exit;
     }
+    // 2. Single Batch Details Request (Dynamic batch lookup)
+    if (isset($_GET['id']) || isset($_GET['batch_id'])) {
+        $batchId = intval($_GET['id'] ?? $_GET['batch_id'] ?? 0);
+        if ($batchId <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Invalid batch ID.']);
+            exit;
+        }
+
+        try {
+            // Role scoping: Coach can only view details of batches assigned to them
+            if ($currentUser['role'] === 'coach') {
+                $coachId = intval($currentUser['coach_id'] ?? 0);
+                $coachBatchId = intval($currentUser['batch_id'] ?? 0);
+
+                $chkStmt = $pdo->prepare('
+                    SELECT batch_id FROM vsa_batches 
+                    WHERE batch_id = ? AND (coach_id = ? OR batch_id = ?)
+                ');
+                $chkStmt->execute([$batchId, $coachId, $coachBatchId]);
+                if (!$chkStmt->fetch()) {
+                    http_response_code(403);
+                    echo json_encode([
+                        'success' => false, 
+                        'error'   => 'Access denied. You can only view details for batches assigned to you.'
+                    ]);
+                    exit;
+                }
+            }
+
+            // Fetch batch details with coach
+            $stmt = $pdo->prepare('
+                SELECT 
+                    b.batch_id, 
+                    b.batch_name, 
+                    b.batch_location, 
+                    b.batch_time, 
+                    COALESCE(b.sport, "Football") AS sport,
+                    b.coach_id,
+                    b.max_students,
+                    b.current_students,
+                    b.monthly_fee,
+                    b.total_payment_due,
+                    b.status,
+                    b.created_at,
+                    c.coach_name,
+                    c.coach_email,
+                    c.coach_phone,
+                    c.coach_sport,
+                    c.coach_license,
+                    c.coach_photo
+                FROM vsa_batches b
+                LEFT JOIN vsa_coaches c ON b.coach_id = c.coach_id
+                WHERE b.batch_id = ?
+            ');
+            $stmt->execute([$batchId]);
+            $batch = $stmt->fetch();
+
+            if (!$batch) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'Batch not found.']);
+                exit;
+            }
+
+            // Fetch students enrolled in this batch
+            $sStmt = $pdo->prepare('
+                SELECT 
+                    s.student_id, 
+                    s.student_name, 
+                    s.student_photo, 
+                    s.gender, 
+                    s.status, 
+                    s.joined_date
+                FROM vsa_students s
+                WHERE (s.batch_id = ? OR (s.batch_id IS NULL AND LOWER(TRIM(s.batch_name)) = LOWER(TRIM(?))))
+                ORDER BY s.student_name ASC
+            ');
+            $sStmt->execute([$batchId, $batch['batch_name']]);
+            $students = $sStmt->fetchAll();
+
+            $batch['student_count'] = count($students);
+            $batch['students'] = $students;
+
+            echo json_encode([
+                'success' => true,
+                'batch'   => $batch
+            ]);
+            exit;
+        } catch (PDOException $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Database error: ' . $e->getMessage()]);
+        }
+    }
 
     try {
-        // 2. COACH: Strictly scoped to authenticated coach's assigned batches
+        // 3. COACH: Strictly scoped to authenticated coach's assigned batches
         if ($currentUser['role'] === 'coach') {
             $coachId = intval($currentUser['coach_id'] ?? 0);
             $coachBatchId = intval($currentUser['batch_id'] ?? 0);

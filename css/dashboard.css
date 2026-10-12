@@ -16714,16 +16714,379 @@ body.role-student .dashboard-content,
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
-    box-sizing: border-box !important;
   }
 }
 
+/* ==========================================================================
+   DYNAMIC BATCH DETAILS MODAL & STUDENT PROFILE SIGN OUT STYLES
+   ========================================================================== */
 
+.batch-details-modal-dialog {
+  max-width: 620px !important;
+  width: 95% !important;
+  max-height: 90vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  background: var(--bg-surface-glass, rgba(17, 24, 39, 0.95)) !important;
+  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.12)) !important;
+  border-radius: var(--radius-lg, 12px) !important;
+  backdrop-filter: blur(20px) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6) !important;
+}
 
+.batch-details-modal-body {
+  padding: 1.25rem 1.5rem !important;
+  overflow-y: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1.15rem !important;
+  box-sizing: border-box !important;
+}
 
+.batch-details-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  gap: 1rem;
+  color: var(--text-secondary);
+}
 
+.batch-details-spinner {
+  width: 38px;
+  height: 38px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--gold-highlight, #e5a93c);
+  border-radius: 50%;
+  animation: batchSpin 0.8s linear infinite;
+}
 
+@keyframes batchSpin {
+  to { transform: rotate(360deg); }
+}
 
+.batch-details-error {
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+}
+.batch-details-error .batch-error-icon {
+  font-size: 2.2rem;
+  margin-bottom: 0.75rem;
+}
+.batch-details-error h3 {
+  font-size: 1.15rem;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+.batch-details-error p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  max-width: 340px;
+  margin: 0 auto 1.25rem;
+}
 
+/* Banner / Title Pill Area */
+.batch-detail-banner {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(255, 255, 255, 0.03) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+}
+.batch-detail-banner-title {
+  font-size: 1.25rem;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 0.5rem 0;
+}
+.batch-detail-banner-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
 
+.batch-detail-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.batch-detail-pill.sport {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+.batch-detail-pill.status {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.batch-detail-pill.id {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.1));
+}
+.batch-detail-pill.gold {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--gold-highlight, #e5a93c);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+.batch-detail-pill.subtle {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.1));
+}
 
+/* Detail Section Cards */
+.batch-detail-section-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08));
+  border-radius: 10px;
+  padding: 1rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.batch-detail-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.batch-detail-section-header svg {
+  color: var(--gold-highlight, #e5a93c);
+}
+.batch-detail-count-badge {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--gold-highlight, #e5a93c);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  padding: 0.1rem 0.5rem;
+  margin-left: auto;
+}
+
+/* Grid of fields */
+.batch-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem 1rem;
+}
+.batch-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.batch-detail-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.batch-detail-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.batch-detail-value.highlight {
+  color: var(--gold-highlight, #e5a93c);
+}
+
+/* Coach Profile in Details */
+.batch-detail-coach-profile {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.batch-detail-coach-photo {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--gold-highlight, #e5a93c);
+  flex-shrink: 0;
+}
+.batch-detail-coach-initials {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.4));
+  color: var(--gold-highlight, #e5a93c);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  font-weight: 700;
+  font-size: 1.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.batch-detail-coach-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.batch-detail-coach-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.batch-detail-coach-badges {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+.batch-detail-coach-contacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-top: 0.2rem;
+}
+.batch-detail-coach-contacts span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Enrolled Students Scroll List */
+.batch-students-scroll-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+.batch-student-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.65rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+.batch-student-list-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.batch-student-avatar-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.batch-student-avatar-initials {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.batch-student-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.batch-student-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.batch-student-meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  display: flex;
+  gap: 0.6rem;
+}
+.batch-student-status {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+.batch-student-status.badge-active {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+.batch-student-status.badge-inactive {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.batch-detail-empty-state {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 1rem;
+  color: var(--text-secondary);
+  font-size: 0.835rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+}
+.batch-detail-empty-state svg {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* Student Profile Sign Out Button */
+.student-profile-signout-wrap {
+  width: 100%;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border-glass, rgba(255, 255, 255, 0.1));
+  display: flex;
+  justify-content: center;
+}
+
+.btn-student-profile-signout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+  max-width: 320px;
+  min-height: 44px;
+  padding: 0.7rem 1.5rem;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: var(--radius-md, 8px);
+  color: #f87171;
+  font-family: inherit;
+  font-size: 0.925rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast, 0.2s ease);
+}
+.btn-student-profile-signout:hover {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(239, 68, 68, 0.6);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+.btn-student-profile-signout:active {
+  transform: translateY(0);
+}

@@ -365,42 +365,57 @@ function initSidebarUserProfile() {
   }
 
   // 5. Logout Handling
+  async function executeLogout() {
+    try {
+      if (window.google?.accounts?.id?.disableAutoSelect) {
+        try { google.accounts.id.disableAutoSelect(); } catch (_) {}
+      }
+      // Destroy authoritative server-side PHP session
+      const logoutUrl = (typeof getApiEndpoint === 'function')
+        ? getApiEndpoint('logout')
+        : 'server/logout.php';
+      try {
+        const res = await fetch(logoutUrl, {
+          method: 'POST',
+          credentials: 'include'
+        });
+        if (res.ok) {
+          try { await res.json(); } catch (_) {}
+        }
+      } catch (fetchErr) {
+        console.warn('Logout server notice:', fetchErr);
+      }
+    } catch (err) {
+      console.error('Logout cleanup error:', err);
+    } finally {
+      localStorage.removeItem('vava_token');
+      localStorage.removeItem('vava_role');
+      localStorage.removeItem('vava_user');
+      localStorage.removeItem('vava_email');
+      localStorage.removeItem('vava_coach_id');
+      localStorage.removeItem('vava_student_id');
+      localStorage.removeItem('vava_api_base');
+      sessionStorage.clear();
+      window.location.href = 'index.html';
+    }
+  }
+  window.handleLogout = executeLogout;
+
   if (logoutBtn && !logoutBtn._hasLogoutBound) {
     logoutBtn._hasLogoutBound = true;
-    logoutBtn.addEventListener('click', async (e) => {
+    logoutBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      try {
-        if (window.google?.accounts?.id?.disableAutoSelect) {
-          try { google.accounts.id.disableAutoSelect(); } catch (_) {}
-        }
-        // Destroy authoritative server-side PHP session
-        const logoutUrl = (typeof getApiEndpoint === 'function')
-          ? getApiEndpoint('logout')
-          : 'server/logout.php';
-        try {
-          const res = await fetch(logoutUrl, {
-            method: 'POST',
-            credentials: 'include'
-          });
-          if (res.ok) {
-            try { await res.json(); } catch (_) {}
-          }
-        } catch (fetchErr) {
-          console.warn('Logout server notice:', fetchErr);
-        }
-      } catch (err) {
-        console.error('Logout cleanup error:', err);
-      } finally {
-        localStorage.removeItem('vava_token');
-        localStorage.removeItem('vava_role');
-        localStorage.removeItem('vava_user');
-        localStorage.removeItem('vava_email');
-        localStorage.removeItem('vava_coach_id');
-        localStorage.removeItem('vava_student_id');
-        localStorage.removeItem('vava_api_base');
-        sessionStorage.clear();
-        window.location.href = 'index.html';
-      }
+      executeLogout();
+    });
+  }
+
+  // Student Profile Sign Out button binding
+  const studentProfileSignoutBtn = document.getElementById('btnStudentProfileSignOut');
+  if (studentProfileSignoutBtn && !studentProfileSignoutBtn._hasLogoutBound) {
+    studentProfileSignoutBtn._hasLogoutBound = true;
+    studentProfileSignoutBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      executeLogout();
     });
   }
 
