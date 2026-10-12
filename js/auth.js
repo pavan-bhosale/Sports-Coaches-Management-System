@@ -65,6 +65,13 @@ document.addEventListener('DOMContentLoaded', () => {
           text.textContent = config.hint;
         }
       }
+
+      // Re-verify Google sign-in button sizing if role hint text wrapping shifted card dimensions
+      requestAnimationFrame(() => {
+        if (typeof renderGoogleSignInButton === 'function') {
+          renderGoogleSignInButton();
+        }
+      });
     });
   });
 
@@ -149,44 +156,115 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  function renderGoogleSignInButton() {
+  let lastRenderedWidth = 0;
+  let isGoogleAuthInitialized = false;
+
+  function getAvailableButtonWidth() {
     const btnContainer = document.getElementById("googleSignInBtn");
-    if (!btnContainer || !window.google) return;
+    if (!btnContainer) return 280;
 
-    // Calculate responsive width so the button never overflows the card on small screens
-    // Google GSI button width accepts an integer/string between 200 and 400 pixels
+    const wrapper = btnContainer.closest('.google-auth-wrapper') || btnContainer.parentElement;
     const card = document.getElementById("loginCard") || btnContainer.closest('.auth-card');
-    const cardWidth = card ? card.clientWidth : window.innerWidth;
-    const maxFittingWidth = Math.floor(cardWidth - 36);
-    const targetWidth = Math.min(280, Math.max(200, maxFittingWidth));
 
+    let available = 0;
+    if (wrapper && wrapper.clientWidth > 0) {
+      available = wrapper.clientWidth;
+    } else if (card && card.clientWidth > 0) {
+      const cardStyle = window.getComputedStyle(card);
+      const padLeft = parseFloat(cardStyle.paddingLeft) || 0;
+      const padRight = parseFloat(cardStyle.paddingRight) || 0;
+      available = card.clientWidth - padLeft - padRight;
+    } else {
+      available = window.innerWidth > 0 ? window.innerWidth - 48 : 280;
+    }
+
+    // Google GSI button width accepts an integer between 200 and 400 pixels.
+    // Subtract safe margin (12px) to prevent subpixel flex rounding or DPI scaling
+    // from causing Google's iframe or wrapper from clipping the outer border pill curve.
+    const safeFittingWidth = Math.floor(available - 12);
+    return Math.min(280, Math.max(200, safeFittingWidth));
+  }
+
+  function renderGoogleSignInButton(force = false) {
+    const btnContainer = document.getElementById("googleSignInBtn");
+    if (!btnContainer || !window.google || !window.google.accounts || !window.google.accounts.id) return;
+
+    const targetWidth = getAvailableButtonWidth();
+
+    // Prevent redundant DOM re-rendering if width is virtually unchanged
+    if (!force && lastRenderedWidth && Math.abs(targetWidth - lastRenderedWidth) < 2 && btnContainer.firstElementChild) {
+      return;
+    }
+
+    lastRenderedWidth = targetWidth;
     btnContainer.innerHTML = '';
-    google.accounts.id.renderButton(
-      btnContainer,
-      { theme: "outline", size: "large", shape: "pill", text: "signin_with", width: String(targetWidth) }
-    );
+
+    try {
+      google.accounts.id.renderButton(
+        btnContainer,
+        {
+          theme: "outline",
+          size: "large",
+          shape: "pill",
+          text: "signin_with",
+          width: targetWidth,
+          logo_alignment: "left"
+        }
+      );
+    } catch (err) {
+      console.error("Google button render error:", err);
+    }
   }
 
   // Ensure google is available (script loads async)
   const initGoogleAuth = setInterval(() => {
-    if (window.google) {
+    if (window.google && window.google.accounts && window.google.accounts.id) {
       clearInterval(initGoogleAuth);
       
-      google.accounts.id.initialize({
-        client_id: "773475002367-kfmlifn4bn181tdlts94ss2q2jmisdaa.apps.googleusercontent.com",
-        callback: window.handleCredentialResponse
-      });
+      if (!isGoogleAuthInitialized) {
+        google.accounts.id.initialize({
+          client_id: "773475002367-kfmlifn4bn181tdlts94ss2q2jmisdaa.apps.googleusercontent.com",
+          callback: window.handleCredentialResponse
+        });
+        isGoogleAuthInitialized = true;
+      }
       
-      renderGoogleSignInButton();
+      renderGoogleSignInButton(true);
+
+      // Re-verify once custom webfonts ('Outfit', 'Plus Jakarta Sans') have loaded
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(() => {
+          renderGoogleSignInButton();
+        });
+      }
     }
-  }, 100); // Check every 100ms until loaded
+  }, 50); // Check every 50ms until loaded
+
+  // Re-verify when full window and stylesheets finish loading
+  window.addEventListener('load', () => {
+    renderGoogleSignInButton();
+  });
 
   // Dynamically re-render button if viewport or card resizes
-  let resizeTimeout;
-  window.addEventListener('resize', () => {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(renderGoogleSignInButton, 200);
-  });
+  const cardElement = document.getElementById("loginCard");
+  if (typeof ResizeObserver !== 'undefined' && cardElement) {
+    let resizeObserverTimeout;
+    const ro = new ResizeObserver(() => {
+      clearTimeout(resizeObserverTimeout);
+      resizeObserverTimeout = setTimeout(() => {
+        renderGoogleSignInButton();
+      }, 100);
+    });
+    ro.observe(cardElement);
+  } else {
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        renderGoogleSignInButton();
+      }, 150);
+    });
+  }
 
   // 3. Toast Notification Helper
   function showToast(message, type = 'info') {

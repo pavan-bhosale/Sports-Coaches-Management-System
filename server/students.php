@@ -633,10 +633,10 @@ if ($method === 'POST') {
         exit;
     }
 
-    // ── 5. Student Registration (Super Admin Only)
-    if ($user['role'] !== 'admin') {
+    // ── 5. Student Registration (Super Admin and Coach)
+    if ($user['role'] !== 'admin' && $user['role'] !== 'coach') {
         http_response_code(403);
-        echo json_encode(['error' => 'Unauthorized: Only Super Admin can register new students.']);
+        echo json_encode(['error' => 'Unauthorized: Only Super Admin and Coaches can register new students.']);
         exit;
     }
 
@@ -677,43 +677,78 @@ if ($method === 'POST') {
         exit;
     }
 
-    // Validate batch existence and resolve batch_id / batch_name / coach_id
+    // Validate batch existence, permissions, and resolve coach identity
     $batch_id = null;
-    if ($raw_batch_id > 0) {
+    if ($user['role'] === 'coach') {
+        // Coach must select an assigned batch
+        if ($raw_batch_id <= 0) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Please select one of your assigned batches.']);
+            exit;
+        }
+
+        $sessionCoachId = intval($user['coach']['coach_id'] ?? 0);
+        $sessionCoachBatchId = intval($user['coach']['batch_id'] ?? 0);
+
+        // Security check: verify batch belongs to this coach
         $bStmt = $pdo->prepare('
             SELECT b.batch_id, b.batch_name, b.coach_id, c.coach_name 
             FROM vsa_batches b
             LEFT JOIN vsa_coaches c ON b.coach_id = c.coach_id
-            WHERE b.batch_id = ?
+            WHERE b.batch_id = ? AND (b.coach_id = ? OR b.batch_id = ?)
         ');
-        $bStmt->execute([$raw_batch_id]);
+        $bStmt->execute([$raw_batch_id, $sessionCoachId, $sessionCoachBatchId]);
         $bRow = $bStmt->fetch(PDO::FETCH_ASSOC);
+
         if (!$bRow) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Selected batch does not exist.']);
+            http_response_code(403);
+            echo json_encode(['error' => 'Access denied: You can only assign students to batches assigned to you.']);
             exit;
         }
+
         $batch_id = intval($bRow['batch_id']);
         $batch_name = $bRow['batch_name'];
-        if (!empty($bRow['coach_id'])) {
-            $coach_id = intval($bRow['coach_id']);
-            if (empty($coach_name)) {
-                $coach_name = $bRow['coach_name'] ?? '';
+        // Authoritatively derive Coach identity from server session - do not trust frontend input
+        $coach_id = $sessionCoachId;
+        $coach_name = $user['coach']['coach_name'] ?? ($bRow['coach_name'] ?? '');
+    } else {
+        // Super Admin registration logic
+        if ($raw_batch_id > 0) {
+            $bStmt = $pdo->prepare('
+                SELECT b.batch_id, b.batch_name, b.coach_id, c.coach_name 
+                FROM vsa_batches b
+                LEFT JOIN vsa_coaches c ON b.coach_id = c.coach_id
+                WHERE b.batch_id = ?
+            ');
+            $bStmt->execute([$raw_batch_id]);
+            $bRow = $bStmt->fetch(PDO::FETCH_ASSOC);
+            if (!$bRow) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Selected batch does not exist.']);
+                exit;
+            }
+            $batch_id = intval($bRow['batch_id']);
+            $batch_name = $bRow['batch_name'];
+            if (!empty($bRow['coach_id'])) {
+                $coach_id = intval($bRow['coach_id']);
+                if (empty($coach_name)) {
+                    $coach_name = $bRow['coach_name'] ?? '';
+                }
+            }
+        } else {
+            $batch_id = null;
+            if (empty($batch_name) || $batch_name === '0') {
+                $batch_name = 'No Batch';
             }
         }
-    } else {
-        $batch_id = null;
-        if (empty($batch_name) || $batch_name === '0') {
-            $batch_name = 'No Batch';
-        }
-    }
 
-    if ($coach_id <= 0 && !empty($coach_name)) {
-        $cStmt = $pdo->prepare('SELECT coach_id FROM vsa_coaches WHERE LOWER(TRIM(coach_name)) = LOWER(TRIM(?))');
-        $cStmt->execute([$coach_name]);
-        $cRow = $cStmt->fetch(PDO::FETCH_ASSOC);
-        if ($cRow) {
-            $coach_id = intval($cRow['coach_id']);
+        if ($coach_id <= 0 && !empty($coach_name)) {
+            $cStmt = $pdo->prepare('SELECT coach_id FROM vsa_coaches WHERE LOWER(TRIM(coach_name)) = LOWER(TRIM(?))');
+            $cStmt->execute([$coach_name]);
+            $cRow = $cStmt->fetch(PDO::FETCH_ASSOC);
+            if ($cRow) {
+                $coach_id = intval($cRow['coach_id']);
+            }
         }
     }
 

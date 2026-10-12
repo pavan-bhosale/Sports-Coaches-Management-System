@@ -492,6 +492,34 @@ function applySidebarRolePermissions(explicitRole = null) {
     sectionTitles.forEach(t => { t.style.display = ''; });
   }
 
+  if (isCoachUser) {
+    body.classList.add('role-coach');
+    if (layout) layout.classList.add('role-coach');
+  } else {
+    body.classList.remove('role-coach');
+    if (layout) layout.classList.remove('role-coach');
+  }
+
+  // Batches module: Add Batch button is strictly Super Admin only (hidden for Coaches)
+  const btnAddNewBatch = document.getElementById('btnAddNewBatch');
+  if (btnAddNewBatch) {
+    btnAddNewBatch.style.display = isSuperAdminUser ? '' : 'none';
+  }
+
+  // Add/Edit Student modal: Coach selector is hidden for Coach role (derived from server session)
+  const wrapRegCoach = document.getElementById('wrapRegCoach');
+  if (wrapRegCoach) {
+    wrapRegCoach.style.display = isCoachUser ? 'none' : '';
+  }
+  const coachStar = document.querySelector('#wrapRegBatch .coach-required-star');
+  if (coachStar) {
+    coachStar.style.display = isCoachUser ? 'inline' : 'none';
+  }
+  const wrapEditRegCoach = document.getElementById('wrapEditRegCoach');
+  if (wrapEditRegCoach) {
+    wrapEditRegCoach.style.display = isCoachUser ? 'none' : '';
+  }
+
   // Dynamic dashboard title sync on overview
   const dashboardTitles = {
     admin:   'Super Admin Dashboard',

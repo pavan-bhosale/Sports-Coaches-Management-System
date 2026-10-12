@@ -28,7 +28,7 @@
 
   <!-- Stylesheets -->
   <link rel="stylesheet" href="css/cropper.min.css?v=c7225b2c">
-  <link rel="stylesheet" href="css/dashboard.css?v=e41961f2">
+  <link rel="stylesheet" href="css/dashboard.css?v=6ee67e3c">
   <link rel="stylesheet" href="css/reports.css?v=73b2db1b">
 </head>
 
@@ -1978,14 +1978,15 @@
                   </select>
                   <span class="reg-error" id="err-regBranch">Please select a branch.</span>
                 </div>
-                <div class="reg-field">
-                  <label class="reg-label" for="regBatch">Batch</label>
+                <div class="reg-field" id="wrapRegBatch">
+                  <label class="reg-label" for="regBatch">Batch <span class="sb-required coach-required-star" style="display:none;">*</span></label>
                   <select id="regBatch" class="reg-input student-batch-select-input">
                     <option value="">Select Batch</option>
                     <option value="0">No Batch</option>
                   </select>
+                  <span class="reg-error" id="err-regBatch">Please select a valid assigned batch.</span>
                 </div>
-                <div class="reg-field">
+                <div class="reg-field" id="wrapRegCoach">
                   <label class="reg-label" for="regCoach">Coach Name <span class="sb-required">*</span></label>
                   <select id="regCoach" class="reg-input student-coach-select-input">
                     <option value="">Select Coach</option>
@@ -2223,14 +2224,14 @@
                   </select>
                   <span class="reg-error" id="err-editRegBranch">Please select a branch.</span>
                 </div>
-                <div class="reg-field">
+                <div class="reg-field" id="wrapEditRegBatch">
                   <label class="reg-label" for="editRegBatch">Batch</label>
                   <select id="editRegBatch" class="reg-input student-batch-select-input">
                     <option value="">Select Batch</option>
                     <option value="0">No Batch</option>
                   </select>
                 </div>
-                <div class="reg-field">
+                <div class="reg-field" id="wrapEditRegCoach">
                   <label class="reg-label" for="editRegCoach">Coach Name <span class="sb-required">*</span></label>
                   <select id="editRegCoach" class="reg-input student-coach-select-input">
                     <option value="">Select Coach</option>
@@ -4412,14 +4413,14 @@
 
   <!-- Client UX Logic Scripts -->
   <script src="js/cropper.min.js?v=8e818423"></script>
-  <script src="js/utils.js?v=ac13f15e"></script>
-  <script src="js/students.js?v=aa4a5a9e"></script>
+  <script src="js/utils.js?v=3b4ea8f7"></script>
+  <script src="js/students.js?v=4c945f5a"></script>
   <script src="js/coaches.js?v=8977f21c"></script>
-  <script src="js/batches.js?v=fcc01a39"></script>
+  <script src="js/batches.js?v=d18c828e"></script>
   <script src="js/attendance.js?v=0a1441d8"></script>
   <script src="js/fees.js?v=c5110609"></script>
   <script src="js/inventory.js?v=af816a26"></script>
-  <script src="js/navigation.js?v=c70d2b25"></script>
+  <script src="js/navigation.js?v=453530b0"></script>
   <script src="js/chart.umd.min.js?v=45f5b4f1"></script>
   <script src="js/dashboard.js?v=31ef69aa"></script>
   <script src="js/reports.js?v=b9d2223f"></script>

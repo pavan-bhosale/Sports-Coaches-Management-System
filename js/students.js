@@ -646,8 +646,22 @@ async function fetchStudents() {
 
 // ── Add Student Form Modal Functions ────────────────────────
 function openRegForm() {
+  const storedRole = (localStorage.getItem('vava_role') || 'admin').toLowerCase();
+  const isCoach = (storedRole === 'coach');
+
+  const wrapRegCoach = document.getElementById('wrapRegCoach');
+  if (wrapRegCoach) {
+    wrapRegCoach.style.display = isCoach ? 'none' : '';
+  }
+  const coachStar = document.querySelector('#wrapRegBatch .coach-required-star');
+  if (coachStar) {
+    coachStar.style.display = isCoach ? 'inline' : 'none';
+  }
+
   populateBatchDropdowns();
-  populateCoachDropdowns();
+  if (!isCoach) {
+    populateCoachDropdowns();
+  }
   clearRegPhotoPreview();
   openModal('addStudentModal');
 }
@@ -665,8 +679,16 @@ function clearRegErrors() {
 
 // ── Edit Student Form Modal Functions ───────────────────────
 function openEditStudentForm() {
+  const storedRole = (localStorage.getItem('vava_role') || 'admin').toLowerCase();
+  const isCoach = (storedRole === 'coach');
+  const wrapEditRegCoach = document.getElementById('wrapEditRegCoach');
+  if (wrapEditRegCoach) {
+    wrapEditRegCoach.style.display = isCoach ? 'none' : '';
+  }
   populateBatchDropdowns();
-  populateCoachDropdowns();
+  if (!isCoach) {
+    populateCoachDropdowns();
+  }
   openModal('editStudentModal');
 }
 
@@ -861,7 +883,11 @@ document.addEventListener('DOMContentLoaded', () => {
       clearRegErrors();
       let hasError = false;
 
+      const storedRole = (localStorage.getItem('vava_role') || 'admin').toLowerCase();
+      const isCoach = (storedRole === 'coach');
+
       regValidations.forEach(({ id, check, errId }) => {
+        if (isCoach && id === 'regCoach') return;
         const el = document.getElementById(id);
         if (!el) return;
         if (!check(el.value)) {
@@ -871,6 +897,17 @@ document.addEventListener('DOMContentLoaded', () => {
           hasError = true;
         }
       });
+
+      const regBatchEl = document.getElementById('regBatch');
+      const selectedBatchId = regBatchEl ? parseInt(regBatchEl.value, 10) : 0;
+
+      // Coach must select a valid assigned batch
+      if (isCoach && (!selectedBatchId || selectedBatchId <= 0)) {
+        if (regBatchEl) regBatchEl.classList.add('reg-input-error');
+        const errBatch = document.getElementById('err-regBatch');
+        if (errBatch) errBatch.classList.add('visible');
+        hasError = true;
+      }
 
       const genderSelected = document.querySelector('input[name="regGender"]:checked');
       if (!genderSelected) {
@@ -885,8 +922,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      const regBatchEl = document.getElementById('regBatch');
-      const selectedBatchId = regBatchEl ? parseInt(regBatchEl.value, 10) : 0;
       let selectedBatchName = 'No Batch';
       let selectedCoachId = null;
       let selectedCoachName = document.getElementById('regCoach') ? document.getElementById('regCoach').value : '';

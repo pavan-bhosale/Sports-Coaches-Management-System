@@ -5180,6 +5180,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   flex: 0 1 340px;
 }
 
+/* Coach Role: Add Batch is hidden, toolbar reflows search naturally */
+.role-coach #btnAddNewBatch {
+  display: none !important;
+}
+
+.role-coach .batches-controls-row .sb-search-box {
+  flex: 0 1 480px !important;
+  max-width: 480px !important;
+  width: 100% !important;
+}
+
 @media (max-width: 768px) {
   .batches-action-bar {
     flex-direction: column !important;
@@ -5202,6 +5213,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     padding: 0.35rem 0.75rem !important;
     overflow: hidden !important;
     box-sizing: border-box !important;
+  }
+
+  .role-coach .batches-controls-row .sb-search-box {
+    flex: 1 1 100% !important;
+    max-width: 100% !important;
   }
 
   .batches-controls-row .sb-search-input {
@@ -16722,9 +16738,9 @@ body.role-student .dashboard-content,
    ========================================================================== */
 
 .batch-details-modal-dialog {
-  max-width: 620px !important;
+  max-width: 500px !important;
   width: 95% !important;
-  max-height: 90vh !important;
+  max-height: 86vh !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
@@ -16736,11 +16752,11 @@ body.role-student .dashboard-content,
 }
 
 .batch-details-modal-body {
-  padding: 1.25rem 1.5rem !important;
+  padding: 0.85rem 1.15rem 1.15rem !important;
   overflow-y: auto !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 1.15rem !important;
+  gap: 0.65rem !important;
   box-sizing: border-box !important;
 }
 
@@ -16749,14 +16765,15 @@ body.role-student .dashboard-content,
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem 1.5rem;
-  gap: 1rem;
+  padding: 2.25rem 1.25rem;
+  gap: 0.75rem;
   color: var(--text-secondary);
+  font-size: 0.85rem;
 }
 
 .batch-details-spinner {
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   border: 3px solid rgba(255, 255, 255, 0.1);
   border-top-color: var(--gold-highlight, #e5a93c);
   border-radius: 50%;
@@ -16769,52 +16786,57 @@ body.role-student .dashboard-content,
 
 .batch-details-error {
   text-align: center;
-  padding: 2.5rem 1.5rem;
+  padding: 2rem 1.25rem;
 }
 .batch-details-error .batch-error-icon {
-  font-size: 2.2rem;
-  margin-bottom: 0.75rem;
-}
-.batch-details-error h3 {
-  font-size: 1.15rem;
-  color: var(--text-primary);
+  font-size: 1.8rem;
   margin-bottom: 0.5rem;
 }
+.batch-details-error h3 {
+  font-size: 1.05rem;
+  color: var(--text-primary);
+  margin-bottom: 0.35rem;
+}
 .batch-details-error p {
-  font-size: 0.875rem;
+  font-size: 0.825rem;
   color: var(--text-secondary);
-  max-width: 340px;
-  margin: 0 auto 1.25rem;
+  max-width: 320px;
+  margin: 0 auto 1rem;
 }
 
-/* Banner / Title Pill Area */
-.batch-detail-banner {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(255, 255, 255, 0.03) 100%);
-  border: 1px solid rgba(245, 158, 11, 0.25);
-  border-radius: 10px;
-  padding: 1rem 1.25rem;
-}
-.batch-detail-banner-title {
-  font-size: 1.25rem;
-  font-family: var(--font-heading);
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0 0 0.5rem 0;
-}
-.batch-detail-banner-pills {
+/* Compact Top Meta Strip */
+.batch-detail-strip {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
   gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  border-radius: 8px;
+}
+.batch-detail-strip-pills {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.batch-detail-strip-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .batch-detail-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.25rem 0.65rem;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
   border-radius: 9999px;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 600;
+  line-height: 1.2;
 }
 .batch-detail-pill.sport {
   background: rgba(59, 130, 246, 0.15);
@@ -16842,87 +16864,95 @@ body.role-student .dashboard-content,
   border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.1));
 }
 
-/* Detail Section Cards */
+/* Compact Detail Section Cards */
 .batch-detail-section-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08));
-  border-radius: 10px;
-  padding: 1rem 1.15rem;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.07));
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 0.5rem;
 }
 .batch-detail-section-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 600;
+  gap: 0.45rem;
+  font-size: 0.75rem;
+  font-weight: 700;
   color: var(--text-primary);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
 }
 .batch-detail-section-header svg {
   color: var(--gold-highlight, #e5a93c);
+  flex-shrink: 0;
 }
 .batch-detail-count-badge {
   background: rgba(245, 158, 11, 0.15);
   color: var(--gold-highlight, #e5a93c);
   border: 1px solid rgba(245, 158, 11, 0.3);
   border-radius: 999px;
-  font-size: 0.72rem;
-  padding: 0.1rem 0.5rem;
+  font-size: 0.68rem;
+  padding: 0.05rem 0.45rem;
   margin-left: auto;
 }
 
-/* Grid of fields */
+/* Compact 2-column Grid of fields */
 .batch-detail-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.75rem 1rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.45rem 0.75rem;
 }
 .batch-detail-item {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.1rem;
+  min-width: 0;
 }
 .batch-detail-label {
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   color: var(--text-secondary);
   font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 .batch-detail-value {
-  font-size: 0.875rem;
+  font-size: 0.825rem;
   font-weight: 600;
   color: var(--text-primary);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .batch-detail-value.highlight {
   color: var(--gold-highlight, #e5a93c);
 }
 
-/* Coach Profile in Details */
+/* Compact Coach Profile in Details */
 .batch-detail-coach-profile {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 .batch-detail-coach-photo {
-  width: 52px;
-  height: 52px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--gold-highlight, #e5a93c);
   flex-shrink: 0;
 }
 .batch-detail-coach-initials {
-  width: 52px;
-  height: 52px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.4));
   color: var(--gold-highlight, #e5a93c);
   border: 1px solid rgba(245, 158, 11, 0.4);
   font-weight: 700;
-  font-size: 1.15rem;
+  font-size: 0.85rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -16933,68 +16963,68 @@ body.role-student .dashboard-content,
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.2rem;
+}
+.batch-detail-coach-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }
 .batch-detail-coach-name {
-  font-size: 1rem;
+  font-size: 0.875rem;
   font-weight: 700;
   color: var(--text-primary);
-}
-.batch-detail-coach-badges {
-  display: flex;
-  gap: 0.35rem;
-  flex-wrap: wrap;
 }
 .batch-detail-coach-contacts {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  font-size: 0.78rem;
+  gap: 0.65rem;
+  font-size: 0.74rem;
   color: var(--text-secondary);
-  margin-top: 0.2rem;
 }
 .batch-detail-coach-contacts span {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.25rem;
 }
 
-/* Enrolled Students Scroll List */
+/* Compact Enrolled Students Scroll List */
 .batch-students-scroll-list {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
-  max-height: 220px;
+  gap: 0.35rem;
+  max-height: 140px;
   overflow-y: auto;
-  padding-right: 0.25rem;
+  padding-right: 0.2rem;
 }
 .batch-student-list-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0.65rem;
+  gap: 0.55rem;
+  padding: 0.35rem 0.55rem;
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
   transition: background 0.15s ease;
 }
 .batch-student-list-item:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
 }
 .batch-student-avatar-img {
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
 }
 .batch-student-avatar-initials {
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   background: rgba(16, 185, 129, 0.15);
   color: #34d399;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -17006,10 +17036,10 @@ body.role-student .dashboard-content,
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.1rem;
 }
 .batch-student-name {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
@@ -17017,15 +17047,15 @@ body.role-student .dashboard-content,
   text-overflow: ellipsis;
 }
 .batch-student-meta {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   color: var(--text-muted);
   display: flex;
-  gap: 0.6rem;
+  gap: 0.4rem;
 }
 .batch-student-status {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 600;
-  padding: 0.15rem 0.45rem;
+  padding: 0.1rem 0.4rem;
   border-radius: 4px;
 }
 .batch-student-status.badge-active {
@@ -17035,6 +17065,16 @@ body.role-student .dashboard-content,
 .batch-student-status.badge-inactive {
   background: rgba(239, 68, 68, 0.15);
   color: #f87171;
+}
+
+.batch-detail-empty-compact {
+  display: flex;
+  align-items: center;
+  padding: 0.45rem 0.65rem;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  background: rgba(255, 255, 255, 0.015);
+  border-radius: 6px;
 }
 
 .batch-detail-empty-state {
@@ -17050,6 +17090,26 @@ body.role-student .dashboard-content,
 .batch-detail-empty-state svg {
   color: var(--text-muted);
   flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .batch-details-modal-dialog {
+    max-width: 95% !important;
+    width: 95% !important;
+    max-height: 88vh !important;
+    margin: 0.5rem auto !important;
+  }
+  .batch-details-modal-body {
+    padding: 0.75rem 0.85rem 1rem !important;
+    gap: 0.55rem !important;
+  }
+  .batch-detail-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem 0.55rem;
+  }
+  .batch-detail-strip {
+    padding: 0.45rem 0.65rem;
+  }
 }
 
 /* Student Profile Sign Out Button */

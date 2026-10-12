@@ -600,17 +600,26 @@ html, body {
   margin-top: 1.75rem;
   margin-bottom: 1.75rem;
   box-sizing: border-box;
+  overflow: visible;
 }
 
 #googleSignInBtn {
   display: flex;
   justify-content: center;
   align-items: center;
+  width: 100%;
   max-width: 100%;
   min-height: 44px;
+  overflow: visible;
+}
+
+#googleSignInBtn > div {
+  overflow: visible !important;
 }
 
 #googleSignInBtn iframe {
+  box-sizing: border-box !important;
+  border: none !important;
   max-width: 100% !important;
 }
 

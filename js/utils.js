@@ -324,7 +324,20 @@ if (typeof window !== 'undefined') {
 }
 
 async function populateBatchDropdowns(batchesData = null) {
+  const studentBatchSelects = document.querySelectorAll('.student-batch-select-input');
+  const storedRole = (localStorage.getItem('vava_role') || 'admin').toLowerCase();
+  const isCoach = (storedRole === 'coach');
+
   try {
+    if (!batchesData && studentBatchSelects.length > 0) {
+      studentBatchSelects.forEach(select => {
+        if (!select.value) {
+          select.disabled = true;
+          select.innerHTML = '<option value="">Loading batches...</option>';
+        }
+      });
+    }
+
     if (Array.isArray(batchesData)) {
       cachedBatchesList = batchesData;
     } else {
@@ -333,11 +346,17 @@ async function populateBatchDropdowns(batchesData = null) {
         headers: getUtilityAuthHeaders()
       });
       const data = await res.json();
-      if (!data.success) return;
+      if (!data.success) {
+        studentBatchSelects.forEach(select => {
+          select.disabled = true;
+          select.innerHTML = '<option value="">Failed to load batches</option>';
+        });
+        return;
+      }
       cachedBatchesList = data.batches || [];
     }
 
-    // Coach form batch selects (by batch_id)
+    // Coach form batch selects (by batch_id) - used by Admin in Coach modals
     const selects = document.querySelectorAll('.coach-batch-select-input');
     selects.forEach(select => {
       const currentVal = select.value;
@@ -360,14 +379,37 @@ async function populateBatchDropdowns(batchesData = null) {
     });
 
     // Student form batch selects (by batch_id)
-    const studentBatchSelects = document.querySelectorAll('.student-batch-select-input');
     studentBatchSelects.forEach(select => {
       const currentVal = select.value;
-      let html = '<option value="">Select Batch</option>';
-      cachedBatchesList.forEach(b => {
-        html += `<option value="${b.batch_id}">${escapeHtml(b.batch_name)}</option>`;
-      });
-      html += '<option value="0">No Batch</option>';
+      let html = '';
+
+      if (isCoach) {
+        // Coach: display only assigned batches
+        if (!cachedBatchesList || cachedBatchesList.length === 0) {
+          select.disabled = true;
+          select.innerHTML = '<option value="" disabled selected>No assigned batches available</option>';
+          return;
+        }
+
+        select.disabled = false;
+        html = '<option value="">Select Batch</option>';
+        cachedBatchesList.forEach(b => {
+          const detail = [b.batch_location, b.batch_time ? formatBatchTime(b.batch_time) : ''].filter(Boolean).join(' • ');
+          const label = detail ? `${b.batch_name} (${detail})` : b.batch_name;
+          html += `<option value="${b.batch_id}">${escapeHtml(label)}</option>`;
+        });
+        // Note: No Batch option omitted for Coaches
+      } else {
+        // Super Admin: display all batches + No Batch option
+        select.disabled = false;
+        html = '<option value="">Select Batch</option>';
+        cachedBatchesList.forEach(b => {
+          const locStr = b.batch_location ? ` — ${b.batch_location}` : '';
+          html += `<option value="${b.batch_id}">${escapeHtml(b.batch_name + locStr)}</option>`;
+        });
+        html += '<option value="0">No Batch</option>';
+      }
+
       select.innerHTML = html;
       if (currentVal !== undefined && currentVal !== null && currentVal !== '') {
         select.value = currentVal;
@@ -375,6 +417,10 @@ async function populateBatchDropdowns(batchesData = null) {
     });
   } catch (err) {
     console.error('Error fetching batches for dropdown:', err);
+    studentBatchSelects.forEach(select => {
+      select.disabled = true;
+      select.innerHTML = '<option value="">Failed to load batches</option>';
+    });
   }
 }
 
