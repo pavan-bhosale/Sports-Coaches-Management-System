@@ -14134,17 +14134,512 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
 }
 
-/* Coach Specific Mobile Actions */
-@media (max-width: 480px) {
-  #dashCoachView .dash-actions-coach {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    gap: 0.5rem;
+/* ==========================================================================
+   COACH DASHBOARD MOBILE OPTIMIZATION
+   ========================================================================== */
+
+/* 1. Tablet & Mobile Viewports (<= 991px) */
+@media (max-width: 991px) {
+  #dashCoachView {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
   }
-  #dashCoachView .btn-dash-action {
-    width: 100%;
-    justify-content: center;
+
+  #dashCoachView * {
+    box-sizing: border-box !important;
+  }
+
+  /* Compact Welcome Card (Hide Quick Action Buttons on Mobile) */
+  #dashCoachView .dash-welcome-card {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    padding: 0.85rem 1rem !important;
+    margin-bottom: 0.75rem !important;
+    gap: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  #dashCoachView .dash-welcome-left {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  #dashCoachView .dash-welcome-badge {
+    margin-bottom: 0.3rem !important;
+    font-size: 0.64rem !important;
+    padding: 2px 8px !important;
+  }
+
+  #dashCoachView .dash-welcome-title {
+    font-size: 1.15rem !important;
+    line-height: 1.25 !important;
+    margin: 0 0 0.25rem !important;
+    word-break: break-word !important;
+  }
+
+  #dashCoachView .dash-welcome-subtitle {
+    font-size: 0.72rem !important;
+    gap: 5px !important;
+    flex-wrap: wrap !important;
+  }
+
+  /* Remove Coach Quick-Action Buttons on Mobile (No empty container) */
+  #dashCoachView .dash-quick-actions,
+  #dashCoachView .dash-actions-coach,
+  #dashCoachView #btnCoachTakeAttendanceDirect,
+  #dashCoachView #btnCoachViewBatchesDirect,
+  #dashCoachView #btnCoachViewStudentsDirect {
+    display: none !important;
+  }
+
+  /* 1-Column Stack for Analytics Grid on Mobile (Eliminates 2-column crush & horizontal overflow) */
+  #dashCoachView .dash-analytics-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+    width: 100% !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  #dashCoachView .dash-panel-card {
+    padding: 0.8rem 0.95rem !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  #dashCoachView .dash-panel-header {
+    flex-wrap: wrap !important;
+    gap: 0.35rem !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  #dashCoachView .dash-panel-title {
+    font-size: 1rem !important;
+    margin: 0 0 2px !important;
+  }
+
+  #dashCoachView .dash-panel-subtitle {
+    font-size: 0.72rem !important;
+  }
+}
+
+/* 2. Mobile Screens (<= 768px): Compact 2x2 KPI Grid, Ribbon, Chart & Card-ified Tables */
+@media (max-width: 768px) {
+  /* Coach KPI Cards: Compact 2-Column Grid */
+  #dashCoachView .dash-kpis-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.55rem !important;
+    width: 100% !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  #dashCoachView .dash-kpi-card {
+    padding: 0.65rem 0.6rem !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    height: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  #dashCoachView .dash-kpi-top {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin-bottom: 0.2rem !important;
+    gap: 4px !important;
+  }
+
+  #dashCoachView .dash-kpi-label {
+    font-size: 0.6rem !important;
+    letter-spacing: 0.03em !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    min-width: 0 !important;
+    flex: 1 !important;
+  }
+
+  #dashCoachView .dash-kpi-icon {
+    width: 26px !important;
+    height: 26px !important;
+    flex-shrink: 0 !important;
+  }
+
+  #dashCoachView .dash-kpi-icon svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+
+  #dashCoachView .dash-kpi-value {
+    font-size: 1.2rem !important;
+    line-height: 1.1 !important;
+    margin: 0.15rem 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  #dashCoachView .dash-kpi-footer {
+    margin-top: 0.2rem !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 3px !important;
+  }
+
+  #dashCoachView .dash-kpi-badge {
+    font-size: 0.58rem !important;
+    padding: 1px 4px !important;
+  }
+
+  #dashCoachView .dash-kpi-subtext {
+    font-size: 0.6rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100% !important;
+  }
+
+  /* Attendance Overview: Compact 2x2 Stats Ribbon */
+  #dashCoachView .dash-stat-ribbon {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.45rem !important;
+    padding: 0.45rem !important;
+    margin-bottom: 0.75rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  #dashCoachView .dash-ribbon-item {
+    padding: 0.45rem 0.6rem !important;
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 2px !important;
+    box-sizing: border-box !important;
+  }
+
+  #dashCoachView .dash-ribbon-label {
+    font-size: 0.62rem !important;
+    line-height: 1.1 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100% !important;
+  }
+
+  #dashCoachView .dash-ribbon-val {
+    font-size: 0.95rem !important;
+    line-height: 1.1 !important;
+  }
+
+  #dashCoachView #coachAttLivePill {
+    font-size: 0.65rem !important;
+    padding: 2px 7px !important;
+  }
+
+  #dashCoachView .dash-chart-container {
+    height: 180px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    position: relative !important;
+  }
+
+  #dashCoachView .dash-chart-container canvas {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* Card-ified Tables for Training Batches & Students */
+  #dashCoachView #panelCoachBatchesOverview .dash-table-wrap,
+  #dashCoachView #panelCoachStudentsOverview .dash-table-wrap {
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  #dashCoachView #panelCoachBatchesOverview .dash-mini-table,
+  #dashCoachView #panelCoachStudentsOverview .dash-mini-table {
+    display: block !important;
+    width: 100% !important;
+    border: none !important;
+    border-collapse: separate !important;
+  }
+
+  #dashCoachView #panelCoachBatchesOverview .dash-mini-table thead,
+  #dashCoachView #panelCoachStudentsOverview .dash-mini-table thead {
+    display: none !important;
+  }
+
+  #dashCoachView #coachBatchTableBody,
+  #dashCoachView #coachStudentTableBody {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+  }
+
+  #dashCoachView #coachBatchTableBody tr,
+  #dashCoachView #coachStudentTableBody tr {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border-primary) !important;
+    border-radius: 8px !important;
+    padding: 0.65rem 0.8rem !important;
+    gap: 0.35rem !important;
+    transition: border-color 0.2s !important;
+  }
+
+  #dashCoachView #coachBatchTableBody tr:hover,
+  #dashCoachView #coachStudentTableBody tr:hover {
+    border-color: rgba(201, 162, 39, 0.35) !important;
+  }
+
+  #dashCoachView #coachBatchTableBody tr td,
+  #dashCoachView #coachStudentTableBody tr td {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 0 !important;
+    border: none !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+  }
+
+  /* Coach Batch Card Layout */
+  #dashCoachView #coachBatchTableBody tr td:nth-child(1) {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: baseline !important;
+    gap: 6px !important;
+    margin-bottom: 2px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    padding-bottom: 0.25rem !important;
+  }
+
+  #dashCoachView #coachBatchTableBody .dash-batch-name {
+    font-family: var(--font-heading) !important;
+    font-size: 0.88rem !important;
+    font-weight: 700 !important;
+    color: #FFFFFF !important;
+    line-height: 1.25 !important;
+    word-break: break-word !important;
+  }
+
+  #dashCoachView #coachBatchTableBody tr td:nth-child(2) {
+    font-size: 0.74rem !important;
+    gap: 6px !important;
+  }
+
+  #dashCoachView #coachBatchTableBody tr td:nth-child(3) {
+    font-size: 0.75rem !important;
+  }
+
+  #dashCoachView #coachBatchTableBody tr td:nth-child(3)::before {
+    content: "Enrolled";
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+
+  #dashCoachView #coachBatchTableBody tr td:nth-child(4) {
+    display: block !important;
+    margin-top: 2px !important;
+  }
+
+  #dashCoachView #coachBatchTableBody .dash-capacity-wrap {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    justify-content: space-between !important;
+  }
+
+  #dashCoachView #coachBatchTableBody .dash-progress-track {
+    flex: 1 !important;
+    height: 5px !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-radius: 999px !important;
+  }
+
+  #dashCoachView #coachBatchTableBody .dash-capacity-text {
+    font-size: 0.72rem !important;
+    color: #FFFFFF !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+  }
+
+  /* Coach Student Card Layout */
+  #dashCoachView #coachStudentTableBody tr td:nth-child(1) {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    padding-bottom: 0.3rem !important;
+    margin-bottom: 2px !important;
+  }
+
+  #dashCoachView #coachStudentTableBody tr td:nth-child(2) {
+    font-size: 0.76rem !important;
+  }
+
+  #dashCoachView #coachStudentTableBody tr td:nth-child(2)::before {
+    content: "Batch";
+    font-size: 0.66rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+
+  #dashCoachView #coachStudentTableBody tr td:nth-child(3) {
+    font-size: 0.74rem !important;
+  }
+
+  #dashCoachView #coachStudentTableBody tr td:nth-child(3)::before {
+    content: "Latest Attendance";
+    font-size: 0.66rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+
+  #dashCoachView #coachStudentTableBody tr td:nth-child(4) {
+    font-size: 0.74rem !important;
+  }
+
+  #dashCoachView #coachStudentTableBody tr td:nth-child(4)::before {
+    content: "Contact";
+    font-size: 0.66rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+}
+
+/* 3. Compact Mobile (<= 480px) */
+@media (max-width: 480px) {
+  #dashCoachView .dash-kpis-grid {
+    gap: 0.5rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  #dashCoachView .dash-kpi-card {
+    padding: 0.6rem 0.55rem !important;
+  }
+
+  #dashCoachView .dash-kpi-value {
+    font-size: 1.15rem !important;
+  }
+
+  #dashCoachView .dash-chart-container {
+    height: 175px !important;
+  }
+}
+
+/* 4. Extra-Narrow Mobile (<= 360px down to 320px) */
+@media (max-width: 360px) {
+  #dashCoachView .dash-welcome-card {
+    padding: 0.75rem 0.8rem !important;
+  }
+
+  #dashCoachView .dash-welcome-title {
+    font-size: 1.05rem !important;
+  }
+
+  #dashCoachView .dash-welcome-subtitle {
+    font-size: 0.68rem !important;
+  }
+
+  #dashCoachView .dash-kpis-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.38rem !important;
+  }
+
+  #dashCoachView .dash-kpi-card {
+    padding: 0.55rem 0.45rem !important;
+  }
+
+  #dashCoachView .dash-kpi-value {
+    font-size: 1.05rem !important;
+  }
+
+  #dashCoachView .dash-kpi-label {
+    font-size: 0.56rem !important;
+  }
+
+  #dashCoachView .dash-kpi-icon {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  #dashCoachView .dash-kpi-icon svg {
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+  #dashCoachView .dash-kpi-badge {
+    font-size: 0.54rem !important;
+    padding: 1px 3px !important;
+  }
+
+  #dashCoachView .dash-kpi-subtext {
+    font-size: 0.54rem !important;
+  }
+
+  #dashCoachView .dash-panel-card {
+    padding: 0.7rem 0.75rem !important;
+  }
+
+  #dashCoachView .dash-panel-title {
+    font-size: 0.95rem !important;
+  }
+
+  #dashCoachView .dash-stat-ribbon {
+    gap: 0.35rem !important;
+    padding: 0.35rem !important;
+  }
+
+  #dashCoachView .dash-ribbon-item {
+    padding: 0.35rem 0.45rem !important;
+  }
+
+  #dashCoachView .dash-ribbon-label {
+    font-size: 0.56rem !important;
+  }
+
+  #dashCoachView .dash-ribbon-val {
+    font-size: 0.85rem !important;
+  }
+
+  #dashCoachView .dash-chart-container {
+    height: 155px !important;
+  }
+
+  #dashCoachView #coachBatchTableBody tr,
+  #dashCoachView #coachStudentTableBody tr {
+    padding: 0.55rem 0.65rem !important;
   }
 }
 

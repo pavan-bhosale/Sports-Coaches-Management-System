@@ -1258,9 +1258,12 @@
             position: 'top',
             labels: {
               color: '#A7AFBC',
-              boxWidth: 12,
-              padding: 12,
-              font: { family: "'Plus Jakarta Sans', sans-serif", size: 12 }
+              boxWidth: window.innerWidth <= 480 ? 10 : 12,
+              padding: window.innerWidth <= 480 ? 8 : 12,
+              font: {
+                family: "'Plus Jakarta Sans', sans-serif",
+                size: window.innerWidth <= 480 ? 10 : (window.innerWidth <= 768 ? 11 : 12)
+              }
             },
             onClick: (e, legendItem, legend) => {
               isChartLegendInteracting = true;
@@ -1295,12 +1298,22 @@
         scales: {
           x: {
             grid: { color: 'rgba(255, 255, 255, 0.04)' },
-            ticks: { color: '#737C89', font: { size: 11 } }
+            ticks: {
+              color: '#737C89',
+              font: { size: window.innerWidth <= 480 ? 9 : (window.innerWidth <= 768 ? 10 : 11) },
+              maxRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: 7
+            }
           },
           y: {
             beginAtZero: true,
             grid: { color: 'rgba(255, 255, 255, 0.04)' },
-            ticks: { color: '#737C89', precision: 0, font: { size: 11 } }
+            ticks: {
+              color: '#737C89',
+              precision: 0,
+              font: { size: window.innerWidth <= 480 ? 9 : 11 }
+            }
           }
         }
       }
