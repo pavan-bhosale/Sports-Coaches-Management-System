@@ -85,6 +85,11 @@ if (!function_exists('applyCorsHeaders')) {
         header("Access-Control-Allow-Methods: {$allowedMethods}");
         header('Access-Control-Allow-Headers: Content-Type, Authorization, X-VAVA-Role, X-VAVA-Email, X-VAVA-Coach-ID, X-VAVA-Coach-Id, X-VAVA-Student-ID, X-VAVA-Student-Id, X-VAVA-Actor-Name, X-Requested-With, Accept, Origin');
 
+        // Dynamic API endpoints contain user/role-specific data and must never be cached by CDNs, proxies, or browsers
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, private');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
         if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
             if ($isAllowedOrigin) {
                 header('Access-Control-Max-Age: 86400');

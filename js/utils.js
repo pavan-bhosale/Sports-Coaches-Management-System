@@ -544,3 +544,29 @@ if (typeof window !== 'undefined') {
   }
 }
 
+// ============================================================================
+// CLIENT CACHE & SESSION STATE RECONCILER
+// Ensures stale legacy keys are purged on version changes without logging users out.
+// ============================================================================
+(function reconcileClientState() {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    const CURRENT_BUILD = '706e36e4e7';
+    window.VAVA_BUILD_HASH = CURRENT_BUILD;
+    
+    // Purge obsolete debug/dev overrides that should never linger in production
+    if (localStorage.getItem('vava_api_base')) {
+      localStorage.removeItem('vava_api_base');
+    }
+
+    const lastSeenBuild = localStorage.getItem('vava_build_hash');
+    if (lastSeenBuild !== CURRENT_BUILD) {
+      // Invalidate known stale temporary keys from previous releases
+      localStorage.removeItem('vava_temp_role');
+      localStorage.removeItem('vava_cached_view');
+      localStorage.setItem('vava_build_hash', CURRENT_BUILD);
+    }
+  } catch (e) {
+    // Non-blocking
+  }
+})();
