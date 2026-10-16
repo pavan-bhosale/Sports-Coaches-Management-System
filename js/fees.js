@@ -44,6 +44,9 @@
     pendingSchedules: [],             // [{ date: 'YYYY-MM-DD', time: 'HH:MM' }]
     tempSchedules: [],                // Working copy for modal
     isDeletingCycle: false,
+    isCancellingCycle: false,
+    scheduleHistoryData: null,
+    selectedLogFilter: 'all',
     isLoading: false,
     initialized: false,
     searchDebounceTimer: null
@@ -432,23 +435,44 @@
 
     const modal = document.getElementById('feesDeleteCycleModal');
     const title = document.getElementById('feesDeleteCycleTitle');
-    const warningText = document.getElementById('feesDeleteCycleWarningText');
+    const standardBox = document.getElementById('feesDeleteCycleStandardBox');
+    const paidNotice = document.getElementById('feesDeleteCyclePaidNotice');
+    const paidCountWarning = document.getElementById('feesPaidCountWarning');
     const confirmBtn = document.getElementById('btnConfirmDeleteCycle');
+    const cancelInsteadBtn = document.getElementById('btnCancelCycleInstead');
     const spinner = document.getElementById('btnDeleteCycleSpinner');
     const btnText = document.getElementById('btnDeleteCycleText');
 
     if (!modal) return;
 
+    const paidCount = parseInt(state.summaryData.paid || 0, 10);
+    const hasPaidRecords = paidCount > 0;
+
     if (title) {
-      title.textContent = `Delete ${state.contextTargetMonth.label}?`;
-    }
-    if (warningText) {
-      warningText.innerHTML = `Are you sure you want to delete this payment cycle?<br><br><strong>This will delete all payment data for this payment cycle.</strong>`;
+      title.textContent = `${hasPaidRecords ? 'Cancel' : 'Delete'} ${state.contextTargetMonth.label}?`;
     }
 
-    if (confirmBtn) confirmBtn.disabled = false;
+    if (hasPaidRecords) {
+      if (standardBox) standardBox.style.display = 'none';
+      if (paidNotice) paidNotice.style.display = 'block';
+      if (paidCountWarning) paidCountWarning.textContent = String(paidCount);
+      if (confirmBtn) confirmBtn.style.display = 'none';
+      if (cancelInsteadBtn) {
+        cancelInsteadBtn.style.display = 'inline-flex';
+        cancelInsteadBtn.disabled = false;
+      }
+    } else {
+      if (standardBox) standardBox.style.display = 'flex';
+      if (paidNotice) paidNotice.style.display = 'none';
+      if (confirmBtn) {
+        confirmBtn.style.display = 'inline-flex';
+        confirmBtn.disabled = false;
+      }
+      if (cancelInsteadBtn) cancelInsteadBtn.style.display = 'none';
+    }
+
     if (spinner) spinner.style.display = 'none';
-    if (btnText) btnText.textContent = 'Delete';
+    if (btnText) btnText.textContent = 'Delete Unpaid Cycle';
 
     openModal('feesDeleteCycleModal');
   }
@@ -484,31 +508,47 @@
         })
       });
 
+      const data = await response.json().catch(() => ({}));
+
+      if (response.status === 400 && data.error === 'CYCLE_HAS_PAID_RECORDS') {
+        // Cycle contains paid records: switch confirmation modal dynamically to Cancel Cycle option
+        const standardBox = document.getElementById('feesDeleteCycleStandardBox');
+        const paidNotice = document.getElementById('feesDeleteCyclePaidNotice');
+        const paidCountWarning = document.getElementById('feesPaidCountWarning');
+        const cancelInsteadBtn = document.getElementById('btnCancelCycleInstead');
+
+        if (standardBox) standardBox.style.display = 'none';
+        if (paidNotice) paidNotice.style.display = 'block';
+        if (paidCountWarning) paidCountWarning.textContent = String(data.paid_count || 1);
+        if (confirmBtn) confirmBtn.style.display = 'none';
+        if (cancelInsteadBtn) {
+          cancelInsteadBtn.style.display = 'inline-flex';
+          cancelInsteadBtn.disabled = false;
+        }
+        return;
+      }
+
       if (!response.ok) {
         if (response.status === 403) {
           throw new Error('Access denied: Only Super Admin can delete payment cycles.');
         }
-        throw new Error(`Server returned HTTP ${response.status}`);
+        throw new Error(data.error || `Server returned HTTP ${response.status}`);
       }
 
-      const data = await response.json();
       if (!data.success) {
         throw new Error(data.error || 'Failed to delete payment cycle.');
       }
 
       closeDeleteCycleConfirmationModal();
 
-      // If the deleted month was currently selected, reset selectedMonth so next available or empty state loads
       if (state.selectedMonth === targetMonth.date) {
         state.selectedMonth = '';
         state.selectedMonthLabel = '';
       }
 
-      // Close dropdown if open
       const monthDropdown = document.getElementById('feesMonthDropdown');
       if (monthDropdown) monthDropdown.style.display = 'none';
 
-      // Immediately refresh dashboard and dropdown dynamically from backend without page reload
       await fetchFeesData();
 
     } catch (err) {
@@ -519,7 +559,307 @@
       if (confirmBtn) confirmBtn.disabled = false;
       if (cancelBtn) cancelBtn.disabled = false;
       if (spinner) spinner.style.display = 'none';
-      if (btnText) btnText.textContent = 'Delete';
+      if (btnText) btnText.textContent = 'Delete Unpaid Cycle';
+    }
+  }
+
+  async function handleCancelPaymentCycle() {
+    if (state.isCancellingCycle || !state.contextTargetMonth) return;
+    state.isCancellingCycle = true;
+
+    const cancelInsteadBtn = document.getElementById('btnCancelCycleInstead');
+    const cancelBtn = document.getElementById('btnCancelDeleteCycle');
+    const spinner = document.getElementById('btnCancelCycleSpinner');
+    const btnText = document.getElementById('btnCancelCycleText');
+
+    if (cancelInsteadBtn) cancelInsteadBtn.disabled = true;
+    if (cancelBtn) cancelBtn.disabled = true;
+    if (spinner) spinner.style.display = 'inline-block';
+    if (btnText) btnText.textContent = 'Cancelling Cycle...';
+
+    const targetMonth = state.contextTargetMonth;
+
+    try {
+      const response = await fetch(FEES_API_URL, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({
+          action: 'cancel_cycle',
+          fee_month: targetMonth.date
+        })
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to cancel payment cycle.');
+      }
+
+      closeDeleteCycleConfirmationModal();
+      await fetchFeesData();
+
+    } catch (err) {
+      console.error('Error cancelling payment cycle:', err);
+      alert('Unable to cancel payment cycle: ' + (err.message || 'Unknown error'));
+    } finally {
+      state.isCancellingCycle = false;
+      if (cancelInsteadBtn) cancelInsteadBtn.disabled = false;
+      if (cancelBtn) cancelBtn.disabled = false;
+      if (spinner) spinner.style.display = 'none';
+      if (btnText) btnText.textContent = 'Cancel Cycle Instead';
+    }
+  }
+
+  // ==========================================================================
+  // SCHEDULE & RECIPIENT NOTIFICATION HISTORY CONTROLLER
+  // ==========================================================================
+
+  function openScheduleHistoryModal() {
+    const modal = document.getElementById('feesScheduleHistoryModal');
+    if (!modal) return;
+
+    const monthLabel = state.selectedMonthLabel || 'Selected Month';
+    const titleEl = document.getElementById('feesHistoryTitle');
+    if (titleEl) {
+      titleEl.textContent = `${monthLabel} — Notification History`;
+    }
+
+    openModal('feesScheduleHistoryModal');
+    fetchScheduleHistory(state.selectedMonth);
+  }
+
+  function closeScheduleHistoryModal() {
+    closeModal('feesScheduleHistoryModal');
+  }
+
+  async function fetchScheduleHistory(month) {
+    const container = document.getElementById('feesHistorySchedulesContainer');
+    const tbody = document.getElementById('feesHistoryLogsTbody');
+    const emptyLogs = document.getElementById('feesHistoryLogsEmpty');
+
+    if (container) {
+      container.innerHTML = '<div style="text-align:center; padding:1.25rem; color:var(--text-secondary); font-size:0.8rem;">Loading schedules and delivery records...</div>';
+    }
+    if (tbody) tbody.innerHTML = '';
+    if (emptyLogs) emptyLogs.style.display = 'none';
+
+    try {
+      const params = new URLSearchParams({
+        action: 'get_cycle_schedules',
+        month: month || '',
+        include_logs: '1'
+      });
+
+      const response = await fetch(`${FEES_API_URL}?${params.toString()}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server returned HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to load schedule history.');
+      }
+
+      state.scheduleHistoryData = data;
+      renderScheduleHistory();
+
+    } catch (err) {
+      console.error('Error fetching schedule history:', err);
+      if (container) {
+        container.innerHTML = `
+          <div style="text-align:center; padding:1rem; color:var(--color-danger); font-size:0.8rem;">
+            Failed to load history: ${safeEscape(err.message)}
+          </div>
+        `;
+      }
+    }
+  }
+
+  function renderScheduleHistory() {
+    const data = state.scheduleHistoryData;
+    if (!data) return;
+
+    // 1. Overview Metrics Strip
+    const stats = data.stats || {};
+    const setVal = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = String(val ?? 0);
+    };
+
+    setVal('feesHistoryStatSchedules', stats.total_schedules || 0);
+    setVal('feesHistoryStatRecipients', stats.total_recipients || 0);
+    setVal('feesHistoryStatSent', stats.sent || 0);
+    setVal('feesHistoryStatDelivered', stats.delivered || 0);
+    setVal('feesHistoryStatRead', stats.read || 0);
+    setVal('feesHistoryStatFailed', stats.failed || 0);
+    setVal('feesHistoryStatSkipped', stats.skipped || 0);
+
+    const cycleStatusEl = document.getElementById('feesHistoryCycleStatus');
+    if (cycleStatusEl) {
+      const cStatus = data.cycle_status || 'Active';
+      cycleStatusEl.textContent = `Cycle ${cStatus}`;
+      if (cStatus === 'Cancelled') {
+        cycleStatusEl.style.background = 'rgba(239, 68, 68, 0.15)';
+        cycleStatusEl.style.color = '#f87171';
+      } else {
+        cycleStatusEl.style.background = 'rgba(56, 189, 248, 0.12)';
+        cycleStatusEl.style.color = '#38bdf8';
+      }
+    }
+
+    // 2. Schedules List
+    const schedulesContainer = document.getElementById('feesHistorySchedulesContainer');
+    const schedules = data.schedules || [];
+
+    if (schedulesContainer) {
+      if (schedules.length === 0) {
+        schedulesContainer.innerHTML = `
+          <div style="text-align:center; padding:1rem; color:var(--text-muted); font-size:0.78rem; background:rgba(255,255,255,0.02); border-radius:6px;">
+            No reminder schedules configured for this month.
+          </div>
+        `;
+      } else {
+        schedulesContainer.innerHTML = schedules.map(s => {
+          const isPending = (s.status === 'Scheduled');
+          const isProcessing = (s.status === 'Processing');
+          const isSent = (s.status === 'Sent');
+          const isCancelled = (s.status === 'Cancelled');
+
+          let badgeColor = '#38bdf8';
+          let badgeBg = 'rgba(56, 189, 248, 0.12)';
+          if (isProcessing) { badgeColor = '#f59e0b'; badgeBg = 'rgba(245, 158, 11, 0.15)'; }
+          else if (isSent) { badgeColor = '#34d399'; badgeBg = 'rgba(16, 185, 129, 0.15)'; }
+          else if (isCancelled) { badgeColor = '#94a3b8'; badgeBg = 'rgba(148, 163, 184, 0.15)'; }
+
+          return `
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:0.65rem 0.85rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:8px; gap:0.5rem; flex-wrap:wrap;">
+              <div style="display:flex; align-items:center; gap:0.6rem;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${badgeColor}" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <div>
+                  <div style="font-size:0.8rem; font-weight:600; color:var(--text-primary);">
+                    ${safeEscape(s.scheduled_time)} (IST)
+                  </div>
+                  <div style="font-size:0.68rem; color:var(--text-secondary);">
+                    Recipients: ${s.total_recipients || 0} &bull; Sent: ${s.sent_count || 0} &bull; Failed: ${s.failed_count || 0}
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:0.45rem;">
+                <span style="font-size:0.68rem; font-weight:700; padding:0.18rem 0.55rem; border-radius:4px; background:${badgeBg}; color:${badgeColor};">
+                  ${safeEscape(s.status)}
+                </span>
+                ${isPending ? `
+                  <button type="button" class="btn-cancel-schedule-item" data-notification-id="${s.notification_id}" style="font-size:0.68rem; padding:0.2rem 0.55rem; background:rgba(239, 68, 68, 0.12); border:1px solid rgba(239, 68, 68, 0.3); color:#f87171; border-radius:4px; cursor:pointer;" title="Cancel this scheduled reminder">
+                    Cancel
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        // Attach cancel schedule listeners
+        schedulesContainer.querySelectorAll('.btn-cancel-schedule-item').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const notifId = parseInt(btn.dataset.notificationId, 10);
+            if (confirm('Are you sure you want to cancel this scheduled notification?')) {
+              handleCancelSchedule(notifId);
+            }
+          });
+        });
+      }
+    }
+
+    // 3. Recipient Delivery Logs
+    renderHistoryLogs();
+  }
+
+  function renderHistoryLogs() {
+    const data = state.scheduleHistoryData;
+    if (!data) return;
+
+    const tbody = document.getElementById('feesHistoryLogsTbody');
+    const emptyLogs = document.getElementById('feesHistoryLogsEmpty');
+    const logs = data.logs || [];
+    const filter = state.selectedLogFilter || 'all';
+
+    const filtered = (filter === 'all')
+      ? logs
+      : logs.filter(l => (l.status || '').toLowerCase() === filter.toLowerCase());
+
+    if (!tbody) return;
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '';
+      if (emptyLogs) emptyLogs.style.display = 'block';
+      return;
+    }
+
+    if (emptyLogs) emptyLogs.style.display = 'none';
+
+    tbody.innerHTML = filtered.map(log => {
+      let stColor = '#94a3b8';
+      let stBg = 'rgba(148, 163, 184, 0.12)';
+      const st = (log.status || '').toLowerCase();
+      if (st === 'sent') { stColor = '#38bdf8'; stBg = 'rgba(56, 189, 248, 0.15)'; }
+      else if (st === 'delivered') { stColor = '#34d399'; stBg = 'rgba(16, 185, 129, 0.15)'; }
+      else if (st === 'read') { stColor = '#a78bfa'; stBg = 'rgba(139, 92, 246, 0.15)'; }
+      else if (st === 'failed') { stColor = '#f87171'; stBg = 'rgba(239, 68, 68, 0.15)'; }
+      else if (st === 'skipped') { stColor = '#fbbf24'; stBg = 'rgba(245, 158, 11, 0.15)'; }
+
+      const notes = log.error_message || log.error_code || (st === 'delivered' ? 'Confirmed by Meta' : '-');
+
+      return `
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+          <td style="padding:0.55rem 0.75rem; font-weight:600; color:var(--text-primary);">${safeEscape(log.student_name || 'Student')}</td>
+          <td style="padding:0.55rem 0.75rem; color:var(--text-secondary); font-family:monospace;">${safeEscape(log.recipient_phone || '-')}</td>
+          <td style="padding:0.55rem 0.75rem;">
+            <span style="font-size:0.65rem; font-weight:700; text-transform:uppercase; padding:0.15rem 0.45rem; border-radius:4px; background:${stBg}; color:${stColor};">
+              ${safeEscape(log.status || 'unknown')}
+            </span>
+          </td>
+          <td style="padding:0.55rem 0.75rem; color:var(--text-muted); font-size:0.7rem;">${safeEscape(log.provider || 'meta_whatsapp')}</td>
+          <td style="padding:0.55rem 0.75rem; color:var(--text-secondary); font-size:0.7rem;">${safeEscape(notes)}</td>
+          <td style="padding:0.55rem 0.75rem; color:var(--text-muted); font-size:0.68rem;">${safeEscape(log.updated_at || '-')}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  async function handleCancelSchedule(notificationId) {
+    try {
+      const response = await fetch(FEES_API_URL, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({
+          action: 'cancel_schedule',
+          notification_id: notificationId
+        })
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to cancel schedule.');
+      }
+
+      // Refresh schedule history modal and dashboard
+      await fetchScheduleHistory(state.selectedMonth);
+      await fetchFeesData();
+
+    } catch (err) {
+      console.error('Error cancelling schedule:', err);
+      alert('Unable to cancel schedule: ' + (err.message || 'Unknown error'));
     }
   }
 
@@ -1626,12 +1966,68 @@
       btnConfirmDelete.addEventListener('click', handleDeletePaymentCycle);
     }
 
+    const btnCancelCycle = document.getElementById('btnCancelCycleInstead');
+    if (btnCancelCycle) {
+      btnCancelCycle.addEventListener('click', handleCancelPaymentCycle);
+    }
+
     const deleteModalOverlay = document.getElementById('feesDeleteCycleModal');
     if (deleteModalOverlay) {
       deleteModalOverlay.addEventListener('click', (e) => {
         if (e.target === deleteModalOverlay) closeDeleteCycleConfirmationModal();
       });
     }
+
+    // Schedule History Modal triggers
+    const schedPill = document.getElementById('feesSchedulePill');
+    if (schedPill) {
+      schedPill.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openScheduleHistoryModal();
+      });
+      schedPill.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openScheduleHistoryModal();
+        }
+      });
+    }
+
+    const closeHistoryBtn = document.getElementById('closeFeesScheduleHistoryModal');
+    if (closeHistoryBtn) {
+      closeHistoryBtn.addEventListener('click', closeScheduleHistoryModal);
+    }
+
+    const btnCloseHistoryFooter = document.getElementById('btnCloseScheduleHistoryModal');
+    if (btnCloseHistoryFooter) {
+      btnCloseHistoryFooter.addEventListener('click', closeScheduleHistoryModal);
+    }
+
+    const historyModalOverlay = document.getElementById('feesScheduleHistoryModal');
+    if (historyModalOverlay) {
+      historyModalOverlay.addEventListener('click', (e) => {
+        if (e.target === historyModalOverlay) closeScheduleHistoryModal();
+      });
+    }
+
+    // Recipient Log Filter Tabs
+    const logFilterBtns = document.querySelectorAll('.fees-log-filter-btn');
+    logFilterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.selectedLogFilter = btn.dataset.logFilter || 'all';
+        logFilterBtns.forEach(b => {
+          b.classList.remove('active');
+          b.style.background = 'transparent';
+          b.style.borderColor = 'transparent';
+          b.style.color = 'var(--text-secondary)';
+        });
+        btn.classList.add('active');
+        btn.style.background = 'rgba(255,255,255,0.08)';
+        btn.style.borderColor = 'rgba(255,255,255,0.15)';
+        btn.style.color = 'var(--text-primary)';
+        renderHistoryLogs();
+      });
+    });
 
     // Schedule Notifications Configuration Modal triggers
     const btnOpenSchedule = document.getElementById('btnOpenScheduleModal');
@@ -1698,6 +2094,10 @@
     closeMonthActionPopup();
   }
 
+  // Global window modal hook for utils.js activeModalStack
+  window.closeScheduleHistoryModal = closeScheduleHistoryModal;
+  window.openScheduleHistoryModal = openScheduleHistoryModal;
+
   // ==========================================================================
   // 7. PUBLIC INIT FUNCTION
   // ==========================================================================
@@ -1730,6 +2130,10 @@
     openDeleteCycleConfirmationModal,
     closeDeleteCycleConfirmationModal,
     handleDeletePaymentCycle,
+    handleCancelPaymentCycle,
+    openScheduleHistoryModal,
+    closeScheduleHistoryModal,
+    handleCancelSchedule,
     openScheduleModal,
     closeScheduleModal,
     renderScheduleRows,

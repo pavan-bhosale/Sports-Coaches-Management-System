@@ -10461,6 +10461,41 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 }
 
+/* Schedule History Modal & Delivery Logs */
+.fees-schedule-history-modal {
+  max-width: 780px !important;
+  width: 95%;
+  max-height: 90vh;
+  box-sizing: border-box;
+}
+
+.fees-log-filter-btn {
+  font-family: var(--font-body, inherit);
+  transition: all 0.15s ease;
+}
+
+.fees-log-filter-btn:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--text-primary) !important;
+}
+
+.btn-cancel-schedule-item {
+  font-family: var(--font-body, inherit);
+  transition: all 0.15s ease;
+}
+
+.btn-cancel-schedule-item:hover {
+  background: rgba(239, 68, 68, 0.25) !important;
+  border-color: #ef4444 !important;
+  color: #fff !important;
+}
+
+.fees-schedule-pill:hover {
+  background: rgba(56, 189, 248, 0.22) !important;
+  border-color: #38bdf8 !important;
+  transform: translateY(-1px);
+}
+
 /* ==========================================================================
    FEES & COLLECTIONS - NEW PAYMENT MODAL COMPACT STYLES
    ========================================================================== */

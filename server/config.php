@@ -149,6 +149,40 @@ if (!function_exists('getTwilioConfig')) {
     }
 }
 
+if (!function_exists('getMetaWhatsAppConfig')) {
+    /**
+     * Returns Meta WhatsApp Cloud API configuration for Coexistence route.
+     * Never exposes credentials to client or public logs.
+     */
+    function getMetaWhatsAppConfig() {
+        return [
+            'enabled'              => strtolower(getEnvConfig('META_WA_ENABLED', 'false')) === 'true',
+            'test_mode'            => strtolower(getEnvConfig('META_WA_TEST_MODE', 'true')) === 'true',
+            'access_token'         => getEnvConfig('META_WA_ACCESS_TOKEN', ''),
+            'phone_number_id'      => getEnvConfig('META_WA_PHONE_NUMBER_ID', ''),
+            'waba_id'              => getEnvConfig('META_WA_WABA_ID', ''),
+            'api_version'          => getEnvConfig('META_WA_API_VERSION', 'v20.0'),
+            'webhook_verify_token' => getEnvConfig('META_WA_WEBHOOK_VERIFY_TOKEN', ''),
+            'app_secret'           => getEnvConfig('META_WA_APP_SECRET', ''),
+            'template_name'        => getEnvConfig('META_WA_TEMPLATE_NAME', 'fee_payment_reminder'),
+            'template_lang'        => getEnvConfig('META_WA_TEMPLATE_LANG', 'en_US'),
+            'coexistence_enabled'  => strtolower(getEnvConfig('META_WA_COEXISTENCE_ENABLED', 'false')) === 'true'
+        ];
+    }
+}
+
+if (!function_exists('getSchedulerWorkerConfig')) {
+    /**
+     * Returns background scheduler worker security configuration.
+     */
+    function getSchedulerWorkerConfig() {
+        return [
+            'worker_secret'            => getEnvConfig('WORKER_SECRET', ''),
+            'recovery_timeout_minutes' => intval(getEnvConfig('WORKER_RECOVERY_TIMEOUT_MINUTES', '15'))
+        ];
+    }
+}
+
 if (!function_exists('formatSafeErrorMessage')) {
     /**
      * Formats exception messages safely depending on environment.
@@ -164,4 +198,3 @@ if (!function_exists('formatSafeErrorMessage')) {
         return $fallback;
     }
 }
-?>

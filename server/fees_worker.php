@@ -14,15 +14,43 @@ require_once __DIR__ . '/db_connect.php';
 require_once __DIR__ . '/twilio_config.php';
 require_once __DIR__ . '/fees_scheduler_service.php';
 
-// Security: If called via HTTP web server, enforce secret or Super Admin
-if (php_sapi_name() !== 'cli') {
-    $secret = $_GET['secret'] ?? '';
-    $expectedSecret = getenv('WORKER_SECRET') ?: 'vava_scheduler_secret_2026';
-    $role = strtolower(trim($_SERVER['HTTP_X_VAVA_ROLE'] ?? $_GET['role'] ?? ''));
+// Security: If called via HTTP web server, enforce strong environment-backed secret
+$isHttp = (php_sapi_name() !== 'cli' || !empty($_SERVER['REMOTE_ADDR']));
+if ($isHttp) {
+    // 1. Never allow bypass via role query parameter or client HTTP headers
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
+    $secret = '';
+    if (preg_match('/^Bearer\s+(.+)$/i', trim($authHeader), $m)) {
+        $secret = trim($m[1]);
+    } elseif (!empty($_GET['secret'])) {
+        $secret = trim($_GET['secret']);
+    } elseif (!empty($_POST['secret'])) {
+        $secret = trim($_POST['secret']);
+    }
 
-    if ($secret !== $expectedSecret && $role !== 'admin' && $role !== 'superadmin') {
+    $expectedSecret = function_exists('getEnvConfig') ? getEnvConfig('WORKER_SECRET') : getenv('WORKER_SECRET');
+
+    // Reject execution if worker secret is not configured in environment
+    if (empty($expectedSecret) || strlen($expectedSecret) < 16) {
+        http_response_code(500);
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'error'   => 'WORKER_MISCONFIGURED',
+            'message' => 'Worker secret is not configured or too weak in server environment. HTTP execution is disabled.'
+        ]);
+        exit;
+    }
+
+    // Constant-time comparison to prevent timing attacks
+    if (empty($secret) || !hash_equals((string)$expectedSecret, (string)$secret)) {
         http_response_code(403);
-        echo json_encode(['success' => false, 'error' => 'Access denied. Worker secret or Super Admin required.']);
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'error'   => 'ACCESS_DENIED',
+            'message' => 'Access denied. A valid worker secret is required to invoke this endpoint via HTTP.'
+        ]);
         exit;
     }
 }

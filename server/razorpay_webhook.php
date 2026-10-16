@@ -111,7 +111,8 @@ if ($eventType === 'payment.captured' || $eventType === 'order.paid') {
                 razorpay_order_id = COALESCE(NULLIF(?, ''), razorpay_order_id),
                 payment_method = ?,
                 paid_amount = ?,
-                paid_at = NOW()
+                paid_at = NOW(),
+                deleted_at = NULL
             WHERE fee_id = ?
         ");
         $updateStmt->execute([$paymentId, $orderId, $method, $amountInRupees, $targetFeeId]);

@@ -156,6 +156,8 @@ window.addEventListener('popstate', (e) => {
         closeScheduleModal();
       } else if (topModalId === 'feesDeleteCycleModal' && typeof closeDeleteCycleConfirmationModal === 'function') {
         closeDeleteCycleConfirmationModal();
+      } else if (topModalId === 'feesScheduleHistoryModal' && typeof closeScheduleHistoryModal === 'function') {
+        closeScheduleHistoryModal();
       } else {
         closeModal(topModalId);
       }
@@ -531,6 +533,8 @@ document.addEventListener('DOMContentLoaded', () => {
         closeScheduleModal();
       } else if (topModalId === 'feesDeleteCycleModal' && typeof closeDeleteCycleConfirmationModal === 'function') {
         closeDeleteCycleConfirmationModal();
+      } else if (topModalId === 'feesScheduleHistoryModal' && typeof closeScheduleHistoryModal === 'function') {
+        closeScheduleHistoryModal();
       } else {
         closeModal(topModalId);
       }

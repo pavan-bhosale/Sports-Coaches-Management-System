@@ -82,6 +82,7 @@ require_once 'db_connect.php';
 require_once 'activity_logger.php';
 require_once 'razorpay_config.php';
 require_once 'twilio_config.php';
+require_once 'meta_whatsapp_service.php';
 require_once 'fees_scheduler_service.php';
 
 // Helper to normalize month string to YYYY-MM-01
@@ -378,7 +379,7 @@ try {
             exit;
         }
 
-        // 4. Database Transaction: Create fee records & notification schedules atomically
+        // 4. Database Transaction: Create cycle, fee records & notification schedules atomically
         $dueDate = date('Y-m-10', strtotime($feeMonth));
         $defaultBatchId = 1;
         $firstBatchStmt = $pdo->query("SELECT batch_id FROM vsa_batches LIMIT 1");
@@ -386,23 +387,36 @@ try {
             $defaultBatchId = intval($fb['batch_id']);
         }
 
-        $insertFeeStmt = $pdo->prepare("
-            INSERT INTO vsa_student_fees 
-                (student_id, batch_id, fee_month, due_date, fee_amount, payment_status)
-            VALUES 
-                (?, ?, ?, ?, ?, 'Unpaid')
-        ");
-
-        $insertNotifStmt = $pdo->prepare("
-            INSERT INTO vsa_payment_notifications 
-                (fee_month, scheduled_at, status, total_students, sent_count, failed_count)
-            VALUES 
-                (?, ?, 'Scheduled', ?, 0, 0)
-        ");
-
         $recordsCreated = 0;
         try {
             $pdo->beginTransaction();
+
+            // 4.1 Ensure stable record in vsa_payment_cycles
+            $adminId = intval($currentAdmin['admin_id'] ?? 0);
+            $cycleStmt = $pdo->prepare("
+                INSERT INTO vsa_payment_cycles (fee_month, cycle_status, created_by, created_at)
+                VALUES (?, 'Active', ?, NOW())
+                ON DUPLICATE KEY UPDATE cycle_status = 'Active', cancelled_at = NULL
+            ");
+            $cycleStmt->execute([$feeMonth, $adminId > 0 ? $adminId : null]);
+
+            $cIdStmt = $pdo->prepare("SELECT cycle_id FROM vsa_payment_cycles WHERE fee_month = ? LIMIT 1");
+            $cIdStmt->execute([$feeMonth]);
+            $cycleId = intval($cIdStmt->fetchColumn() ?: 0);
+
+            $insertFeeStmt = $pdo->prepare("
+                INSERT INTO vsa_student_fees 
+                    (student_id, cycle_id, batch_id, fee_month, due_date, fee_amount, payment_status)
+                VALUES 
+                    (?, ?, ?, ?, ?, ?, 'Unpaid')
+            ");
+
+            $insertNotifStmt = $pdo->prepare("
+                INSERT INTO vsa_payment_notifications 
+                    (cycle_id, fee_month, scheduled_at, status, total_students, sent_count, failed_count)
+                VALUES 
+                    (?, ?, ?, 'Scheduled', ?, 0, 0)
+            ");
 
             foreach ($activeStudents as $st) {
                 $studentId = intval($st['student_id']);
@@ -415,18 +429,19 @@ try {
                     $feeAmount = floatval($st['batch_standard_fee']);
                 }
 
-                $insertFeeStmt->execute([$studentId, $batchId, $feeMonth, $dueDate, $feeAmount]);
+                $insertFeeStmt->execute([$studentId, $cycleId > 0 ? $cycleId : null, $batchId, $feeMonth, $dueDate, $feeAmount]);
                 $recordsCreated++;
             }
 
             foreach ($validatedSchedules as $sch) {
-                $insertNotifStmt->execute([$feeMonth, $sch['scheduled_at'], count($activeStudents)]);
+                $insertNotifStmt->execute([$cycleId > 0 ? $cycleId : null, $feeMonth, $sch['scheduled_at'], count($activeStudents)]);
             }
 
             $pdo->commit();
 
-            recordActivity($pdo, 'FEES', 'Created', 'Payment Cycle', null, $monthLabel, "Started fee payment cycle for {$monthLabel} ({$recordsCreated} students)", [
+            recordActivity($pdo, 'FEES', 'Created', 'Payment Cycle', $cycleId, $monthLabel, "Started fee payment cycle for {$monthLabel} ({$recordsCreated} students)", [
                 'fee_month'       => $feeMonth,
+                'cycle_id'        => $cycleId,
                 'month_label'     => $monthLabel,
                 'records_created' => $recordsCreated
             ], $input);
@@ -442,12 +457,13 @@ try {
             exit;
         }
 
-        // Return clean success without calling Twilio immediately!
+        // Return clean success without calling messaging API immediately!
         echo json_encode([
             'success'                 => true,
             'month'                   => $month,
             'year'                    => intval($year),
             'fee_month'               => $feeMonth,
+            'cycle_id'                => $cycleId ?? null,
             'month_label'             => $monthLabel,
             'payment_records_created' => $recordsCreated,
             'schedules_count'         => count($validatedSchedules),
@@ -459,7 +475,7 @@ try {
         exit;
     }
 
-    // ── 0.3 DELETE PAYMENT CYCLE (Super Admin Only) ──────────────────────────
+    // ── 0.3 DELETE PAYMENT CYCLE (Super Admin Only with Paid Record Safeguard)
     if ($action === 'delete_cycle') {
         if ($method !== 'POST' && $method !== 'DELETE') {
             http_response_code(405);
@@ -483,28 +499,111 @@ try {
             exit;
         }
 
-        // Validate fee_month format YYYY-MM-01
         if (!preg_match('/^\d{4}-\d{2}-01$/', $feeMonth)) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Invalid fee_month format.']);
             exit;
         }
 
+        // CRITICAL SAFEGUARD 1: Check if any fee records for this cycle have financial history (FIN-01)
+        // Blocks deletion if any fee record is 'Paid', 'Refunded', has paid_amount > 0, or has payment references
+        $financialCheckStmt = $pdo->prepare("
+            SELECT COUNT(*) FROM vsa_student_fees 
+            WHERE fee_month = ? 
+              AND (
+                  payment_status IN ('Paid', 'Refunded') 
+                  OR (paid_amount IS NOT NULL AND paid_amount > 0)
+                  OR razorpay_payment_id IS NOT NULL
+                  OR paid_at IS NOT NULL
+              )
+        ");
+        $financialCheckStmt->execute([$feeMonth]);
+        $financialCount = intval($financialCheckStmt->fetchColumn() ?: 0);
+
+        if ($financialCount > 0) {
+            http_response_code(400);
+            echo json_encode([
+                'success'         => false,
+                'error'           => 'CYCLE_HAS_FINANCIAL_RECORDS',
+                'message'         => "Cannot delete payment cycle. $financialCount student fee record(s) contain financial history (Paid, Refunded, or recorded payments). Use Cancel Cycle to safely archive this cycle while preserving financial and audit integrity.",
+                'financial_count' => $financialCount
+            ]);
+            exit;
+        }
+
+        // CRITICAL SAFEGUARD 2: Check if any worker is actively processing reminders
+        $activeWorkerStmt = $pdo->prepare("SELECT COUNT(*) FROM vsa_payment_notifications WHERE fee_month = ? AND status = 'Processing'");
+        $activeWorkerStmt->execute([$feeMonth]);
+        if (intval($activeWorkerStmt->fetchColumn() ?: 0) > 0) {
+            http_response_code(409);
+            echo json_encode([
+                'success' => false,
+                'error'   => 'WORKER_ACTIVE',
+                'message' => 'Cannot delete payment cycle while notification reminders are actively processing.'
+            ]);
+            exit;
+        }
+
         try {
             $pdo->beginTransaction();
+
+            // Row-level lock on student fees to prevent concurrent payment recording
+            $lockStmt = $pdo->prepare("
+                SELECT fee_id, payment_status, paid_amount, razorpay_payment_id 
+                FROM vsa_student_fees 
+                WHERE fee_month = ? 
+                FOR UPDATE
+            ");
+            $lockStmt->execute([$feeMonth]);
+            $lockedFees = $lockStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Re-verify locked rows: if any row now has financial history, abort immediately
+            foreach ($lockedFees as $lf) {
+                if (in_array($lf['payment_status'], ['Paid', 'Refunded'], true) 
+                    || (floatval($lf['paid_amount'] ?? 0) > 0) 
+                    || !empty($lf['razorpay_payment_id'])) {
+                    $pdo->rollBack();
+                    http_response_code(400);
+                    echo json_encode([
+                        'success' => false,
+                        'error'   => 'CONCURRENT_PAYMENT_DETECTED',
+                        'message' => 'A payment was recorded while cycle deletion was processing. Cycle deletion aborted to protect financial data.'
+                    ]);
+                    exit;
+                }
+            }
+
+            // Delete notification logs associated with this cycle's schedules
+            $pdo->prepare("
+                DELETE l FROM vsa_student_notification_logs l
+                INNER JOIN vsa_payment_notifications n ON l.notification_id = n.notification_id
+                WHERE n.fee_month = ?
+            ")->execute([$feeMonth]);
 
             $delNotifStmt = $pdo->prepare("DELETE FROM vsa_payment_notifications WHERE fee_month = ?");
             $delNotifStmt->execute([$feeMonth]);
             $deletedNotifCount = $delNotifStmt->rowCount();
 
-            $deleteStmt = $pdo->prepare("DELETE FROM vsa_student_fees WHERE fee_month = ?");
+            // Safely delete only genuinely unpaid records with no financial history
+            $deleteStmt = $pdo->prepare("
+                DELETE FROM vsa_student_fees 
+                WHERE fee_month = ? 
+                  AND payment_status NOT IN ('Paid', 'Refunded')
+                  AND (paid_amount IS NULL OR paid_amount = 0)
+                  AND razorpay_payment_id IS NULL
+                  AND paid_at IS NULL
+            ");
             $deleteStmt->execute([$feeMonth]);
             $deletedCount = $deleteStmt->rowCount();
+
+            // Update or delete vsa_payment_cycles
+            $delCycleStmt = $pdo->prepare("DELETE FROM vsa_payment_cycles WHERE fee_month = ?");
+            $delCycleStmt->execute([$feeMonth]);
 
             $pdo->commit();
 
             $monthLabel = date('F Y', strtotime($feeMonth));
-            recordActivity($pdo, 'FEES', 'Deleted', 'Payment Cycle', null, $monthLabel, "Deleted payment cycle and scheduled notifications for {$monthLabel}", [
+            recordActivity($pdo, 'FEES', 'Deleted', 'Payment Cycle', null, $monthLabel, "Deleted payment cycle ({$monthLabel}) with {$deletedCount} unpaid records", [
                 'fee_month'       => $feeMonth,
                 'deleted_records' => $deletedCount
             ], $input);
@@ -526,39 +625,247 @@ try {
         exit;
     }
 
-    // ── 0.4 GET CYCLE SCHEDULED NOTIFICATIONS ────────────────────────────────
+    // ── 0.31 CANCEL PAYMENT CYCLE (Safe Lifecycle Alternative to Deletion) ──
+    if ($action === 'cancel_cycle') {
+        if ($method !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Method not allowed. Use POST.']);
+            exit;
+        }
+
+        $feeMonthParam = trim($input['fee_month'] ?? $_GET['fee_month'] ?? '');
+        if (empty($feeMonthParam) || !preg_match('/^\d{4}-\d{2}-01$/', $feeMonthParam)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Valid fee_month (YYYY-MM-01) is required.']);
+            exit;
+        }
+
+        try {
+            $pdo->beginTransaction();
+
+            // 1. Mark cycle Cancelled
+            $cUpd = $pdo->prepare("
+                UPDATE vsa_payment_cycles 
+                SET cycle_status = 'Cancelled', cancelled_at = NOW() 
+                WHERE fee_month = ?
+            ");
+            $cUpd->execute([$feeMonthParam]);
+
+            // 2. Cancel all future scheduled reminders
+            $nUpd = $pdo->prepare("
+                UPDATE vsa_payment_notifications 
+                SET status = 'Cancelled', error_message = 'Payment cycle was cancelled by administrator.' 
+                WHERE fee_month = ? AND status = 'Scheduled'
+            ");
+            $nUpd->execute([$feeMonthParam]);
+            $cancelledSchedules = $nUpd->rowCount();
+
+            // 3. Soft-cancel unpaid fee records (leave paid records untouched!)
+            $fUpd = $pdo->prepare("
+                UPDATE vsa_student_fees 
+                SET deleted_at = NOW() 
+                WHERE fee_month = ? AND payment_status != 'Paid' AND deleted_at IS NULL
+            ");
+            $fUpd->execute([$feeMonthParam]);
+            $softCancelledFees = $fUpd->rowCount();
+
+            $pdo->commit();
+
+            $monthLabel = date('F Y', strtotime($feeMonthParam));
+            recordActivity($pdo, 'FEES', 'Cancelled', 'Payment Cycle', null, $monthLabel, "Cancelled payment cycle {$monthLabel} ({$cancelledSchedules} reminder schedules cancelled)", [
+                'fee_month'           => $feeMonthParam,
+                'cancelled_schedules' => $cancelledSchedules,
+                'cancelled_fees'      => $softCancelledFees
+            ], $input);
+
+            echo json_encode([
+                'success'             => true,
+                'message'             => "Payment cycle for $monthLabel has been cancelled.",
+                'fee_month'           => $feeMonthParam,
+                'cancelled_schedules' => $cancelledSchedules,
+                'cancelled_fees'      => $softCancelledFees
+            ]);
+            exit;
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Database error cancelling cycle: ' . $e->getMessage()]);
+            exit;
+        }
+    }
+
+    // ── 0.32 CANCEL SINGLE SCHEDULED NOTIFICATION ────────────────────────────
+    if ($action === 'cancel_schedule') {
+        if ($method !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Method not allowed. Use POST.']);
+            exit;
+        }
+
+        $notificationId = intval($input['notification_id'] ?? $_GET['notification_id'] ?? 0);
+        if ($notificationId <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Valid notification_id is required.']);
+            exit;
+        }
+
+        $cancelStmt = $pdo->prepare("
+            UPDATE vsa_payment_notifications 
+            SET status = 'Cancelled', error_message = 'Cancelled by administrator.'
+            WHERE notification_id = ? AND status = 'Scheduled'
+        ");
+        $cancelStmt->execute([$notificationId]);
+
+        if ($cancelStmt->rowCount() === 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Notification schedule could not be cancelled. It may already be processed or cancelled.']);
+            exit;
+        }
+
+        recordActivity($pdo, 'FEES', 'Cancelled', 'Notification Schedule', $notificationId, "Schedule #{$notificationId}", "Cancelled reminder schedule #{$notificationId}", [
+            'notification_id' => $notificationId
+        ], $input);
+
+        echo json_encode([
+            'success'         => true,
+            'message'         => 'Scheduled notification cancelled successfully.',
+            'notification_id' => $notificationId
+        ]);
+        exit;
+    }
+
+    // ── 0.33 UPDATE STUDENT WHATSAPP CONSENT ─────────────────────────────────
+    if ($action === 'update_student_consent') {
+        if ($method !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Method not allowed. Use POST.']);
+            exit;
+        }
+
+        $studentId = intval($input['student_id'] ?? 0);
+        $consent = !empty($input['consent']) && ($input['consent'] === 1 || $input['consent'] === '1' || $input['consent'] === true) ? 1 : 0;
+        $source = trim($input['source'] ?? 'Admin Dashboard');
+
+        if ($studentId <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Valid student_id is required.']);
+            exit;
+        }
+
+        $upd = $pdo->prepare("
+            UPDATE vsa_students
+            SET whatsapp_consent = ?, 
+                whatsapp_consent_source = ?, 
+                whatsapp_consent_updated_at = NOW()
+            WHERE student_id = ?
+        ");
+        $upd->execute([$consent, $source, $studentId]);
+
+        recordActivity($pdo, 'STUDENT', 'Updated', 'Consent', $studentId, "Student #{$studentId}", "Updated WhatsApp messaging consent to " . ($consent ? 'Opted In' : 'Opted Out'), [
+            'student_id' => $studentId,
+            'consent'    => $consent,
+            'source'     => $source
+        ], $input);
+
+        echo json_encode([
+            'success'    => true,
+            'student_id' => $studentId,
+            'consent'    => $consent,
+            'message'    => 'WhatsApp consent updated successfully.'
+        ]);
+        exit;
+    }
+
+    // ── 0.4 GET CYCLE SCHEDULED NOTIFICATIONS & DELIVERY LOGS ────────────────
     if ($action === 'get_cycle_schedules') {
         $monthParam = $_GET['month'] ?? ($input['month'] ?? '');
         $feeMonthParam = $_GET['fee_month'] ?? ($input['fee_month'] ?? '');
+        $includeLogs = !empty($_GET['include_logs']) && ($_GET['include_logs'] === '1' || $_GET['include_logs'] === 'true');
+        $notifIdFilter = intval($_GET['notification_id'] ?? 0);
+
         if (!empty($feeMonthParam) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $feeMonthParam)) {
             $feeMonth = $feeMonthParam;
         } else {
             $feeMonth = parseMonthParam($monthParam);
         }
 
+        // Fetch cycle status
+        $cycleStmt = $pdo->prepare("SELECT cycle_id, cycle_status FROM vsa_payment_cycles WHERE fee_month = ? LIMIT 1");
+        $cycleStmt->execute([$feeMonth]);
+        $cycleRow = $cycleStmt->fetch(PDO::FETCH_ASSOC);
+        $cycleStatus = $cycleRow['cycle_status'] ?? 'Active';
+        $cycleId = intval($cycleRow['cycle_id'] ?? 0);
+
+        // Fetch schedules with aggregated delivery counts from vsa_student_notification_logs
         $stmt = $pdo->prepare("
             SELECT 
-                notification_id,
-                fee_month,
-                DATE_FORMAT(scheduled_at, '%Y-%m-%d %H:%i:%s') as scheduled_at,
-                DATE_FORMAT(scheduled_at, '%d/%m/%Y %h:%i %p') as scheduled_at_formatted,
-                status,
-                total_students,
-                sent_count,
-                failed_count,
-                error_message,
-                DATE_FORMAT(sent_at, '%d/%m/%Y %h:%i %p') as sent_at_formatted
-            FROM vsa_payment_notifications
-            WHERE fee_month = ?
-            ORDER BY scheduled_at ASC
+                n.notification_id,
+                n.cycle_id,
+                n.fee_month,
+                DATE_FORMAT(n.scheduled_at, '%Y-%m-%d %H:%i:%s') as scheduled_at,
+                DATE_FORMAT(n.scheduled_at, '%d/%m/%Y %h:%i %p') as scheduled_at_formatted,
+                n.status,
+                n.total_students,
+                n.sent_count,
+                n.failed_count,
+                n.error_message,
+                DATE_FORMAT(n.sent_at, '%d/%m/%Y %h:%i %p') as sent_at_formatted,
+                DATE_FORMAT(n.processing_started_at, '%d/%m/%Y %h:%i %p') as processing_started_at_formatted,
+                COALESCE(SUM(CASE WHEN l.status = 'delivered' OR l.status = 'read' THEN 1 ELSE 0 END), 0) as delivered_count,
+                COALESCE(SUM(CASE WHEN l.status = 'read' THEN 1 ELSE 0 END), 0) as read_count,
+                COALESCE(SUM(CASE WHEN l.status = 'skipped' THEN 1 ELSE 0 END), 0) as skipped_count
+            FROM vsa_payment_notifications n
+            LEFT JOIN vsa_student_notification_logs l ON n.notification_id = l.notification_id
+            WHERE n.fee_month = ?
+            GROUP BY n.notification_id
+            ORDER BY n.scheduled_at ASC
         ");
         $stmt->execute([$feeMonth]);
-        $schedules = $stmt->fetchAll();
+        $schedules = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $recipientLogs = [];
+        if ($includeLogs || $notifIdFilter > 0) {
+            $logSql = "
+                SELECT 
+                    l.log_id,
+                    l.notification_id,
+                    l.fee_id,
+                    l.student_id,
+                    s.student_name,
+                    l.recipient_phone,
+                    l.provider,
+                    l.meta_message_id,
+                    l.status,
+                    l.error_code,
+                    l.error_message,
+                    DATE_FORMAT(l.dispatched_at, '%d/%m/%Y %h:%i %p') as dispatched_at_formatted,
+                    DATE_FORMAT(l.delivered_at, '%d/%m/%Y %h:%i %p') as delivered_at_formatted,
+                    DATE_FORMAT(l.read_at, '%d/%m/%Y %h:%i %p') as read_at_formatted
+                FROM vsa_student_notification_logs l
+                INNER JOIN vsa_students s ON l.student_id = s.student_id
+                INNER JOIN vsa_payment_notifications n ON l.notification_id = n.notification_id
+                WHERE n.fee_month = ?
+            ";
+            $logParams = [$feeMonth];
+            if ($notifIdFilter > 0) {
+                $logSql .= " AND l.notification_id = ?";
+                $logParams[] = $notifIdFilter;
+            }
+            $logSql .= " ORDER BY l.log_id ASC LIMIT 250";
+            $logStmt = $pdo->prepare($logSql);
+            $logStmt->execute($logParams);
+            $recipientLogs = $logStmt->fetchAll(PDO::FETCH_ASSOC);
+        }
 
         echo json_encode([
-            'success'   => true,
-            'fee_month' => $feeMonth,
-            'schedules' => $schedules
+            'success'        => true,
+            'fee_month'      => $feeMonth,
+            'cycle_id'       => $cycleId,
+            'cycle_status'   => $cycleStatus,
+            'schedules'      => $schedules,
+            'recipient_logs' => $recipientLogs
         ]);
         exit;
     }
@@ -569,6 +876,7 @@ try {
         echo json_encode($result);
         exit;
     }
+
 
 
     // 1. GET FEES LIST (Default Action)
